@@ -212,10 +212,11 @@
   .panel-sub { font-size: 12.5px; color: var(--sub); font-weight: 600; }
   .panel-body { padding: 16px; }
 
-  /* Above-the-fold 2-column workspace (Blitz / DAK.GG density) */
+  /* Above-the-fold workspace & dedicated downloads view */
   .workspace-grid {
-    display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start;
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start;
   }
+  .downloads-wrap { max-width: 540px; margin: 12px auto 0; }
   .page-header {
     display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap;
     margin-bottom: 12px;
@@ -483,17 +484,17 @@
 </header>
 
 <main>
-  <!-- ── Overview & Action Rail (Above the fold, zero hero fluff) ── -->
+  <!-- ── Overview (Product showcase, clean single column) ── -->
   <section class="block" id="overview" data-view="home">
     <div class="page-header">
       <div>
-        <h1><span data-i18n="hero_title_a">Your next winning move,</span> <span class="h1-accent" data-i18n="hero_title_b">on screen every 2 seconds.</span></h1>
+        <h1><span data-i18n="hero_title_a">Real-Time</span> <span class="h1-accent" data-i18n="hero_title_b">LoL AI Coach</span></h1>
         <p class="hero-desc" data-i18n="hero_sub">Live win chance and the play to make now, right on top of your game. Ranked, Normal and ARAM.</p>
       </div>
     </div>
 
     <div class="workspace-grid">
-      <!-- Left Main Panel: Real In-Game Screenshot -->
+      <!-- Main Panel: Real In-Game Screenshot -->
       <div class="panel">
         <div class="panel-head">
           <h2 class="panel-title" data-i18n="live_panel_title">In-game screen</h2>
@@ -509,9 +510,13 @@
           <a href="https://github.com/wpalswpa/lol-pacemaker" rel="noopener noreferrer" style="color:var(--accent);font-weight:700;" data-i18n="btn_source">View Open Source →</a>
         </div>
       </div>
+    </div>
+  </section>
 
-      <!-- Right Action Rail: Downloads + Specs + Riot Policy Safe -->
-      <aside class="panel" id="downloads">
+  <!-- ── Dedicated Downloads View (opened via top-right Download App CTA) ── -->
+  <section class="block" id="downloads" data-view="downloads" hidden>
+    <div class="downloads-wrap">
+      <div class="panel">
         <div class="panel-head">
           <h2 class="panel-title" data-i18n="dl_head">Download Desktop App</h2>
           <span class="panel-sub">v0.2.2</span>
@@ -544,8 +549,12 @@
             <span data-i18n="dl_sha_t">SHA-256 Integrity Checksums</span>
             <small data-i18n="dl_sha_btn">Verify →</small>
           </a>
+          <a class="dl-btn-sec" href="#setup">
+            <span data-i18n="setup_head">How to set up</span>
+            <small>→</small>
+          </a>
         </div>
-      </aside>
+      </div>
     </div>
   </section>
 
@@ -706,8 +715,8 @@ const I18N = {
     nav_overview: "Product", nav_history: "Match History", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download App",
     live_panel_title: "In-game screen",
     hist_head: "Global Riot Match Lookup", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
-    hero_title_a: "Your next winning move,", hero_title_b: "on screen every 2 seconds.",
-    hero_sub: "Live win chance and the play to make now, right on top of your game. Ranked, Normal and ARAM.",
+    hero_title_a: "Real-Time", hero_title_b: "LoL AI Coach",
+    hero_sub: "Live win rate and real-time macro calls right over your League screen. Works in Ranked, Normal, and ARAM.",
     btn_source: "View Open Source →",
     m2_k: "Modes", m2_v: "Ranked · Normal · ARAM", m3_k: "Languages", m4_k: "Cost & Ads", m4_v: "100% Free · Zero Ads",
     ingame_cap: "The HUD on top of a real 5v5 match",
@@ -770,69 +779,69 @@ const I18N = {
   },
   ko: {
     game_lol: "리그 오브 레전드",
-    nav_overview: "제품 소개", nav_history: "전적 검색", nav_setup: "적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
-    live_panel_title: "인게임 화면",
-    hist_head: "글로벌 Riot 전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "검색", hist_loading: "전적을 불러오는 중...", hist_err: "소환사를 찾을 수 없거나 형식이 잘못되었습니다 (예: Hide on bush#KR1).", hist_win: "승리", hist_loss: "패배",
-    hero_title_a: "이 판을 뒤집을 다음 한 수,", hero_title_b: "2초마다 화면 위에.",
-    hero_sub: "경기 중 승률과 지금 해야 할 행동을 게임 화면 위에 띄워 줍니다. 랭크·일반·칼바람 자동 지원.",
+    nav_overview: "제품 소개", nav_history: "전적 검색", nav_setup: "설치 · 적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
+    live_panel_title: "실제 인게임 화면",
+    hist_head: "전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "검색", hist_loading: "불러오는 중...", hist_err: "소환사를 찾을 수 없습니다. (예: Hide on bush#KR1)", hist_win: "승리", hist_loss: "패배",
+    hero_title_a: "실시간", hero_title_b: "LoL AI 코치",
+    hero_sub: "롤 인게임 화면 위에 실시간 승률과 지금 할 일(오더)을 띄워줍니다. 랭크·일반·칼바람 모두 지원.",
     btn_source: "오픈소스 보기 →",
-    m2_k: "지원 모드", m2_v: "랭크 · 일반 · 칼바람", m3_k: "지원 언어", m4_k: "비용 · 광고", m4_v: "100% 무료 · 광고 0%",
-    ingame_cap: "실제 5대5 경기 화면 위에 뜬 HUD",
+    m2_k: "지원 모드", m2_v: "랭크 · 일반 · 칼바람", m3_k: "지원 언어", m4_k: "비용 · 광고", m4_v: "무료 · 광고 없음",
+    ingame_cap: "실제 5대5 경기 화면에 뜬 HUD",
     dl_head: "데스크톱 앱 다운로드",
-    dl_win_t: "Windows 10 / 11 (원클릭 설치 .exe)", dl_win_d: "롤 경기가 시작되면 자동으로 뜹니다",
-    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon (M1 이후) 맥",
-    dl_sha_t: "SHA-256 무결성 검증", dl_sha_d: "내려받은 파일이 원본과 같은지 확인할 때 씁니다.",
+    dl_win_t: "Windows 10 / 11 설치 파일 (.exe)", dl_win_d: "한 번 설치하면 롤 시작 시 자동으로 뜹니다",
+    dl_mac_t: "macOS 앱 (.app.zip)", dl_mac_d: "M1 이상 Apple Silicon 맥 전용",
+    dl_sha_t: "SHA-256 파일 검증", dl_sha_d: "내려받은 파일이 원본과 같은지 확인할 때 씁니다.",
     dl_sha_btn: "체크섬 →",
-    setup_head: "적용 방법",
-    s1_t: "원클릭 설치 & 자동 실행", s1_d: "LoLPacemaker-Setup.exe를 한 번 설치(또는 HUD 상단 AUTO 클릭)해 두면 다음부터 실행기를 찾지 않아도 롤 경기 시작 시 HUD가 자동으로 뜹니다.",
-    s2_t: "테두리 없는 창모드", s2_d: "롤 인게임 [설정 → 화면 → 창 모드]를 '테두리 없음(Borderless)'으로 맞춰야 투명 HUD가 게임 위에 뜹니다.",
-    s3_t: "전 모드 자동 연결", s3_d: "랭크, 일반, 칼바람(증바람), 연습모드 경기가 시작되면 2999 공식 API에 자동 연결되어 2초마다 오더를 갱신합니다.",
-    s4_t: "병행 HUD 단축키", s4_d: "드래그로 위치 이동, F8 클릭 통과, F9 숨김/표시, [ / ] 투명도 조절, 상단 버튼으로 5개 국어 즉시 전환.",
-    faq_head: "오류 해결 & 자주 묻는 질문",
-    q1: "게임 화면 위에 HUD가 보이지 않습니다.", a1: "롤 화면 설정이 '전체 화면'이면 OS 보안상 오버레이가 가려집니다. 화면 설정을 '테두리 없음(Borderless)'으로 변경해 주세요.",
-    q2: "Windows SmartScreen 또는 macOS 보안 경고가 뜹니다.", a2: "유료 코드 서명 인증서가 없는 무료 오픈소스 앱이라 뜨는 정상 안내입니다. GitHub에서 전체 소스코드를 확인하고 checksums.sha256으로 검증할 수 있습니다.",
-    q3: "경기 중에도 'Waiting for LoL...'에서 넘어가지 않습니다.", a3: "Riot 로컬 API(127.0.0.1:2999)는 로딩이 끝나고 경기에 진입한 직후 열립니다. 진입 후에도 대기 중이면 방화벽이 로컬 2999 포트를 막고 있는지 확인하세요.",
-    q4: "랭크나 칼바람에서 써도 Riot 운영방침에 위배되지 않나요?", a4: "네. Riot 공식 로컬 2999 공개 점수판·이벤트 API만 읽기 전용으로 사용합니다. 메모리 변조, 화면 캡처(OCR), 상대 스펠·와드 추적이 전혀 없으며 실력 향상 코칭 용도입니다.",
-    sup_bug_t: "오류 제보 · 기능 건의", sup_bug_d: "실행 오류나 원하는 전략 오더·번역 개선이 있으면 GitHub Issues에 바로 남겨 주세요.", sup_bug_btn: "GitHub 문의",
-    sup_com_t: "커뮤니티 · 업데이트 소식", sup_com_d: "Reddit 프로필에서 패치 소식과 글로벌 유저 피드백을 확인하실 수 있습니다.", sup_com_btn: "Reddit",
-    sec_title: "Riot 운영방침 준수 및 보안 보증",
-    sec_desc: "Riot 공식 로컬 게임 API(127.0.0.1:2999)만 읽습니다. 메모리 조작·화면 캡처는 하지 않습니다. 경기 수치는 동의한 경우에만, 익명으로만 PC 밖으로 나갑니다.",
+    setup_head: "설치 · 적용 방법",
+    s1_t: "원클릭 설치 & 자동 실행", s1_d: "LoLPacemaker-Setup.exe를 한 번 설치해 두면 롤 시작 시 HUD가 자동으로 뜹니다.",
+    s2_t: "테두리 없는 창모드", s2_d: "롤 화면 설정을 '테두리 없음'으로 맞춰야 HUD가 게임 위에 뜹니다.",
+    s3_t: "전 모드 자동 연결", s3_d: "랭크, 일반, 칼바람, 연습모드 모두 자동 인식해 2초마다 오더를 갱신합니다.",
+    s4_t: "단축키", s4_d: "드래그 이동, F8 클릭 통과, F9 접기/펼치기, [ / ] 투명도 조절, 5개 국어 전환.",
+    faq_head: "자주 묻는 질문 · 오류 해결",
+    q1: "게임 위에 HUD가 안 떠요.", a1: "롤 화면 설정이 '전체 화면'이면 가려집니다. [설정 → 화면 → 창 모드]를 '테두리 없음'으로 바꿔주세요.",
+    q2: "설치할 때 보안 경고가 떠요.", a2: "유료 코드 서명이 없는 무료 오픈소스 앱이라 뜨는 정상 안내입니다. GitHub에서 전체 소스를 볼 수 있고 SHA-256으로 파일도 확인할 수 있습니다.",
+    q3: "게임 중인데 HUD가 안 나와요.", a3: "로딩이 끝나고 경기에 들어간 직후 연결됩니다. 그래도 안 뜨면 방화벽에서 로컬 2999 포트가 막혀 있는지 확인해 주세요.",
+    q4: "정지 위험은 없나요? (랭크·칼바람)", a4: "없습니다. 라이엇이 공식 제공하는 로컬 점수판 API(127.0.0.1:2999)만 읽기 전용으로 쓰며, 상대 와드·스펠 추적이나 메모리 변조는 일절 하지 않습니다.",
+    sup_bug_t: "오류 제보 · 기능 건의", sup_bug_d: "실행 오류나 원하는 기능이 있으면 아래 문의 칸으로 바로 보내주세요.", sup_bug_btn: "문의하기",
+    sup_com_t: "커뮤니티 · 업데이트", sup_com_d: "Reddit에서 업데이트 소식과 유저 피드백을 볼 수 있습니다.", sup_com_btn: "Reddit",
+    sec_title: "라이엇 규정 준수 · 안전 보증",
+    sec_desc: "라이엇 공식 로컬 API(127.0.0.1:2999)만 읽기 전용으로 씁니다. 메모리 변조·화면 캡처는 전혀 없으며, 익명 수치 전송도 직접 켜야만 동작합니다.",
     privacy: "개인정보 처리방침",
     gw1_t: "설치 파일 실행",
-    gw1_d: "내려받은 LoLPacemaker-Setup.exe를 여세요. 파란 'Windows의 PC 보호' 창이 뜨면 '추가 정보'를 누른 뒤 '실행'을 누르면 됩니다. 유료 서명 인증서가 없는 무료 앱이라 뜨는 안내입니다.",
-    gw2_t: "자동 실행을 켠 채로 설치",
-    gw2_d: "설치 창의 'Start automatically with Windows'(Windows 시작 시 자동 실행)를 체크한 채로 다음 → 설치 → 마침을 누르세요. 다음부터 앱을 찾아 켤 필요가 없습니다.",
-    gc_t: "처음 한 번 고르고 시작",
-    gc_d: "처음 한 번 익명 경기 수치를 제공할지 묻는 창이 뜹니다(기본은 꺼짐). '시작'을 누르면 앱은 백그라운드에서 조용히 기다립니다.",
-    gb_t: "롤 화면을 '테두리 없음'으로",
-    gb_d: "롤 게임 안에서 설정 → 화면 → 창 모드를 '테두리 없음'으로 바꾸세요. 전체 화면에서는 어떤 프로그램도 게임 위에 보일 수 없습니다.",
-    gh_t: "경기가 시작되면 나타납니다",
-    gh_d: "HUD는 롤 클라이언트(로비)가 아니라 경기 중에만 뜹니다. 주황색 PACE MAKER 버튼을 누르거나 F9를 눌러 펼치고 접을 수 있고, 끌어서 원하는 곳에 둘 수 있습니다.",
-    gm1_t: "압축을 풀고 응용 프로그램으로",
-    gm1_d: "LoLPacemaker-macos.zip을 두 번 눌러 풀고, LoLPacemaker를 응용 프로그램 폴더로 끌어 넣으세요. Apple Silicon(M1 이후) 맥에서 동작합니다.",
-    gm2_t: "처음 열 때 허용",
-    gm2_d: "'개발자를 확인할 수 없다'는 창이 뜨면 시스템 설정 → 개인정보 보호 및 보안으로 가서 아래쪽 LoLPacemaker 옆 '그래도 열기'를 누르세요.",
-    gm3_t: "F8·F9 단축키 허용",
-    gm3_d: "게임 중에 F8·F9를 쓰려면 시스템 설정 → 개인정보 보호 및 보안 → 손쉬운 사용에서 LoLPacemaker를 허용하세요. HUD를 마우스로 누르는 것은 허용 없이도 됩니다.",
-    ct_t: "운영자에게 문의",
-    ct_d: "질문, 오류, 데이터 삭제 요청은 운영자에게 바로 전달됩니다. 답장이 필요하면 연락처를 남겨 주세요.",
+    gw1_d: "LoLPacemaker-Setup.exe를 실행하세요. 파란 보안 경고 창이 뜨면 [추가 정보 → 실행]을 누르면 됩니다. (무료 오픈소스라 유료 인증서가 없어 뜨는 정상 안내입니다.)",
+    gw2_t: "자동 실행 켜두고 설치",
+    gw2_d: "설치할 때 자동 실행 체크를 그대로 두고 완료하세요. 다음부터는 따로 켤 필요 없이 알아서 돌아갑니다.",
+    gc_t: "첫 실행 설정",
+    gc_d: "처음 한 번만 익명 데이터 제공 여부를 물어봅니다(기본 꺼짐). [시작]을 누르면 백그라운드에서 대기합니다.",
+    gb_t: "롤 화면 설정 = 테두리 없음",
+    gb_d: "롤 [설정 → 화면 → 창 모드]를 '테두리 없음'으로 맞추세요. 전체 화면에서는 HUD가 가려집니다.",
+    gh_t: "게임 들어가면 자동 실행",
+    gh_d: "로비에서는 안 보이고 실제 경기가 시작되면 자동으로 뜹니다. 주황 버튼이나 F9로 접고 펼 수 있고, 드래그해서 원하는 위치에 두면 됩니다.",
+    gm1_t: "압축 풀고 응용 프로그램에 넣기",
+    gm1_d: "LoLPacemaker-macos.zip 압축을 풀고 LoLPacemaker를 응용 프로그램 폴더로 옮기세요. (M1 이상 맥 지원)",
+    gm2_t: "첫 실행 보안 허용",
+    gm2_d: "실행이 막히면 [시스템 설정 → 개인정보 보호 및 보안] 맨 아래에서 LoLPacemaker 옆 [그래도 열기]를 누르세요.",
+    gm3_t: "단축키(F8·F9) 허용 (선택)",
+    gm3_d: "게임 중 F8·F9 단축키를 쓰려면 [손쉬운 사용]에서 LoLPacemaker를 켜주세요. 마우스 클릭은 이거 없이도 됩니다.",
+    ct_t: "운영자에게 직접 문의",
+    ct_d: "버그 제보, 기능 제안, 데이터 삭제 요청을 바로 보낼 수 있습니다. 답장이 필요하면 연락처를 적어주세요.",
     ct_cat: "분류",
-    ct_c_install: "설치·실행",
+    ct_c_install: "설치 · 실행",
     ct_c_error: "오류",
-    ct_c_idea: "제안",
+    ct_c_idea: "기능 제안",
     ct_c_delete: "내 데이터 삭제",
     ct_msg: "내용",
     ct_contact: "이메일 또는 디스코드 (선택)",
     ct_send: "보내기",
-    ct_ok: "보냈습니다. 고맙습니다.",
-    ct_err: "보내지 못했습니다. 잠시 뒤 다시 시도해 주세요.",
-    ct_empty: "내용을 적어 주세요.",
-    chat_t: "도우미에게 물어보기",
-    chat_d: "PACE MAKER 설치와 사용 방법을 바로 알려 드려요. 그 밖의 질문에는 답하지 않아요.",
-    chat_ph: "질문을 적어 주세요",
-    chat_send: "묻기",
+    ct_ok: "전송되었습니다. 감사합니다.",
+    ct_err: "전송에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+    ct_empty: "내용을 입력해 주세요.",
+    chat_t: "AI 도우미에게 묻기",
+    chat_d: "설치나 사용법이 헷갈리면 바로 물어보세요. (앱 사용법만 답해줍니다.)",
+    chat_ph: "질문을 입력하세요",
+    chat_send: "질문",
     chat_handoff: "이 질문을 운영자에게 보내기",
-    chat_err: "지금은 도우미를 쓸 수 없어요. 아래 문의 칸을 이용해 주세요.",
+    chat_err: "지금은 도우미를 쓸 수 없습니다. 아래 문의 칸을 이용해 주세요.",
     footer: "LoL Pacemaker는 Riot Games의 공식 승인을 받은 서비스가 아니며 Riot Games의 입장을 대변하지 않습니다."
   },
   ja: {
@@ -840,7 +849,7 @@ const I18N = {
     nav_overview: "製品紹介", nav_history: "戦績検索", nav_setup: "導入手順", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
     live_panel_title: "ゲーム画面",
     hist_head: "グローバル Riot 戦績検索", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "検索", hist_loading: "戦績を取得中...", hist_err: "サモナーが見つかりません（GameName#Tag形式で入力してください）。", hist_win: "勝利", hist_loss: "敗北",
-    hero_title_a: "この試合を勝ちに導く次の一手を、", hero_title_b: "2秒ごとに画面に。",
+    hero_title_a: "リアルタイム", hero_title_b: "LoL AIコーチ",
     hero_sub: "試合中の勝率と今やるべき行動を、ゲーム画面の上に表示します。ランク・ノーマル・ARAM対応。",
     btn_source: "ソースコードを見る →",
     m2_k: "対応モード", m2_v: "ランク · ノーマル · ARAM", m3_k: "対応言語", m4_k: "料金・広告", m4_v: "完全無料・広告ゼロ",
@@ -907,7 +916,7 @@ const I18N = {
     nav_overview: "Producto", nav_history: "Historial", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
     live_panel_title: "Pantalla de juego",
     hist_head: "Búsqueda Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Cargando partidas...", hist_err: "Invocador no encontrado (usa el formato Nombre#Tag).", hist_win: "VICTORIA", hist_loss: "DERROTA",
-    hero_title_a: "Tu próxima jugada ganadora,", hero_title_b: "en pantalla cada 2 segundos.",
+    hero_title_a: "Coach IA de LoL", hero_title_b: "en Tiempo Real",
     hero_sub: "Tu probabilidad de victoria y la jugada que toca, encima de tu partida. Clasificatoria, Normal y ARAM.",
     btn_source: "Ver Código Abierto →",
     m2_k: "Modos", m2_v: "Ranked · Normal · ARAM", m3_k: "Idiomas", m4_k: "Precio", m4_v: "100% Gratis · Sin Anuncios",
@@ -974,7 +983,7 @@ const I18N = {
     nav_overview: "Produto", nav_history: "Histórico", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar App",
     live_panel_title: "Tela do jogo",
     hist_head: "Busca Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Carregando partidas...", hist_err: "Invocador não encontrado (use o formato Nome#Tag).", hist_win: "VITÓRIA", hist_loss: "DERROTA",
-    hero_title_a: "Sua próxima jogada vencedora,", hero_title_b: "na tela a cada 2 segundos.",
+    hero_title_a: "Coach IA de LoL", hero_title_b: "em Tempo Real",
     hero_sub: "Sua chance de vitória e a jogada certa agora, em cima do jogo. Ranqueada, Normal e ARAM.",
     btn_source: "Ver Código Aberto →",
     m2_k: "Modos", m2_v: "Ranqueada · Normal · ARAM", m3_k: "Idiomas", m4_k: "Custo", m4_v: "100% Grátis · Sem Anúncios",
@@ -1094,16 +1103,16 @@ applyLang(detectLang());
 
 const WORKER_URL = "https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev";
 
-/* Three menus (AGENTS §17): show one group at a time; old anchors still land in the right group */
-const VIEW_OF = { "": "home", "#home": "home", "#overview": "home", "#downloads": "home", "#setup": "home",
-  "#history": "history", "#support": "support", "#faq": "support", "#contact": "support" };
+/* Three menus + dedicated downloads view (AGENTS §17) */
+const VIEW_OF = { "": "home", "#home": "home", "#overview": "home", "#setup": "home",
+  "#downloads": "downloads", "#history": "history", "#support": "support", "#faq": "support", "#contact": "support" };
 function showView() {
   const view = VIEW_OF[location.hash] || "home";
   document.querySelectorAll("section[data-view]").forEach(sec => { sec.hidden = sec.getAttribute("data-view") !== view; });
   document.querySelectorAll(".nav-links a[data-view-link]").forEach(a =>
     a.setAttribute("aria-current", a.getAttribute("data-view-link") === view ? "true" : "false"));
   const target = location.hash && document.querySelector(location.hash);
-  if (target && !["#home", "#history", "#support"].includes(location.hash)) target.scrollIntoView();
+  if (target && !["#home", "#history", "#support", "#downloads"].includes(location.hash)) target.scrollIntoView();
   else window.scrollTo(0, 0);
 }
 window.addEventListener("hashchange", showView);
