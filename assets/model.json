@@ -1,0 +1,29 @@
+{
+  "model_version": "m20261118-2",
+  "served": "model_sklearn.onnx",
+  "git_sha": "local",
+  "run_url": "local",
+  "data": {
+    "n": 5000,
+    "seed": 1
+  },
+  "holdout_n": 1976,
+  "metrics": {
+    "sklearn": {
+      "accuracy": 0.7155870445344129,
+      "brier": 0.18237583926388876,
+      "logloss": 0.5385375751361487
+    },
+    "dl": {
+      "accuracy": 0.7135627530364372,
+      "brier": 0.1837077877359799,
+      "logloss": 0.5423633873400072
+    },
+    "rule": {
+      "accuracy": 0.715080971659919,
+      "brier": 0.1916563022674506,
+      "logloss": 0.5675663299674345
+    }
+  },
+  "created_at": "2026-11-18T06:13:57+00:00"
+}

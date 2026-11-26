@@ -1,0 +1,20 @@
+[project]
+name = "lol-shotcaller"
+version = "0.1.0"
+description = "Zero-server, multi-language real-time AI shotcaller companion for League of Legends"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26.0",
+    "onnxruntime>=1.18.0",
+    "pydantic>=2.7.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
