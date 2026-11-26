@@ -82,5 +82,11 @@
   "hud_hotkeys_local_only": "Global hotkeys unavailable — click the HUD first",
   "hud_model_extended": "Model: 18-feature",
   "hud_model_legacy": "Model: basic (8)",
-  "hud_opacity": "Opacity"
+  "hud_opacity": "Opacity",
+  "phase_aram": "ARAM Teamfight",
+  "obj_turret": "Turret",
+  "call_aram_reset_title": "Reset to Spend ({gold}G)",
+  "call_aram_reset_detail": "Holding heavy unspent gold. Trade a clean fight to buy items and spike.",
+  "call_aram_poke_title": "Hold Wave & Cooldowns",
+  "call_aram_poke_detail": "Keep health up, track key ultimates, and engage together 5v5."
 }

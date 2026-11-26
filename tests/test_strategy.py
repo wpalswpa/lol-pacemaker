@@ -56,3 +56,29 @@ def test_smite_advantage_and_ally_jungler_dead_warning():
 
     res_ko = evaluate_snapshot(snap, pred, Translator("ko"))
     assert "바론 확정 각 — 상대 정글 이탈 (32초)" in res_ko["calls"][0]["title"]
+
+
+def test_aram_mode_disables_rift_objectives_and_uses_aram_calls():
+    pred = LocalOnnxPredictor()
+    raw_aram = {
+        "gameData": {"gameTime": 620.0, "gameMode": "ARAM", "mapNumber": 12},
+        "activePlayer": {"summonerName": "Player1", "currentGold": 3100.0},
+        "allPlayers": [
+            {"summonerName": "Player1", "team": "ORDER", "level": 11, "isDead": False, "scores": {"kills": 6, "assists": 10, "creepScore": 45}},
+            {"summonerName": "Enemy1", "team": "CHAOS", "level": 10, "isDead": True, "respawnTimer": 22.0, "scores": {"kills": 3, "assists": 4, "creepScore": 30}, "summonerSpells": {"summonerSpellOne": {"displayName": "Smite"}}},
+        ],
+        "events": {"Events": []},
+    }
+    snap = parse_liveclient_data(raw_aram)
+    assert snap.game_mode == "ARAM"
+
+    res_en = evaluate_snapshot(snap, pred, Translator("en"))
+    assert res_en["game_mode"] == "ARAM"
+    assert res_en["phase"] == "ARAM Teamfight"
+    titles_en = " ".join(c["title"] for c in res_en["calls"])
+    assert "Baron" not in titles_en and "Dragon" not in titles_en and "Voidgrubs" not in titles_en
+    assert "Reset to Spend (3100G)" in titles_en
+
+    res_ko = evaluate_snapshot(snap, pred, Translator("ko"))
+    assert res_ko["phase"] == "칼바람 한타"
+    assert any("골드 정비 타이밍 (3100G 보유)" in c["title"] for c in res_ko["calls"])

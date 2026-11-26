@@ -82,5 +82,11 @@
   "hud_hotkeys_local_only": "Atalhos globais indisponíveis — clique no HUD primeiro",
   "hud_model_extended": "Modelo: 18 variáveis",
   "hud_model_legacy": "Modelo: básico (8)",
-  "hud_opacity": "Opacidade"
+  "hud_opacity": "Opacidade",
+  "phase_aram": "Luta ARAM",
+  "obj_turret": "Torre",
+  "call_aram_reset_title": "Resete para Comprar ({gold}G)",
+  "call_aram_reset_detail": "Muito ouro acumulado. Troque uma boa luta para comprar seus itens.",
+  "call_aram_poke_title": "Segure a Wave e Espere 5v5",
+  "call_aram_poke_detail": "Preserve vida e ultimates importantes para engajar com o time todo."
 }

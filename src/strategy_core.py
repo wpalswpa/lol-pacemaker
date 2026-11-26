@@ -23,6 +23,7 @@ class LiveSnapshot(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     game_time: float = Field(default=0.0, ge=0.0)
+    game_mode: str = Field(default="CLASSIC")
     scoreboard: ScoreboardState = Field(default_factory=ScoreboardState)
     ally_alive: int = Field(default=5, ge=0, le=5)
     enemy_alive: int = Field(default=5, ge=0, le=5)
@@ -163,10 +164,11 @@ def evaluate_snapshot(
 
     calls: list[Shotcall] = []
     man_diff = snap.ally_alive - snap.enemy_alive
-    primary_obj = "key:obj_baron" if snap.game_time >= 1200 else "key:obj_dragon"
+    is_aram = snap.game_mode.upper() == "ARAM"
+    primary_obj = "key:obj_turret" if is_aram else ("key:obj_baron" if snap.game_time >= 1200 else "key:obj_dragon")
 
-    # 1. Smite advantage / disadvantage (highest priority tactical signals)
-    if snap.enemy_jungler_dead_sec >= 8.0 and snap.ally_jungler_dead_sec <= 0.0 and man_diff >= 0:
+    # 1. Smite advantage / disadvantage (Summoner's Rift only)
+    if not is_aram and snap.enemy_jungler_dead_sec >= 8.0 and snap.ally_jungler_dead_sec <= 0.0 and man_diff >= 0:
         calls.append(
             Shotcall(
                 priority=105,
@@ -176,7 +178,7 @@ def evaluate_snapshot(
                 params={"objective": primary_obj, "sec": int(round(snap.enemy_jungler_dead_sec))},
             )
         )
-    elif snap.ally_jungler_dead_sec >= 8.0 and snap.enemy_jungler_dead_sec <= 0.0:
+    elif not is_aram and snap.ally_jungler_dead_sec >= 8.0 and snap.enemy_jungler_dead_sec <= 0.0:
         calls.append(
             Shotcall(
                 priority=102,
@@ -187,7 +189,7 @@ def evaluate_snapshot(
             )
         )
 
-    # 2. Numerical advantage / disadvantage with respawn window
+    # 2. Numerical advantage / disadvantage with respawn window (all modes)
     if man_diff >= 2:
         window_sec = max(10, int(round(snap.enemy_max_respawn)))
         calls.append(
@@ -216,51 +218,52 @@ def evaluate_snapshot(
             )
         )
 
-    # 3. Objective windows: Dragon Soul, Baron, Voidgrubs / Herald
-    if snap.enemy_dragons >= 3:
-        calls.append(
-            Shotcall(
-                priority=92,
-                kind="object",
-                title_key="call_soul_threat_title",
-                detail_key="call_soul_threat_detail",
-                params={"enemy_dragons": snap.enemy_dragons},
+    # 3. Objective windows: Dragon Soul, Baron, Voidgrubs / Herald (Summoner's Rift only)
+    if not is_aram:
+        if snap.enemy_dragons >= 3:
+            calls.append(
+                Shotcall(
+                    priority=92,
+                    kind="object",
+                    title_key="call_soul_threat_title",
+                    detail_key="call_soul_threat_detail",
+                    params={"enemy_dragons": snap.enemy_dragons},
+                )
             )
-        )
-    elif snap.ally_dragons == 3:
-        calls.append(
-            Shotcall(
-                priority=88,
-                kind="offense",
-                title_key="call_soul_point_title",
-                detail_key="call_soul_point_detail",
-                params={"ally_dragons": snap.ally_dragons},
+        elif snap.ally_dragons == 3:
+            calls.append(
+                Shotcall(
+                    priority=88,
+                    kind="offense",
+                    title_key="call_soul_point_title",
+                    detail_key="call_soul_point_detail",
+                    params={"ally_dragons": snap.ally_dragons},
+                )
             )
-        )
 
-    if 360 <= snap.game_time <= 840 and snap.ally_grubs < 6:
-        calls.append(
-            Shotcall(
-                priority=82,
-                kind="object",
-                title_key="call_grubs_window_title",
-                detail_key="call_grubs_window_detail",
-                params={"ally_grubs": snap.ally_grubs},
+        if 360 <= snap.game_time <= 840 and snap.ally_grubs < 6:
+            calls.append(
+                Shotcall(
+                    priority=82,
+                    kind="object",
+                    title_key="call_grubs_window_title",
+                    detail_key="call_grubs_window_detail",
+                    params={"ally_grubs": snap.ally_grubs},
+                )
             )
-        )
 
-    if snap.game_time >= 1200 and man_diff >= 1:
-        calls.append(
-            Shotcall(
-                priority=90,
-                kind="offense",
-                title_key="call_baron_window_title",
-                detail_key="call_baron_window_detail",
+        if snap.game_time >= 1200 and man_diff >= 1:
+            calls.append(
+                Shotcall(
+                    priority=90,
+                    kind="offense",
+                    title_key="call_baron_window_title",
+                    detail_key="call_baron_window_detail",
+                )
             )
-        )
 
-    # 4. Ally carry grouping in mid/late game
-    if snap.game_time >= 840 and snap.ally_carry_lane and snap.ally_carry_kills >= 4:
+    # 4. Ally carry grouping in mid/late game (Summoner's Rift)
+    if not is_aram and snap.game_time >= 840 and snap.ally_carry_lane and snap.ally_carry_kills >= 4:
         calls.append(
             Shotcall(
                 priority=80,
@@ -271,8 +274,19 @@ def evaluate_snapshot(
             )
         )
 
-    # 5. Recall gold spike (never included in win_prob features)
-    if snap.my_current_gold >= 1300:
+    # 5. Gold spending timing: Recall on Rift (>=1300G) vs Fight-Reset on ARAM (>=2600G)
+    if is_aram:
+        if snap.my_current_gold >= 2600:
+            calls.append(
+                Shotcall(
+                    priority=78,
+                    kind="recall",
+                    title_key="call_aram_reset_title",
+                    detail_key="call_aram_reset_detail",
+                    params={"gold": int(snap.my_current_gold)},
+                )
+            )
+    elif snap.my_current_gold >= 1300:
         calls.append(
             Shotcall(
                 priority=78,
@@ -283,7 +297,7 @@ def evaluate_snapshot(
             )
         )
 
-    # 6. Counter items
+    # 6. Counter items (all modes)
     if snap.enemy_has_heavy_heal:
         calls.append(
             Shotcall(
@@ -312,8 +326,8 @@ def evaluate_snapshot(
             Shotcall(
                 priority=50,
                 kind="macro",
-                title_key="call_even_farm_title",
-                detail_key="call_even_farm_detail",
+                title_key="call_aram_poke_title" if is_aram else "call_even_farm_title",
+                detail_key="call_aram_poke_detail" if is_aram else "call_even_farm_detail",
             )
         )
 
@@ -330,7 +344,8 @@ def evaluate_snapshot(
         "lang": tr.lang,
         "app_title": tr.t("app_title"),
         "game_time": round(snap.game_time, 1),
-        "phase": tr.t(_phase_key(snap.game_time)),
+        "game_mode": snap.game_mode,
+        "phase": tr.t("phase_aram" if is_aram else _phase_key(snap.game_time)),
         "win_pct": win_pct,
         "state": tr.t(state_key),
         "team_gold_diff": int(snap.team_gold_diff),

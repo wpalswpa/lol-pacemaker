@@ -3,199 +3,444 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
-<title>LoL Pacemaker — Real-Time Local AI Shotcaller</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<title>PACE MAKER Desktop — Real-Time LoL AI Coach</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23ff5a1f'/%3E%3C/svg%3E">
 <style>
   :root {
-    --bg: #070B14; --panel: #0F172A; --border: #1E293B;
-    --text: #F8FAFC; --muted: #94A3B8; --accent: #38BDF8; --gold: #F59E0B; --green: #34D399;
+    --bg: #0b0d12;
+    --surface: #12151e;
+    --surface2: #171b26;
+    --line: #242938;
+    --text: #f3f4f6;
+    --sub: #9ca3af;
+    --dim: #6b7280;
+    --accent: #ff5a1f;
+    --accent-hover: #ff7340;
+    --good: #34d399;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: radial-gradient(circle at 20% 0%, #0F2342 0%, var(--bg) 55%);
-    color: var(--text); font-family: system-ui, -apple-system, "Noto Sans KR", "Noto Sans JP", sans-serif;
-    line-height: 1.6; min-height: 100vh;
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.55 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans JP", "Segoe UI", sans-serif;
   }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 64px; }
+  a { color: inherit; text-decoration: none; }
+
   header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 20px 0; border-bottom: 1px solid var(--border); gap: 12px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--line);
+    background: rgba(11, 13, 18, 0.92);
+    position: sticky; top: 0; z-index: 20; backdrop-filter: blur(8px);
   }
-  .brand { font-weight: 900; font-size: 20px; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
-  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .nav {
+    max-width: 1120px; margin: 0 auto; padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; letter-spacing: -0.02em;
+  }
+  .brand-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 4px 10px; border-radius: 7px; background: var(--accent); color: #fff;
+    font-size: 11px; font-weight: 900; letter-spacing: .05em;
+  }
+  .nav-links {
+    display: flex; align-items: center; gap: 22px; color: var(--sub); font-size: 14px; font-weight: 600; flex-wrap: wrap;
+  }
+  .nav-links a:hover { color: #fff; }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
   select#lang-select {
-    background: var(--panel); color: var(--text); border: 1px solid #334155;
-    border-radius: 8px; padding: 7px 12px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    background: var(--surface2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 999px; padding: 7px 13px; font-size: 12.5px; font-weight: 700; cursor: pointer;
   }
-  .hero { padding: 64px 0 44px; text-align: center; }
-  .pill {
-    display: inline-block; font-size: 12.5px; font-weight: 700; color: var(--gold);
-    background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35);
-    padding: 5px 14px; border-radius: 999px; margin-bottom: 18px;
+  .nav-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 18px; border-radius: 999px; background: var(--accent); color: #fff;
+    font-size: 13px; font-weight: 700; transition: background .15s;
   }
-  h1 { font-size: clamp(30px, 5vw, 48px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.18; margin-bottom: 16px; }
-  .sub { max-width: 680px; margin: 0 auto 28px; color: var(--muted); font-size: 16.5px; }
-  .cta-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
-    padding: 13px 24px; border-radius: 10px; font-weight: 800; font-size: 15px; transition: opacity .15s;
+  .nav-cta:hover { background: var(--accent-hover); }
+
+  main { max-width: 1120px; margin: 0 auto; padding: 56px 24px 80px; }
+  section.block { margin-top: 60px; scroll-margin-top: 84px; }
+
+  .eyebrow {
+    display: inline-block; padding: 4px 12px; border-radius: 999px;
+    background: rgba(255, 90, 31, 0.12); border: 1px solid rgba(255, 90, 31, 0.32);
+    color: #ff8a5c; font-size: 12.5px; font-weight: 700; margin-bottom: 16px;
   }
-  .btn:hover { opacity: 0.9; }
-  .btn-primary { background: linear-gradient(135deg, #38BDF8, #2563EB); color: #04101F; }
-  .btn-ghost { background: var(--panel); color: var(--text); border: 1px solid #334155; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 40px; }
-  .card {
-    background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border);
-    border-radius: 14px; padding: 22px;
+  h1 { font-size: clamp(32px, 5vw, 50px); font-weight: 900; letter-spacing: -0.03em; margin: 0 0 16px; line-height: 1.15; }
+  .hero-desc { color: var(--sub); font-size: 16px; max-width: 700px; margin: 0 0 26px; }
+  .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+  .btn-primary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px; background: var(--accent); color: #fff;
+    font-size: 14.5px; font-weight: 800; transition: background .15s;
   }
-  .card h3 { font-size: 17px; margin-bottom: 8px; color: var(--accent); }
-  .card p { font-size: 14.5px; color: #CBD5E1; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 22px; border-radius: 10px; background: var(--surface2); color: var(--text);
+    border: 1px solid var(--line); font-size: 14.5px; font-weight: 700; transition: border-color .15s;
+  }
+  .btn-ghost:hover { border-color: #3f4863; }
+
+  .meta-row {
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+    font-size: 13px; color: var(--sub); margin-bottom: 30px;
+  }
+  .meta-row strong { color: #fff; font-weight: 700; margin-left: 6px; }
+
+  .preview-box {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+    overflow: hidden; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  }
+  .preview-box img { display: block; width: 100%; height: auto; }
+
+  h2.sec-head { font-size: 24px; font-weight: 900; letter-spacing: -0.02em; margin: 0 0 18px; }
+
+  .os-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 18px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+  @media (max-width: 760px) { .os-grid { grid-template-columns: 1fr; } }
+
+  .os-card, .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+    padding: 26px 24px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;
+  }
+  .os-card:hover { border-color: rgba(255, 90, 31, 0.55); }
+  .os-card h3, .card h3 { margin: 0 0 8px; font-size: 18px; font-weight: 800; color: #fff; }
+  .os-card p, .card p { margin: 0; font-size: 14px; color: var(--sub); }
+  .step-tag {
+    display: inline-block; font-size: 11.5px; font-weight: 800; color: var(--accent);
+    letter-spacing: .04em; margin-bottom: 6px;
+  }
+  .sha-bar {
+    background: var(--surface2); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+  .sha-bar p { margin: 4px 0 0; font-size: 13.5px; color: var(--sub); }
+
+  details.faq {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 15px 20px; margin-bottom: 10px;
+  }
+  details.faq summary { cursor: pointer; font-weight: 700; font-size: 15px; color: #fff; }
+  details.faq p { margin: 10px 0 0; font-size: 14px; color: var(--sub); }
+
   .trust {
-    margin-top: 32px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(52, 211, 153, 0.35);
-    border-radius: 14px; padding: 22px 24px;
+    margin-top: 24px; background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.30);
+    border-radius: 14px; padding: 20px 22px;
   }
-  .trust h2 { font-size: 17px; color: var(--green); margin-bottom: 8px; }
-  .trust p { font-size: 14px; color: #CBD5E1; }
-  footer { margin-top: 48px; text-align: center; font-size: 12.5px; color: #64748B; }
+  .trust h3 { margin: 0 0 6px; font-size: 16px; color: var(--good); }
+  .trust p { margin: 0; font-size: 14px; color: #d1d5db; }
+
+  footer {
+    border-top: 1px solid var(--line); margin-top: 64px; padding-top: 24px;
+    text-align: center; font-size: 12.5px; color: var(--dim);
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="brand"><span class="dot"></span><span>LoL Pacemaker</span></div>
+<header>
+  <div class="nav">
+    <a class="brand" href="#">
+      <span class="brand-badge">PACE MAKER</span>
+      <span>Desktop</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#downloads" data-i18n="nav_downloads">Downloads</a>
+      <a href="#setup" data-i18n="nav_setup">How to Use</a>
+      <a href="#faq" data-i18n="nav_faq">Troubleshooting</a>
+      <a href="#support" data-i18n="nav_support">Support</a>
+    </nav>
     <div class="nav-right">
-      <label for="lang-select" style="font-size:13px;color:var(--muted);" data-i18n="lang_label">Language</label>
       <select id="lang-select" aria-label="Language">
         <option value="en">English (Global)</option>
         <option value="ko">한국어 (KR)</option>
         <option value="ja">日本語 (JP)</option>
-        <option value="es">Español (LAN/LAS/EUW)</option>
+        <option value="es">Español</option>
         <option value="pt">Português (BR)</option>
       </select>
+      <a class="nav-cta" href="#downloads" data-i18n="nav_cta">Download</a>
     </div>
-  </header>
+  </div>
+</header>
 
+<main>
   <section class="hero">
-    <div class="pill" data-i18n="badge">100% Local · $0 Server · No Ads · Works Alongside Blitz &amp; Porofessor</div>
-    <h1 data-i18n="hero_title">Real-Time AI Shotcaller for League of Legends</h1>
-    <p class="sub" data-i18n="hero_sub">Reads Riot's official local scoreboard every 2 seconds, calculates win probability &amp; tier Top-% pace locally via ONNX (&lt;1ms), and gives instant macro calls without FPS drops.</p>
+    <div class="eyebrow" data-i18n="badge">Ranked · Normal · ARAM · 100% Local · $0 Server · No Ads</div>
+    <h1 data-i18n="hero_title">Real-Time AI Coach That Changes Your In-Game Decisions</h1>
+    <p class="hero-desc" data-i18n="hero_sub">Works across Ranked, Normal, ARAM, and Practice Tool. Runs locally on CPU via ONNX (&lt;1ms) alongside Blitz or Porofessor — zero ads, zero FPS drops, 100% Riot policy compliant.</p>
     <div class="cta-row">
-      <a class="btn btn-primary" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer" data-i18n="btn_download">Download Free (GitHub Releases)</a>
-      <a class="btn btn-ghost" href="https://github.com/wpalswpa/lol-pacemaker" rel="noopener noreferrer" data-i18n="btn_source">View Open Source</a>
+      <a class="btn-primary" href="#downloads" data-i18n="btn_download">Download Desktop App</a>
+      <a class="btn-ghost" href="https://github.com/wpalswpa/lol-pacemaker" rel="noopener noreferrer" data-i18n="btn_source">View Open Source</a>
+    </div>
+    <div class="meta-row">
+      <span><span data-i18n="m1_k">Inference</span><strong data-i18n="m1_v">Local ONNX &lt;1ms</strong></span>
+      <span><span data-i18n="m2_k">Modes</span><strong data-i18n="m2_v">Ranked · Normal · ARAM</strong></span>
+      <span><span data-i18n="m3_k">Languages</span><strong>EN · KO · JA · ES · PT</strong></span>
+      <span><span data-i18n="m4_k">Cost &amp; Ads</span><strong data-i18n="m4_v">100% Free · Zero Ads</strong></span>
+    </div>
+    <div class="preview-box">
+      <img src="./images/hud_preview.png" alt="PACE MAKER Desktop HUD Preview">
     </div>
   </section>
 
-  <section class="grid">
-    <div class="card">
-      <h3 data-i18n="f1_title">Live Smite &amp; Objective Shotcalls</h3>
-      <p data-i18n="f1_desc">Tracks enemy jungler death timers, respawn push windows (5v3), Dragon Soul threat, and Baron timings in real time.</p>
+  <section class="block" id="downloads">
+    <h2 class="sec-head" data-i18n="dl_head">Download Center</h2>
+    <div class="os-grid">
+      <div class="os-card">
+        <div>
+          <h3 data-i18n="dl_win_t">Windows 10 / 11 (.zip)</h3>
+          <p data-i18n="dl_win_d">Standalone portable package with bundled 18-feature ONNX model &amp; 5 languages. Unzip and run — no Python required.</p>
+        </div>
+        <a class="btn-primary" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer" data-i18n="dl_btn">Download Latest Release</a>
+      </div>
+      <div class="os-card">
+        <div>
+          <h3 data-i18n="dl_mac_t">macOS (.app.zip)</h3>
+          <p data-i18n="dl_mac_d">Native macOS app bundle with local ONNX runtime, click-through overlay, and automatic locale detection.</p>
+        </div>
+        <a class="btn-primary" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer" data-i18n="dl_btn">Download Latest Release</a>
+      </div>
     </div>
-    <div class="card">
-      <h3 data-i18n="f2_title">Normal-Distribution Top % Pace</h3>
-      <p data-i18n="f2_desc">Compares your live CS and level curve against your tier's normal distribution to show Top X% standing and actionable briefings.</p>
-    </div>
-    <div class="card">
-      <h3 data-i18n="f3_title">Ultra-Light Companion HUD</h3>
-      <p data-i18n="f3_desc">Built to run alongside Porofessor, Blitz, or U.GG. Zero ads, local CPU ONNX (&lt;1ms), F8 click-through, and F9 instant hide.</p>
+    <div class="sha-bar">
+      <div>
+        <strong data-i18n="dl_sha_t">SHA-256 Integrity Checksums</strong>
+        <p data-i18n="dl_sha_d">Every release is built in clean GitHub Actions runners and ships with checksums.sha256 so you can verify file integrity.</p>
+      </div>
+      <a class="btn-ghost" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer" data-i18n="dl_sha_btn">Verify Checksums</a>
     </div>
   </section>
 
-  <section class="trust">
-    <h2 data-i18n="sec_title">Riot Policy Safe &amp; Security Guaranteed</h2>
-    <p data-i18n="sec_desc">Read-only access to Riot's official local Live Client Data API (127.0.0.1:2999). No memory injection, no OCR, no hidden enemy wards/cooldowns, and zero gameplay data leaves your PC.</p>
+  <section class="block" id="setup">
+    <h2 class="sec-head" data-i18n="setup_head">How to Apply (4 Simple Steps)</h2>
+    <div class="grid-4">
+      <div class="card">
+        <div>
+          <span class="step-tag">STEP 01</span>
+          <h3 data-i18n="s1_t">Unzip &amp; Launch</h3>
+          <p data-i18n="s1_d">Extract the zip and launch LoLPacemaker. On first run (unsigned open-source app), click More info → Run anyway on Windows, or Right-click → Open on macOS.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div>
+          <span class="step-tag">STEP 02</span>
+          <h3 data-i18n="s2_t">Borderless Window</h3>
+          <p data-i18n="s2_d">In League of Legends Video Settings, set Window Mode to Borderless so the transparent HUD floats cleanly over the game.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div>
+          <span class="step-tag">STEP 03</span>
+          <h3 data-i18n="s3_t">Auto-Connect (All Modes)</h3>
+          <p data-i18n="s3_d">Start Ranked, Normal, ARAM, or Practice Tool. The HUD automatically detects your mode and updates live every 2 seconds.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div>
+          <span class="step-tag">STEP 04</span>
+          <h3 data-i18n="s4_t">Companion Controls</h3>
+          <p data-i18n="s4_d">Drag anywhere to avoid Blitz/Porofessor. Press F8 for click-through, F9 to hide/show, [ / ] for opacity, or click the language badge to switch among 5 languages.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2 class="sec-head" data-i18n="faq_head">Troubleshooting &amp; FAQ</h2>
+    <details class="faq" open>
+      <summary data-i18n="q1">The HUD does not appear on top of League of Legends.</summary>
+      <p data-i18n="a1">Switch League's Video setting from Fullscreen to Borderless. Windows prevents any overlay from drawing above exclusive Fullscreen games.</p>
+    </details>
+    <details class="faq">
+      <summary data-i18n="q2">Windows SmartScreen or macOS Gatekeeper shows a warning.</summary>
+      <p data-i18n="a2">PACE MAKER is a free, zero-budget open-source project without a paid code-signing certificate. You can inspect 100% of the source code on GitHub and verify the SHA-256 hash before running.</p>
+    </details>
+    <details class="faq">
+      <summary data-i18n="q3">It stays on "Waiting for LoL..." during a match.</summary>
+      <p data-i18n="a3">The Riot local API (127.0.0.1:2999) opens only after the loading screen finishes and the match starts. If it still waits, check that local firewall rules do not block loopback port 2999.</p>
+    </details>
+    <details class="faq">
+      <summary data-i18n="q4">Is this safe under Riot Games Third-Party Policy (Ranked &amp; ARAM)?</summary>
+      <p data-i18n="a4">Yes. It reads only Riot's official local scoreboard/events API (127.0.0.1:2999) for player improvement coaching — zero memory reading, zero OCR, zero hidden enemy timers or wards.</p>
+    </details>
+  </section>
+
+  <section class="block" id="support">
+    <h2 class="sec-head" data-i18n="sup_head">Customer Support &amp; Feedback</h2>
+    <div class="grid-2">
+      <div class="card">
+        <div>
+          <h3 data-i18n="sup_bug_t">Bug Reports &amp; Feature Requests</h3>
+          <p data-i18n="sup_bug_d">Found a bug or want a new language/call? Open an issue directly on GitHub.</p>
+        </div>
+        <a class="btn-ghost" href="https://github.com/wpalswpa/lol-pacemaker/issues" rel="noopener noreferrer" data-i18n="sup_bug_btn">Open GitHub Issue</a>
+      </div>
+      <div class="card">
+        <div>
+          <h3 data-i18n="sup_com_t">Community &amp; Updates</h3>
+          <p data-i18n="sup_com_d">Follow updates, share match feedback, and vote on upcoming coaching features on Reddit.</p>
+        </div>
+        <a class="btn-ghost" href="https://www.reddit.com/user/_sogum_bread/" rel="noopener noreferrer" data-i18n="sup_com_btn">Visit Reddit Profile</a>
+      </div>
+    </div>
+    <div class="trust">
+      <h3 data-i18n="sec_title">Riot Policy Safe &amp; Security Guaranteed</h3>
+      <p data-i18n="sec_desc">Read-only access to Riot's official local Live Client Data API (127.0.0.1:2999). No memory injection, no OCR, no hidden enemy wards/cooldowns, and zero gameplay data leaves your PC.</p>
+    </div>
   </section>
 
   <footer>
     <p data-i18n="footer">LoL Pacemaker isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games.</p>
   </footer>
-</div>
+</main>
 
 <script>
 const I18N = {
   en: {
-    lang_label: "Language",
-    badge: "100% Local · $0 Server · No Ads · Works Alongside Blitz & Porofessor",
-    hero_title: "Real-Time AI Shotcaller for League of Legends",
-    hero_sub: "Reads Riot's official local scoreboard every 2 seconds, calculates win probability & tier Top-% pace locally via ONNX (<1ms), and gives instant macro calls without FPS drops.",
-    btn_download: "Download Free (GitHub Releases)",
-    btn_source: "View Open Source",
-    f1_title: "Live Smite & Objective Shotcalls",
-    f1_desc: "Tracks enemy jungler death timers, respawn push windows (5v3), Dragon Soul threat, and Baron timings in real time.",
-    f2_title: "Normal-Distribution Top % Pace",
-    f2_desc: "Compares your live CS and level curve against your tier's normal distribution to show Top X% standing and actionable briefings.",
-    f3_title: "Ultra-Light Companion HUD",
-    f3_desc: "Built to run alongside Porofessor, Blitz, or U.GG. Zero ads, local CPU ONNX (<1ms), F8 click-through, and F9 instant hide.",
+    nav_downloads: "Downloads", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download",
+    badge: "Ranked · Normal · ARAM · 100% Local · $0 Server · No Ads",
+    hero_title: "Real-Time AI Coach That Changes Your In-Game Decisions",
+    hero_sub: "Works across Ranked, Normal, ARAM, and Practice Tool. Runs locally on CPU via ONNX (<1ms) alongside Blitz or Porofessor — zero ads, zero FPS drops, 100% Riot policy compliant.",
+    btn_download: "Download Desktop App", btn_source: "View Open Source",
+    m1_k: "Inference", m1_v: "Local ONNX <1ms", m2_k: "Modes", m2_v: "Ranked · Normal · ARAM", m3_k: "Languages", m4_k: "Cost & Ads", m4_v: "100% Free · Zero Ads",
+    dl_head: "Download Center",
+    dl_win_t: "Windows 10 / 11 (.zip)", dl_win_d: "Standalone portable package with bundled 18-feature ONNX model & 5 languages. Unzip and run — no Python required.",
+    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Native macOS app bundle with local ONNX runtime, click-through overlay, and automatic locale detection.",
+    dl_sha_t: "SHA-256 Integrity Checksums", dl_sha_d: "Every release is built in clean GitHub Actions runners and ships with checksums.sha256 so you can verify file integrity.",
+    dl_btn: "Download Latest Release", dl_sha_btn: "Verify Checksums",
+    setup_head: "How to Apply (4 Simple Steps)",
+    s1_t: "Unzip & Launch", s1_d: "Extract the zip and launch LoLPacemaker. On first run (unsigned open-source app), click More info → Run anyway on Windows, or Right-click → Open on macOS.",
+    s2_t: "Borderless Window", s2_d: "In League of Legends Video Settings, set Window Mode to Borderless so the transparent HUD floats cleanly over the game.",
+    s3_t: "Auto-Connect (All Modes)", s3_d: "Start Ranked, Normal, ARAM, or Practice Tool. The HUD automatically detects your mode and updates live every 2 seconds.",
+    s4_t: "Companion Controls", s4_d: "Drag anywhere to avoid Blitz/Porofessor. Press F8 for click-through, F9 to hide/show, [ / ] for opacity, or click the language badge to switch among 5 languages.",
+    faq_head: "Troubleshooting & FAQ",
+    q1: "The HUD does not appear on top of League of Legends.", a1: "Switch League's Video setting from Fullscreen to Borderless. Windows prevents any overlay from drawing above exclusive Fullscreen games.",
+    q2: "Windows SmartScreen or macOS Gatekeeper shows a warning.", a2: "PACE MAKER is a free, zero-budget open-source project without a paid code-signing certificate. You can inspect 100% of the source code on GitHub and verify the SHA-256 hash before running.",
+    q3: "It stays on \"Waiting for LoL...\" during a match.", a3: "The Riot local API (127.0.0.1:2999) opens only after the loading screen finishes and the match starts. If it still waits, check that local firewall rules do not block loopback port 2999.",
+    q4: "Is this safe under Riot Games Third-Party Policy (Ranked & ARAM)?", a4: "Yes. It reads only Riot's official local scoreboard/events API (127.0.0.1:2999) for player improvement coaching — zero memory reading, zero OCR, zero hidden enemy timers or wards.",
+    sup_head: "Customer Support & Feedback",
+    sup_bug_t: "Bug Reports & Feature Requests", sup_bug_d: "Found a bug or want a new language/call? Open an issue directly on GitHub.", sup_bug_btn: "Open GitHub Issue",
+    sup_com_t: "Community & Updates", sup_com_d: "Follow updates, share match feedback, and vote on upcoming coaching features on Reddit.", sup_com_btn: "Visit Reddit Profile",
     sec_title: "Riot Policy Safe & Security Guaranteed",
     sec_desc: "Read-only access to Riot's official local Live Client Data API (127.0.0.1:2999). No memory injection, no OCR, no hidden enemy wards/cooldowns, and zero gameplay data leaves your PC.",
     footer: "LoL Pacemaker isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games."
   },
   ko: {
-    lang_label: "언어",
-    badge: "100% 로컬 실행 · 서버비 0원 · 무광고 · 기존 앱과 병행 사용",
-    hero_title: "리그 오브 레전드 실시간 AI 전략 코치",
-    hero_sub: "Riot 공식 로컬 점수판을 2초마다 읽어 내 PC에서 ONNX(1ms 미만)로 승률과 티어 대비 상위 % 페이스를 계산하고, 프레임 저하 없이 실시간 운영 오더를 띄워 줍니다.",
-    btn_download: "무료 다운로드 (GitHub Releases)",
-    btn_source: "오픈소스 보기",
-    f1_title: "실시간 강타 · 오브젝트 오더",
-    f1_desc: "상대 정글러 부재(강타 없음), 부활 타이머 기반 수적 우위(5대3), 용 영혼 저지, 바론 타이밍을 즉시 알려 줍니다.",
-    f2_title: "정규분포 기반 상위 % 페이스 진단",
-    f2_desc: "현재 CS와 레벨 성장을 티어 정규분포와 비교해 상위 몇 % 플레이 중인지 계산하고 맞춤 브리핑을 제공합니다.",
-    f3_title: "기존 앱과 공존하는 초경량 HUD",
-    f3_desc: "Blitz · Porofessor · U.GG와 함께 켜도 겹치지 않는 미니 투명 팝업. 광고 0%, F8 클릭 통과, F9 즉시 숨김 지원.",
-    sec_title: "Riot 정책 준수 및 보안 보증",
+    nav_downloads: "자료실", nav_setup: "적용 방법", nav_faq: "오류 해결", nav_support: "고객 응대", nav_cta: "다운로드",
+    badge: "랭크 · 일반 · 칼바람(ARAM) 전 모드 지원 · 100% 로컬 · 서버비 0원 · 무광고",
+    hero_title: "게임 중 판단을 바꾸는 실시간 AI 코치",
+    hero_sub: "랭크, 일반, 칼바람(증바람), 연습모드 모든 경기에서 자동 동작합니다. Blitz·Porofessor와 함께 켜도 프레임 저하 없이 내 PC에서 1ms 미만으로 실력 향상용 실시간 오더를 제공합니다.",
+    btn_download: "데스크톱 앱 다운로드", btn_source: "오픈소스 보기",
+    m1_k: "추론 속도", m1_v: "로컬 ONNX <1ms", m2_k: "지원 모드", m2_v: "랭크 · 일반 · 칼바람", m3_k: "지원 언어", m4_k: "비용 · 광고", m4_v: "100% 무료 · 광고 0%",
+    dl_head: "다운로드 자료실",
+    dl_win_t: "Windows 10 / 11 (.zip)", dl_win_d: "18피처 실학습 ONNX 모델과 5개 국어가 내장된 단일 실행 패키지. 압축 해제 후 바로 실행(파이썬 설치 불필요).",
+    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "로컬 ONNX 런타임, 클릭 통과 오버레이, OS 언어 자동 감지가 포함된 macOS 전용 앱 번들.",
+    dl_sha_t: "SHA-256 무결성 검증", dl_sha_d: "모든 릴리스는 클린 GitHub Actions에서 자동 빌드되며 checksums.sha256으로 파일 위변조 여부를 직접 확인할 수 있습니다.",
+    dl_btn: "최신 버전 다운로드", dl_sha_btn: "체크섬 확인",
+    setup_head: "적용 방법 (4단계)",
+    s1_t: "압축 해제 및 실행", s1_d: "zip 압축을 풀고 LoLPacemaker를 실행하세요. 무료 오픈소스라 첫 실행 시 보안 경고가 뜨면 Windows는 [추가 정보 → 실행], macOS는 [우클릭 → 열기]를 누르세요.",
+    s2_t: "테두리 없는 창모드", s2_d: "롤 인게임 [설정 → 화면 → 창 모드]를 반드시 '테두리 없음(Borderless)'으로 맞춰야 투명 HUD가 게임 화면 위에 뜹니다.",
+    s3_t: "전 모드 자동 연결", s3_d: "랭크, 일반, 칼바람(증바람), 연습모드 경기가 시작되면 2999 공식 API에 자동 연결되어 모드에 맞는 오더를 2초마다 갱신합니다.",
+    s4_t: "병행 HUD 단축키", s4_d: "드래그로 원하는 위치에 배치하세요. F8 클릭 통과, F9 숨김/표시, [ / ] 투명도 조절, 상단 언어 버튼으로 5개 국어 즉시 전환이 가능합니다.",
+    faq_head: "오류 해결법 & 자주 묻는 질문",
+    q1: "게임 화면 위에 HUD가 보이지 않습니다.", a1: "롤 화면 설정이 '전체 화면'이면 OS 보안상 오버레이가 가려집니다. 화면 설정을 '테두리 없음(Borderless)'으로 변경해 주세요.",
+    q2: "Windows SmartScreen 또는 macOS 보안 경고가 뜹니다.", a2: "유료 코드 서명 인증서가 없는 무료 오픈소스 앱이라 뜨는 정상 안내입니다. GitHub에서 전체 소스코드를 확인할 수 있으며 checksums.sha256으로 무결성 검증이 가능합니다.",
+    q3: "경기 중에도 'Waiting for LoL...'에서 넘어가지 않습니다.", a3: "Riot 로컬 API(127.0.0.1:2999)는 로딩이 끝나고 경기에 진입한 직후 열립니다. 진입 후에도 대기 중이면 PC 방화벽이 로컬 2999 포트를 막고 있는지 확인하세요.",
+    q4: "랭크나 칼바람에서 써도 Riot 운영방침에 위배되지 않나요?", a4: "네. Riot이 공식 제공하는 로컬 2999 공개 점수판·이벤트 API만 읽기 전용으로 사용합니다. 메모리 변조, 화면 캡처(OCR), 상대 스펠·와드 추적이 전혀 없으며 실력 향상 코칭 용도입니다.",
+    sup_head: "고객 응대 & 버그 제보",
+    sup_bug_t: "오류 제보 · 기능 건의", sup_bug_d: "실행 오류나 원하는 전략 오더·번역 개선이 있으면 GitHub Issues에 바로 남겨 주세요.", sup_bug_btn: "GitHub 문의 등록",
+    sup_com_t: "커뮤니티 · 업데이트 소식", sup_com_d: "Reddit 프로필에서 패치 소식과 글로벌 유저 피드백을 확인하실 수 있습니다.", sup_com_btn: "Reddit 커뮤니티 가기",
+    sec_title: "Riot 운영방침 준수 및 보안 보증",
     sec_desc: "Riot 공식 로컬 API(127.0.0.1:2999) 공개 점수판만 읽기 전용으로 사용합니다. 메모리 변조·화면 캡처·비공개 정보 조회가 없으며 외부로 플레이 데이터가 전송되지 않습니다.",
     footer: "LoL Pacemaker는 Riot Games의 공식 승인을 받은 서비스가 아니며 Riot Games의 입장을 대변하지 않습니다."
   },
   ja: {
-    lang_label: "言語",
-    badge: "100% ローカル実行 · 広告なし · Blitz / Porofessor 併用対応",
-    hero_title: "League of Legends リアルタイムAIショットコーラー",
-    hero_sub: "Riot公式ローカルAPIから2秒ごとに公開スコアを取得し、PC上のONNX(<1ms)で勝率とティア上位%を算出。FPS低下なしで今すぐ取るべきマクロ行動を提示します。",
-    btn_download: "無料ダウンロード (GitHub Releases)",
-    btn_source: "ソースコードを見る",
-    f1_title: "スマイト・オブジェクト即時コール",
-    f1_desc: "敵ジャングラーのデス時間、人数有利(5v3)のプッシュ時間、ドラゴンソウル阻止、バロン開始タイミングを即座に通知。",
-    f2_title: "正規分布ベースの上位%ペース診断",
-    f2_desc: "現在のCS・レベルをティア平均の正規分布と比較し、上位何%のペースかをリアルタイムでブリーフィングします。",
-    f3_title: "超軽量コンパニオンHUD",
-    f3_desc: "PorofessorやBlitzと同時起動しても邪魔にならない小型透過HUD。広告ゼロ、F8クリック透過、F9非表示に対応。",
+    nav_downloads: "ダウンロード", nav_setup: "使い方", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
+    badge: "ランク · ノーマル · ARAM 全モード対応 · 100%ローカル · 広告ゼロ",
+    hero_title: "試合中の判断を変えるリアルタイムAIコーチ",
+    hero_sub: "ランク戦・ノーマル・ARAM・プラクティスすべてに自動対応。BlitzやPorofessorと併用してもFPS低下ゼロ、PC上のONNX(<1ms)で実力向上を支援します。",
+    btn_download: "デスクトップ版をダウンロード", btn_source: "ソースコードを見る",
+    m1_k: "推論速度", m1_v: "ローカルONNX <1ms", m2_k: "対応モード", m2_v: "ランク · ノーマル · ARAM", m3_k: "対応言語", m4_k: "料金・広告", m4_v: "完全無料・広告ゼロ",
+    dl_head: "ダウンロードセンター",
+    dl_win_t: "Windows 10 / 11 (.zip)", dl_win_d: "18特徴ONNXモデルと5言語を同梱したポータブル版。解凍してすぐ起動できます。",
+    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "ローカルONNX・クリック透過HUD・言語自動検出を備えたmacOSアプリバンドル。",
+    dl_sha_t: "SHA-256 チェックサム", dl_sha_d: "全リリースはGitHub Actionsで自動ビルドされ、checksums.sha256で改ざん検証が可能です。",
+    dl_btn: "最新版をダウンロード", dl_sha_btn: "チェックサム確認",
+    setup_head: "導入手順（4ステップ）",
+    s1_t: "解凍して起動", s1_d: "zipを解凍してLoLPacemakerを起動。初回警告はWindows「詳細情報→実行」、macOS「右クリック→開く」で起動します。",
+    s2_t: "ボーダレス設定", s2_d: "LoLのビデオ設定でウィンドウモードを「ボーダレス」にすると透過HUDがゲーム上に表示されます。",
+    s3_t: "全モード自動接続", s3_d: "ランク・ノーマル・ARAM開始後に公式2999 APIへ自動接続し、モード別のコールを2秒ごとに更新します。",
+    s4_t: "HUD操作キー", s4_d: "ドラッグ移動、F8クリック透過、F9表示切替、[ / ] 透明度調整、言語ボタンで5言語切替に対応。",
+    faq_head: "トラブルシューティング & FAQ",
+    q1: "ゲーム画面の上にHUDが表示されません。", a1: "LoLの画面設定を「フルスクリーン」から「ボーダレス」に変更してください。",
+    q2: "WindowsやmacOSのセキュリティ警告が出ます。", a2: "有料署名のない無料オープンソースのため表示されます。GitHubの全コードとSHA-256ハッシュを確認して安全に利用できます。",
+    q3: "試合中も「Waiting for LoL...」のままです。", a3: "公式ローカルAPI(127.0.0.1:2999)はロード完了後に開きます。開始後も反応しない場合はファイアウォール設定を確認してください。",
+    q4: "ランク戦やARAMで使っても規約違反になりませんか？", a4: "はい。Riot公式の公開スコアAPIのみ読み取り専用で使用し、メモリ改ざん・OCR・非公開タイマー取得は一切行いません。",
+    sup_head: "サポート & フィードバック",
+    sup_bug_t: "バグ報告・機能要望", sup_bug_d: "不具合や追加してほしい機能があればGitHub Issuesへお寄せください。", sup_bug_btn: "GitHub Issueを作成",
+    sup_com_t: "コミュニティ & 更新情報", sup_com_d: "Redditプロフィールで最新アップデートと開発状況を確認できます。", sup_com_btn: "Redditを見る",
     sec_title: "Riotポリシー準拠・セキュリティ保証",
-    sec_desc: "Riot公式ローカルAPI(127.0.0.1:2999)の公開情報のみを読み取り専用で使用。メモリ改ざん・OCR・非公開情報の取得は一切行わず、外部送信もゼロです。",
+    sec_desc: "Riot公式ローカルAPI(127.0.0.1:2999)の公開情報のみを読み取り専用で使用。メモリ改ざん・OCR・外部データ送信は一切ありません。",
     footer: "LoL PacemakerはRiot Gamesの承認を受けたものではなく、Riot Gamesの見解を反映するものではありません。"
   },
   es: {
-    lang_label: "Idioma",
-    badge: "100% Local · Sin Anuncios · Compatible con Blitz y Porofessor",
-    hero_title: "Shotcaller IA en Tiempo Real para League of Legends",
-    hero_sub: "Lee el marcador local oficial de Riot cada 2s, calcula tu probabilidad de victoria y Top % de tu tier con ONNX local (<1ms), y da calls de macro sin bajar tus FPS.",
-    btn_download: "Descargar Gratis (GitHub Releases)",
-    btn_source: "Ver Código Abierto",
-    f1_title: "Calls de Castigo y Objetivos en Vivo",
-    f1_desc: "Detecta jungla enemigo muerto (sin Castigo), ventanas de ventaja numérica (5v3), Alma de Dragón y Barón al instante.",
-    f2_title: "Ritmo Top % por Distribución Normal",
-    f2_desc: "Compara tu CS y nivel en vivo contra la distribución normal de tu elo para mostrar tu Top % y consejos accionables.",
-    f3_title: "HUD Compañero Ultraligero",
-    f3_desc: "Diseñado para usarse junto a Porofessor, Blitz o U.GG. Cero anuncios, ONNX local (<1ms), F8 click-through y F9 ocultar.",
+    nav_downloads: "Descargas", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
+    badge: "Ranked · Normal · ARAM · 100% Local · Sin Anuncios",
+    hero_title: "Coach IA en Tiempo Real que Mejora tus Decisiones",
+    hero_sub: "Compatible con Ranked, Normal, ARAM y Práctica. Corre localmente en CPU con ONNX (<1ms) junto a Blitz o Porofessor sin bajar FPS.",
+    btn_download: "Descargar App de Escritorio", btn_source: "Ver Código Abierto",
+    m1_k: "Inferencia", m1_v: "ONNX Local <1ms", m2_k: "Modos", m2_v: "Ranked · Normal · ARAM", m3_k: "Idiomas", m4_k: "Precio", m4_v: "100% Gratis · Sin Anuncios",
+    dl_head: "Centro de Descargas",
+    dl_win_t: "Windows 10 / 11 (.zip)", dl_win_d: "Paquete portátil con modelo ONNX de 18 variables y 5 idiomas. Descomprime y ejecuta sin instalar Python.",
+    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Aplicación nativa para macOS con ONNX local, HUD click-through y detección automática de idioma.",
+    dl_sha_t: "Checksums SHA-256", dl_sha_d: "Cada versión se compila en GitHub Actions e incluye checksums.sha256 para verificar integridad.",
+    dl_btn: "Descargar Última Versión", dl_sha_btn: "Verificar Checksums",
+    setup_head: "Cómo Aplicarlo (4 Pasos)",
+    s1_t: "Descomprime y Ejecuta", s1_d: "Extrae el zip y abre LoLPacemaker. En el primer inicio, pulsa Más información → Ejecutar de todas formas (Windows) o Clic derecho → Abrir (macOS).",
+    s2_t: "Modo Sin Bordes", s2_d: "En los ajustes de video de LoL, cambia el modo de ventana a Sin Bordes (Borderless) para ver el HUD sobre el juego.",
+    s3_t: "Conexión Automática", s3_d: "Inicia Ranked, Normal o ARAM. El HUD detecta el modo automáticamente y actualiza calls cada 2 segundos.",
+    s4_t: "Controles del HUD", s4_d: "Arrastra para mover, F8 click-through, F9 ocultar/mostrar, [ / ] opacidad, o cambia entre 5 idiomas con un clic.",
+    faq_head: "Solución de Problemas y FAQ",
+    q1: "El HUD no aparece encima de League of Legends.", a1: "Cambia el modo de pantalla de Pantalla Completa a Sin Bordes (Borderless) en los ajustes de video de LoL.",
+    q2: "Aparece una advertencia de SmartScreen o Gatekeeper.", a2: "Es un proyecto gratuito de código abierto sin certificado comercial. Puedes revisar todo el código en GitHub y comprobar el SHA-256.",
+    q3: "Se queda en \"Waiting for LoL...\" durante la partida.", a3: "La API local de Riot (127.0.0.1:2999) solo se abre al terminar la pantalla de carga. Verifica que tu firewall no bloquee el puerto 2999.",
+    q4: "¿Es seguro bajo la política de Riot en Ranked y ARAM?", a4: "Sí. Solo lee la API local oficial de marcador público (127.0.0.1:2999) para mejorar tu toma de decisiones: cero inyección de memoria u OCR.",
+    sup_head: "Soporte y Contacto",
+    sup_bug_t: "Reportar Errores y Sugerencias", sup_bug_d: "¿Encontraste un fallo o quieres sugerir mejoras? Abre un issue en GitHub.", sup_bug_btn: "Abrir Issue en GitHub",
+    sup_com_t: "Comunidad y Novedades", sup_com_d: "Sigue las actualizaciones y comparte tu feedback en Reddit.", sup_com_btn: "Ir al Perfil de Reddit",
     sec_title: "Seguro bajo Políticas de Riot",
-    sec_desc: "Solo lectura sobre la API local oficial de Riot (127.0.0.1:2999). Sin inyección de memoria, sin OCR, sin datos ocultos del rival y cero datos enviados a servidores externos.",
+    sec_desc: "Solo lectura sobre la API local oficial de Riot (127.0.0.1:2999). Sin inyección de memoria, sin OCR, sin datos ocultos y cero envío a servidores externos.",
     footer: "LoL Pacemaker no está avalado por Riot Games y no refleja las opiniones ni puntos de vista de Riot Games."
   },
   pt: {
-    lang_label: "Idioma",
-    badge: "100% Local · Sem Anúncios · Funciona junto com Blitz e Porofessor",
-    hero_title: "Shotcaller IA em Tempo Real para League of Legends",
-    hero_sub: "Lê o placar local oficial da Riot a cada 2s, calcula probabilidade de vitória e seu Top % do elo localmente via ONNX (<1ms), e entrega calls de macro sem queda de FPS.",
-    btn_download: "Baixar Grátis (GitHub Releases)",
-    btn_source: "Ver Código Aberto",
-    f1_title: "Calls de Golpear e Objetivos ao Vivo",
-    f1_desc: "Monitora morte do caçador inimigo, janelas de vantagem numérica (5v3), Alma do Dragão e Barão em tempo real.",
-    f2_title: "Ritmo Top % por Distribuição Normal",
-    f2_desc: "Compara seu CS e nível ao vivo com a distribuição normal do seu elo para exibir seu Top % e briefing tático.",
-    f3_title: "HUD Companheiro Ultraleve",
-    f3_desc: "Feito para rodar ao lado de Porofessor, Blitz ou U.GG. Zero anúncios, ONNX local (<1ms), F8 click-through e F9 ocultar.",
+    nav_downloads: "Downloads", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar",
+    badge: "Ranqueada · Normal · ARAM · 100% Local · Sem Anúncios",
+    hero_title: "Coach IA em Tempo Real que Muda suas Decisões",
+    hero_sub: "Funciona em Ranqueada, Normal, ARAM e Modo Treino. Roda localmente na CPU via ONNX (<1ms) junto com Blitz ou Porofessor sem queda de FPS.",
+    btn_download: "Baixar App Desktop", btn_source: "Ver Código Aberto",
+    m1_k: "Inferência", m1_v: "ONNX Local <1ms", m2_k: "Modos", m2_v: "Ranqueada · Normal · ARAM", m3_k: "Idiomas", m4_k: "Custo", m4_v: "100% Grátis · Sem Anúncios",
+    dl_head: "Central de Downloads",
+    dl_win_t: "Windows 10 / 11 (.zip)", dl_win_d: "Pacote portátil com modelo ONNX de 18 features e 5 idiomas. Extraia e execute sem precisar de Python.",
+    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "App nativo para macOS com ONNX local, overlay click-through e detecção automática de idioma.",
+    dl_sha_t: "Checksums SHA-256", dl_sha_d: "Cada versão é compilada no GitHub Actions e inclui checksums.sha256 para conferir a integridade.",
+    dl_btn: "Baixar Última Versão", dl_sha_btn: "Verificar Checksums",
+    setup_head: "Como Usar (4 Passos)",
+    s1_t: "Extrair e Abrir", s1_d: "Descompacte o zip e execute o LoLPacemaker. No primeiro uso, clique em Mais informações → Executar assim mesmo (Windows) ou Clique direito → Abrir (macOS).",
+    s2_t: "Modo Sem Moldura", s2_d: "Nas configurações de vídeo do LoL, mude o modo de janela para Sem Moldura (Borderless) para o HUD aparecer sobre o jogo.",
+    s3_t: "Conexão Automática", s3_d: "Entre em Ranqueada, Normal ou ARAM. O HUD detecta o modo automaticamente e atualiza calls a cada 2 segundos.",
+    s4_t: "Atalhos do HUD", s4_d: "Arraste para posicionar, F8 click-through, F9 ocultar/exibir, [ / ] opacidade, ou troque entre 5 idiomas com um clique.",
+    faq_head: "Solução de Problemas e FAQ",
+    q1: "O HUD não aparece em cima do League of Legends.", a1: "Mude o modo de vídeo do LoL de Tela Cheia para Sem Moldura (Borderless).",
+    q2: "O Windows SmartScreen ou macOS mostra um aviso.", a2: "É um app gratuito e open-source sem certificado pago. Você pode auditar todo o código no GitHub e validar o hash SHA-256.",
+    q3: "Fica preso em \"Waiting for LoL...\" na partida.", a3: "A API local da Riot (127.0.0.1:2999) só abre após a tela de carregamento. Confira se o firewall local não bloqueia a porta 2999.",
+    q4: "É seguro nas políticas da Riot em Ranqueada e ARAM?", a4: "Sim. Apenas lê a API local oficial do placar público (127.0.0.1:2999) para coaching educativo — sem injeção de memória, OCR ou timers ocultos.",
+    sup_head: "Suporte ao Usuário",
+    sup_bug_t: "Reportar Bugs e Ideias", sup_bug_d: "Encontrou algum erro ou quer sugerir recursos? Abra uma issue no GitHub.", sup_bug_btn: "Abrir Issue no GitHub",
+    sup_com_t: "Comunidade e Atualizações", sup_com_d: "Acompanhe novidades e envie feedback no perfil do Reddit.", sup_com_btn: "Visitar Reddit",
     sec_title: "Seguro nas Políticas da Riot",
-    sec_desc: "Acesso somente leitura à API local oficial da Riot (127.0.0.1:2999). Sem injeção de memória, sem OCR, sem dados ocultos do inimigo e nenhum dado sai do seu PC.",
+    sec_desc: "Acesso somente leitura à API local oficial da Riot (127.0.0.1:2999). Sem injeção de memória, sem OCR, sem dados ocultos e nenhum dado sai do seu PC.",
     footer: "LoL Pacemaker não é endossado pela Riot Games e não reflete as visões ou opiniões da Riot Games."
   }
 };

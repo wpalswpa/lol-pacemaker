@@ -82,5 +82,11 @@
   "hud_hotkeys_local_only": "전역 단축키 사용 불가 — HUD를 먼저 클릭하세요",
   "hud_model_extended": "모델: 18피처",
   "hud_model_legacy": "모델: 기본(8)",
-  "hud_opacity": "투명도"
+  "hud_opacity": "투명도",
+  "phase_aram": "칼바람 한타",
+  "obj_turret": "포탑",
+  "call_aram_reset_title": "골드 정비 타이밍 ({gold}G 보유)",
+  "call_aram_reset_detail": "보유 골드가 많습니다. 유리한 교전 후 정비해 코어템을 띄우세요.",
+  "call_aram_poke_title": "라인 유지 · 5대5 한타 각 대기",
+  "call_aram_poke_detail": "체력과 핵심 스킬을 아끼면서 5명이 모였을 때 한 번에 교전하세요."
 }

@@ -82,5 +82,11 @@
   "hud_hotkeys_local_only": "Atajos globales no disponibles — haz clic en el HUD primero",
   "hud_model_extended": "Modelo: 18 variables",
   "hud_model_legacy": "Modelo: básico (8)",
-  "hud_opacity": "Opacidad"
+  "hud_opacity": "Opacidad",
+  "phase_aram": "Pelea ARAM",
+  "obj_turret": "Torre",
+  "call_aram_reset_title": "Resetea para Comprar ({gold}G)",
+  "call_aram_reset_detail": "Mucho oro sin gastar. Busca un buen intercambio para comprar objetos.",
+  "call_aram_poke_title": "Controla Oleada y Espera 5v5",
+  "call_aram_poke_detail": "Cuida tu vida y definitivas clave antes de iniciar en equipo."
 }

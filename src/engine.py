@@ -48,7 +48,11 @@ def _has_smite(player: dict[str, Any]) -> bool:
 
 def parse_liveclient_data(raw: dict[str, Any], tier: str = "mid") -> LiveSnapshot:
     """Convert Riot 2999 allgamedata JSON into a normalized LiveSnapshot."""
-    game_time = _safe_float((raw.get("gameData") or {}).get("gameTime"), 0.0)
+    game_data = raw.get("gameData") or {}
+    game_time = _safe_float(game_data.get("gameTime"), 0.0)
+    raw_mode = str(game_data.get("gameMode") or "CLASSIC").upper()
+    map_num = _safe_int(game_data.get("mapNumber"), 11)
+    game_mode = "ARAM" if (raw_mode == "ARAM" or map_num == 12) else raw_mode
     players = raw.get("allPlayers") or []
     active = raw.get("activePlayer") or {}
     active_names = _names(active)
@@ -205,6 +209,7 @@ def parse_liveclient_data(raw: dict[str, Any], tier: str = "mid") -> LiveSnapsho
 
     return LiveSnapshot(
         game_time=game_time,
+        game_mode=game_mode,
         scoreboard=sb,
         ally_alive=ally_alive or 5,
         enemy_alive=enemy_alive,

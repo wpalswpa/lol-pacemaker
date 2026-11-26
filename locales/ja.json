@@ -82,5 +82,11 @@
   "hud_hotkeys_local_only": "グローバルホットキーが使えません — 先にHUDをクリックしてください",
   "hud_model_extended": "モデル: 18特徴量",
   "hud_model_legacy": "モデル: 基本(8)",
-  "hud_opacity": "透明度"
+  "hud_opacity": "透明度",
+  "phase_aram": "ARAM 集団戦",
+  "obj_turret": "タワー",
+  "call_aram_reset_title": "装備購入リセット ({gold}G所持)",
+  "call_aram_reset_detail": "未消費ゴールドが多め。有利な交換後にデスして装備を整えよう。",
+  "call_aram_poke_title": "ウェーブ維持・5v5待機",
+  "call_aram_poke_detail": "体力と重要スキルを温存し、5人揃ってから仕掛けよう。"
 }
