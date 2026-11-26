@@ -613,20 +613,198 @@ export async function handleReview(request, env, headers) {
     findings.push(ko ? "기록된 사망이 없거나 타임라인 데이터가 없는 경기입니다." : "No deaths recorded or timeline unavailable.");
   }
 
+function normCdf(z) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989422804014327 * Math.exp((-z * z) / 2);
+  const p = d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  return z >= 0 ? 1 - p : p;
+}
+
+function buildMetricProfile(key, labelKo, labelEn, rawVal, mean, sd, unit, ko) {
+  const z = Math.max(-3.0, Math.min(3.0, (rawVal - mean) / Math.max(0.01, sd)));
+  const tScore = Number(Math.max(15, Math.min(85, 50 + 10 * z)).toFixed(1));
+  const pct = Number((normCdf(z) * 100).toFixed(1));
+  const grade = tScore >= 70 ? (ko ? "최상" : "Elite")
+    : tScore >= 60 ? (ko ? "높음" : "High")
+    : tScore >= 40 ? (ko ? "보통" : "Avg")
+    : tScore >= 30 ? (ko ? "낮음" : "Low")
+    : (ko ? "위험" : "Risk");
+  const radar = Math.round(Math.max(10, Math.min(100, pct)));
+  return { key, label: ko ? labelKo : labelEn, raw: rawVal, unit, t_score: tScore, percentile: pct, grade, radar };
+}
+
+function generateCoachFeedback({ me, opp, ko, metrics, topDeaths, goldDiff15, kp, csPerMin, dmgShare, durationMin }) {
+  const sorted = [...metrics].sort((a, b) => b.t_score - a.t_score);
+  const best = sorted[0];
+  const worst = sorted[sorted.length - 1];
+  const secondWorst = sorted[sorted.length - 2];
+  const oppName = opp?.championName || (ko ? "맞라인 상대" : "lane opponent");
+  const myDmg = me.totalDamageDealtToChampions || 0;
+  const oppDmg = opp?.totalDamageDealtToChampions || 0;
+  const dmgDiff = opp ? (myDmg - oppDmg) : null;
+  const zeroWardDeaths = topDeaths.filter((d) => d.wards_prior_3m === 0).length;
+  const totalObjLost = topDeaths.reduce((a, d) => a + d.objectives_lost_60s.length, 0);
+
+  const summary = ko
+    ? `${me.championName} vs ${oppName} (${me.win ? "승리" : "패배"}, ${Math.round(durationMin)}분) — '${best.label}'(${best.grade}, T=${best.t_score})은 강점, '${worst.label}'(${worst.grade}, T=${worst.t_score})은 최우선 개선 지표입니다.`
+    : `${me.championName} vs ${oppName} (${me.win ? "Win" : "Loss"}, ${Math.round(durationMin)}m) — '${best.label}' (${best.grade}) led; '${worst.label}' (${worst.grade}) needs focus.`;
+
+  const strengths = [
+    ko
+      ? `${best.label}이(가) T점수 ${best.t_score}(상위 ${(100 - best.percentile).toFixed(0)}%)로 동티어 평균을 웃돌았습니다.`
+      : `${best.label} hit T=${best.t_score} (top ${(100 - best.percentile).toFixed(0)}%), beating tier average.`,
+    dmgDiff !== null && dmgDiff > 0
+      ? (ko
+        ? `맞라인 상대 ${oppName}보다 챔피언 딜량을 +${dmgDiff.toLocaleString()} 더 넣었습니다 (팀 내 딜 비중 ${dmgShare.toFixed(0)}%).`
+        : `Out-damaged lane opponent ${oppName} by +${dmgDiff.toLocaleString()} (${dmgShare.toFixed(0)}% team share).`)
+      : (ko
+        ? `팀 내 딜 비중 ${dmgShare.toFixed(0)}%, 킬관여 ${kp}%, 분당 CS ${csPerMin.toFixed(1)}개를 기록했습니다.`
+        : `Logged ${dmgShare.toFixed(0)}% team damage share, ${kp}% KP, and ${csPerMin.toFixed(1)} CS/m.`),
+  ];
+
+  const improvements = [
+    ko
+      ? `핵심 약점은 '${worst.label}'(${worst.grade}) · '${secondWorst.label}'(${secondWorst.grade})입니다.${goldDiff15 !== null ? ` 15분 ${oppName} 대비 골드차 ${goldDiff15 >= 0 ? "+" : ""}${goldDiff15}G.` : ""}`
+      : `Weakest areas: '${worst.label}' (${worst.grade}) & '${secondWorst.label}' (${secondWorst.grade}).${goldDiff15 !== null ? ` 15m GD vs ${oppName}: ${goldDiff15 >= 0 ? "+" : ""}${goldDiff15}G.` : ""}`,
+    topDeaths.length
+      ? (ko
+        ? `치명 데스 ${topDeaths.length}건 중 직전 3분 와드 0개 데스가 ${zeroWardDeaths}건, 데스 직후 오브젝트 손실이 ${totalObjLost}건입니다. ${topDeaths[0].time} ${topDeaths[0].zone}처럼 시야 없이 전진한 타이밍을 줄이세요.`
+        : `${zeroWardDeaths}/${topDeaths.length} key deaths had 0 prior wards, costing ${totalObjLost} objective(s). Avoid pushing without vision like ${topDeaths[0].time} (${topDeaths[0].zone}).`)
+      : (ko
+        ? `시야 점수 ${me.visionScore || 0}점(분당 ${( (me.visionScore || 0) / durationMin).toFixed(2)}) — 오브젝트 1분 전 제어 와드·장신구 교대 빈도를 높이세요.`
+        : `Vision score ${me.visionScore || 0} (${((me.visionScore || 0) / durationMin).toFixed(2)}/m) — drop wards 60s before objectives.`),
+  ];
+
+  return { summary, strengths, improvements };
+}
+
+  const teamDmg = Math.max(1, participants.filter((p) => p.teamId === myTeam).reduce((a, p) => a + (p.totalDamageDealtToChampions || 0), 0));
+  const dmgShare = ((me.totalDamageDealtToChampions || 0) / teamDmg) * 100;
+  const csPerMin = myCs / durationMin;
+  const visPerMin = (me.visionScore || 0) / durationMin;
+  const deathsPer10 = (me.deaths || 0) / (durationMin / 10);
+  const objLossPenalty = topDeaths.reduce((acc, d) => acc + d.objectives_lost_60s.length * 0.45, 0);
+  const survRaw = Math.max(0, 6.0 - deathsPer10 - objLossPenalty);
+  const isSup = me.teamPosition === "UTILITY";
+
+  const metrics = [
+    buildMetricProfile("lane", "라인전", "Laning", goldDiff15 !== null ? goldDiff15 : ((me.goldEarned || 0) / durationMin - 380) * 15, 0, 1200, "G", ko),
+    buildMetricProfile("farm", "파밍", "Farming", isSup ? visPerMin * 3.8 : csPerMin, isSup ? 6.0 : 6.2, 1.5, isSup ? "/m" : "CS/m", ko),
+    buildMetricProfile("combat", "교전", "Combat", kp, 50, 16, "%", ko),
+    buildMetricProfile("vision", "시야", "Vision", visPerMin, isSup ? 1.8 : 0.85, isSup ? 0.55 : 0.35, "/m", ko),
+    buildMetricProfile("survival", "생존", "Survival", survRaw, 3.6, 1.35, "pt", ko),
+    buildMetricProfile("damage", "딜 기여", "Damage", dmgShare, isSup ? 10 : 22, isSup ? 5 : 7, "%", ko),
+  ];
+
+  const opp = participants.find((p) => p.teamId !== myTeam && p.teamPosition && p.teamPosition === me.teamPosition) || null;
+  const coaching = generateCoachFeedback(
+    { me, opp, ko, metrics, topDeaths, goldDiff15, kp, csPerMin, dmgShare, durationMin },
+  );
+
+function normCdf(z) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989422804014327 * Math.exp((-z * z) / 2);
+  const p = d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  return z >= 0 ? 1 - p : p;
+}
+
+function buildMetricProfile(key, labelKo, labelEn, rawVal, mean, sd, unit, ko) {
+  const z = Math.max(-3.0, Math.min(3.0, (rawVal - mean) / Math.max(0.01, sd)));
+  const tScore = Number(Math.max(15, Math.min(85, 50 + 10 * z)).toFixed(1));
+  const pct = Number((normCdf(z) * 100).toFixed(1));
+  const grade = tScore >= 70 ? (ko ? "최상" : "Elite")
+    : tScore >= 60 ? (ko ? "높음" : "High")
+    : tScore >= 40 ? (ko ? "보통" : "Avg")
+    : tScore >= 30 ? (ko ? "낮음" : "Low")
+    : (ko ? "위험" : "Risk");
+  const radar = Math.round(Math.max(10, Math.min(100, pct)));
+  return { key, label: ko ? labelKo : labelEn, raw: rawVal, unit, t_score: tScore, percentile: pct, grade, radar };
+}
+
+function generateCoachFeedback({ me, opp, ko, metrics, topDeaths, goldDiff15, kp, csPerMin, dmgShare, durationMin }) {
+  const sorted = [...metrics].sort((a, b) => b.t_score - a.t_score);
+  const best = sorted[0];
+  const worst = sorted[sorted.length - 1];
+  const secondWorst = sorted[sorted.length - 2];
+  const oppName = opp?.championName || (ko ? "맞라인 상대" : "lane opponent");
+  const myDmg = me.totalDamageDealtToChampions || 0;
+  const oppDmg = opp?.totalDamageDealtToChampions || 0;
+  const dmgDiff = opp ? (myDmg - oppDmg) : null;
+  const zeroWardDeaths = topDeaths.filter((d) => d.wards_prior_3m === 0).length;
+  const totalObjLost = topDeaths.reduce((a, d) => a + d.objectives_lost_60s.length, 0);
+
+  const summary = ko
+    ? `${me.championName} vs ${oppName} (${me.win ? "승리" : "패배"}, ${Math.round(durationMin)}분) — '${best.label}'(${best.grade}, T=${best.t_score})은 강점, '${worst.label}'(${worst.grade}, T=${worst.t_score})은 최우선 개선 지표입니다.`
+    : `${me.championName} vs ${oppName} (${me.win ? "Win" : "Loss"}, ${Math.round(durationMin)}m) — '${best.label}' (${best.grade}) led; '${worst.label}' (${worst.grade}) needs focus.`;
+
+  const strengths = [
+    ko
+      ? `${best.label}이(가) T점수 ${best.t_score}(상위 ${(100 - best.percentile).toFixed(0)}%)로 동티어 평균을 웃돌았습니다.`
+      : `${best.label} hit T=${best.t_score} (top ${(100 - best.percentile).toFixed(0)}%), beating tier average.`,
+    dmgDiff !== null && dmgDiff > 0
+      ? (ko
+        ? `맞라인 상대 ${oppName}보다 챔피언 딜량을 +${dmgDiff.toLocaleString()} 더 넣었습니다 (팀 내 딜 비중 ${dmgShare.toFixed(0)}%).`
+        : `Out-damaged lane opponent ${oppName} by +${dmgDiff.toLocaleString()} (${dmgShare.toFixed(0)}% team share).`)
+      : (ko
+        ? `팀 내 딜 비중 ${dmgShare.toFixed(0)}%, 킬관여 ${kp}%, 분당 CS ${csPerMin.toFixed(1)}개를 기록했습니다.`
+        : `Logged ${dmgShare.toFixed(0)}% team damage share, ${kp}% KP, and ${csPerMin.toFixed(1)} CS/m.`),
+  ];
+
+  const improvements = [
+    ko
+      ? `핵심 약점은 '${worst.label}'(${worst.grade}) · '${secondWorst.label}'(${secondWorst.grade})입니다.${goldDiff15 !== null ? ` 15분 ${oppName} 대비 골드차 ${goldDiff15 >= 0 ? "+" : ""}${goldDiff15}G.` : ""}`
+      : `Weakest areas: '${worst.label}' (${worst.grade}) & '${secondWorst.label}' (${secondWorst.grade}).${goldDiff15 !== null ? ` 15m GD vs ${oppName}: ${goldDiff15 >= 0 ? "+" : ""}${goldDiff15}G.` : ""}`,
+    topDeaths.length
+      ? (ko
+        ? `치명 데스 ${topDeaths.length}건 중 직전 3분 와드 0개 데스가 ${zeroWardDeaths}건, 데스 직후 오브젝트 손실이 ${totalObjLost}건입니다. ${topDeaths[0].time} ${topDeaths[0].zone}처럼 시야 없이 전진한 타이밍을 줄이세요.`
+        : `${zeroWardDeaths}/${topDeaths.length} key deaths had 0 prior wards, costing ${totalObjLost} objective(s). Avoid pushing without vision like ${topDeaths[0].time} (${topDeaths[0].zone}).`)
+      : (ko
+        ? `시야 점수 ${me.visionScore || 0}점(분당 ${( (me.visionScore || 0) / durationMin).toFixed(2)}) — 오브젝트 1분 전 제어 와드·장신구 교대 빈도를 높이세요.`
+        : `Vision score ${me.visionScore || 0} (${((me.visionScore || 0) / durationMin).toFixed(2)}/m) — drop wards 60s before objectives.`),
+  ];
+
+  return { summary, strengths, improvements };
+}
+
+  const teamDmg = Math.max(1, participants.filter((p) => p.teamId === myTeam).reduce((a, p) => a + (p.totalDamageDealtToChampions || 0), 0));
+  const dmgShare = ((me.totalDamageDealtToChampions || 0) / teamDmg) * 100;
+  const csPerMin = myCs / durationMin;
+  const visPerMin = (me.visionScore || 0) / durationMin;
+  const deathsPer10 = (me.deaths || 0) / (durationMin / 10);
+  const objLossPenalty = topDeaths.reduce((acc, d) => acc + d.objectives_lost_60s.length * 0.45, 0);
+  const survRaw = Math.max(0, 6.0 - deathsPer10 - objLossPenalty);
+  const isSup = me.teamPosition === "UTILITY";
+
+  const metrics = [
+    buildMetricProfile("lane", "라인전", "Laning", goldDiff15 !== null ? goldDiff15 : ((me.goldEarned || 0) / durationMin - 380) * 15, 0, 1200, "G", ko),
+    buildMetricProfile("farm", "파밍", "Farming", isSup ? visPerMin * 3.8 : csPerMin, isSup ? 6.0 : 6.2, 1.5, isSup ? "/m" : "CS/m", ko),
+    buildMetricProfile("combat", "교전", "Combat", kp, 50, 16, "%", ko),
+    buildMetricProfile("vision", "시야", "Vision", visPerMin, isSup ? 1.8 : 0.85, isSup ? 0.55 : 0.35, "/m", ko),
+    buildMetricProfile("survival", "생존", "Survival", survRaw, 3.6, 1.35, "pt", ko),
+    buildMetricProfile("damage", "딜 기여", "Damage", dmgShare, isSup ? 10 : 22, isSup ? 5 : 7, "%", ko),
+  ];
+
+  const opp = participants.find((p) => p.teamId !== myTeam && p.teamPosition && p.teamPosition === me.teamPosition) || null;
+  const coaching = generateCoachFeedback(
+    { me, opp, ko, metrics, topDeaths, goldDiff15, kp, csPerMin, dmgShare, durationMin },
+  );
+
   return json({
     match_id: matchId,
     riot_id: myRiotId,
     champion: me.championName,
     win: Boolean(me.win),
     kda: `${me.kills}/${me.deaths}/${me.assists}`,
-    cs_per_min: Number((myCs / durationMin).toFixed(1)),
+    cs_per_min: Number(csPerMin.toFixed(1)),
     vision_score: me.visionScore || 0,
     kill_participation: kp,
     gold_diff_15m: goldDiff15,
     costly_deaths: topDeaths,
+    metrics,
+    coaching,
     findings,
     limitation: ko
-      ? "근거 범위: Riot 공식 1분 간격 타임라인 데이터만 사용합니다. 스킬 적중·상대 와드·팀 콜은 데이터에 없어 단정하지 않습니다."
-      : "Scope: Based strictly on Riot's 1-minute timeline data. Skillshots, enemy vision, and voice comms are not in the data.",
+      ? "근거 범위: Riot 공식 경기·1분 타임라인 수치 기반 표준 정규분포(T점수=50+10z)로 산출합니다. 스킬 적중·상대 와드·팀 콜은 단정하지 않습니다."
+      : "Scope: Computed via normal distribution (T=50+10z) from Riot match & 1-min timeline data. Skillshots and comms are not assumed.",
   }, 200, headers);
 }

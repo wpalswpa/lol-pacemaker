@@ -442,6 +442,25 @@
   }
   .ai-review-box ul { margin: 6px 0 8px 18px; padding: 0; display: grid; gap: 4px; }
   .ai-review-note { font-size: 11.5px; color: var(--dim); }
+  .rev-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 14px; margin: 10px 0; }
+  .rev-card { background: var(--panel-alt); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .rev-sec-title { font-size: 12.5px; font-weight: 900; color: var(--accent); margin-bottom: 8px; letter-spacing: 0.01em; }
+  .rev-table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-top: 8px; }
+  .rev-table th, .rev-table td { border-top: 1px solid var(--line); padding: 4px 5px; text-align: center; }
+  .rev-table th:first-child, .rev-table td:first-child { text-align: left; font-weight: 700; color: var(--sub); }
+  .rev-grade { display: inline-block; padding: 1px 6px; border-radius: 4px; font-weight: 800; font-size: 10.5px; }
+  .rev-grade.hi { background: var(--safe-bg); color: var(--safe); }
+  .rev-grade.mid { background: var(--panel); color: var(--text); border: 1px solid var(--line); }
+  .rev-grade.lo { background: var(--loss-bg); color: var(--loss); }
+  .rev-coach-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
+  .rev-coach-box { background: var(--panel-alt); border: 1px solid var(--line); border-radius: 7px; padding: 10px 12px; }
+  .rev-coach-box.good { border-left: 3px solid var(--safe); }
+  .rev-coach-box.fix { border-left: 3px solid var(--accent); }
+  .rev-summary {
+    padding: 9px 12px; border-radius: 7px; background: var(--accent-soft); border: 1px solid var(--accent);
+    font-weight: 700; color: var(--text); margin: 8px 0;
+  }
+  @media (max-width: 820px) { .rev-grid, .rev-coach-cols { grid-template-columns: 1fr; } }
 
   .auth-box { display: grid; gap: 10px; font-size: 13px; }
   .auth-box input, .auth-box select {
@@ -2174,10 +2193,170 @@ async function openAiReview(matchId, container) {
       container.appendChild(el("div", "", ko ? "복기 분석을 불러오지 못했습니다." : "Could not analyze this match."));
       return;
     }
-    const title = el("strong", "", (ko ? "AI 복기 결과 · " : "AI Match Review · ") + (d.riot_id || LAST_SEARCHED_ID) + " · " + d.champion + " (" + d.kda + ")");
+function svgEl(tag, attrs) {
+  const n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, String(v));
+  return n;
+}
+
+function buildNormalDistSvg(metrics, ko) {
+  const W = 460, padL = 74, padR = 14, plotW = W - padL - padR;
+  const barH = 16, barGap = 5, curveTop = 10, curveH = 54, axisY = curveTop + curveH;
+  const barsTop = axisY + 28, H = barsTop + metrics.length * (barH + barGap) + 6;
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", style: "display:block;max-width:100%;" });
+  const xOf = t => padL + ((Math.max(10, Math.min(90, t)) - 10) / 80) * plotW;
+
+  // Shaded zone bands (Low/Avg/High)
+  const bands = [
+    [10, 30, "rgba(232,64,87,0.06)"], [30, 40, "rgba(232,64,87,0.10)"],
+    [40, 60, "rgba(148,163,184,0.10)"], [60, 70, "rgba(52,211,153,0.10)"], [70, 90, "rgba(52,211,153,0.06)"],
+  ];
+  bands.forEach(([a, b, fill]) => {
+    svg.appendChild(svgEl("rect", { x: xOf(a), y: curveTop, width: xOf(b) - xOf(a), height: H - curveTop - 4, fill }));
+  });
+
+  // Bell curve path (mu=50, sigma=10)
+  const pts = [];
+  for (let t = 10; t <= 90; t += 1.5) {
+    const z = (t - 50) / 10;
+    const y = axisY - Math.exp(-0.5 * z * z) * (curveH - 4);
+    pts.push(`${xOf(t).toFixed(1)},${y.toFixed(1)}`);
+  }
+  svg.appendChild(svgEl("polyline", { points: pts.join(" "), fill: "none", stroke: "var(--accent)", "stroke-width": 2 }));
+  svg.appendChild(svgEl("line", { x1: padL, y1: axisY, x2: W - padR, y2: axisY, stroke: "var(--line-strong)", "stroke-width": 1 }));
+
+  // T-score ticks & band labels
+  [20, 30, 40, 50, 60, 70, 80].forEach(t => {
+    const x = xOf(t);
+    svg.appendChild(svgEl("line", { x1: x, y1: axisY, x2: x, y2: H - 4, stroke: "var(--line)", "stroke-dasharray": "2,2" }));
+    const lbl = svgEl("text", { x, y: axisY + 11, "text-anchor": "middle", fill: "var(--dim)", "font-size": 9 });
+    lbl.textContent = "T" + t;
+    svg.appendChild(lbl);
+  });
+  const zoneLabels = ko
+    ? [[20, "최하"], [35, "낮음"], [50, "보통"], [65, "높음"], [80, "최상"]]
+    : [[20, "Risk"], [35, "Low"], [50, "Avg"], [65, "High"], [80, "Elite"]];
+  zoneLabels.forEach(([t, txt]) => {
+    const lbl = svgEl("text", { x: xOf(t), y: axisY + 22, "text-anchor": "middle", fill: "var(--sub)", "font-size": 9, "font-weight": 700 });
+    lbl.textContent = txt;
+    svg.appendChild(lbl);
+  });
+
+  // Horizontal score bars
+  metrics.forEach((m, i) => {
+    const y = barsTop + i * (barH + barGap);
+    const lbl = svgEl("text", { x: padL - 6, y: y + 12, "text-anchor": "end", fill: "var(--text)", "font-size": 10.5, "font-weight": 700 });
+    lbl.textContent = m.label;
+    svg.appendChild(lbl);
+    svg.appendChild(svgEl("rect", { x: padL, y, width: plotW, height: barH, rx: 3, fill: "var(--panel-alt)" }));
+    const bw = Math.max(4, xOf(m.t_score) - padL);
+    const barColor = m.t_score >= 60 ? "var(--safe)" : m.t_score < 40 ? "var(--loss)" : "var(--accent)";
+    svg.appendChild(svgEl("rect", { x: padL, y, width: bw, height: barH, rx: 3, fill: barColor }));
+    const val = svgEl("text", { x: Math.min(W - padR - 2, padL + bw + 4), y: y + 12, fill: "var(--text)", "font-size": 9.5, "font-weight": 800 });
+    val.textContent = m.t_score + " (" + m.percentile + "%)";
+    svg.appendChild(val);
+  });
+  return svg;
+}
+
+function buildHexRadarSvg(metrics) {
+  const S = 260, cx = 130, cy = 130, R = 82, n = metrics.length || 6;
+  const svg = svgEl("svg", { viewBox: `0 0 ${S} ${S}`, width: "100%", style: "display:block;max-width:250px;margin:0 auto;" });
+  const ptAt = (idx, ratio) => {
+    const ang = -Math.PI / 2 + (idx * 2 * Math.PI) / n;
+    return [cx + Math.cos(ang) * R * ratio, cy + Math.sin(ang) * R * ratio];
+  };
+
+  // Concentric hexagons (20, 40, 60, 80, 100)
+  [0.2, 0.4, 0.6, 0.8, 1.0].forEach(r => {
+    const pts = Array.from({ length: n }, (_, i) => ptAt(i, r).map(v => v.toFixed(1)).join(",")).join(" ");
+    svg.appendChild(svgEl("polygon", { points: pts, fill: "none", stroke: "var(--line-strong)", "stroke-width": r === 1 ? 1.3 : 0.8 }));
+  });
+  // Axis lines + labels
+  metrics.forEach((m, i) => {
+    const [x, y] = ptAt(i, 1.0);
+    svg.appendChild(svgEl("line", { x1: cx, y1: cy, x2: x.toFixed(1), y2: y.toFixed(1), stroke: "var(--line)", "stroke-width": 1 }));
+    const [lx, ly] = ptAt(i, 1.24);
+    const lbl = svgEl("text", { x: lx.toFixed(1), y: (ly + 4).toFixed(1), "text-anchor": "middle", fill: "var(--text)", "font-size": 10.5, "font-weight": 800 });
+    lbl.textContent = m.label;
+    svg.appendChild(lbl);
+  });
+  // Player polygon
+  const polyPts = metrics.map((m, i) => ptAt(i, Math.max(0.1, (m.radar || 50) / 100)).map(v => v.toFixed(1)).join(",")).join(" ");
+  svg.appendChild(svgEl("polygon", { points: polyPts, fill: "rgba(255,90,31,0.28)", stroke: "var(--accent)", "stroke-width": 2.2 }));
+  metrics.forEach((m, i) => {
+    const [px, py] = ptAt(i, Math.max(0.1, (m.radar || 50) / 100));
+    svg.appendChild(svgEl("circle", { cx: px.toFixed(1), cy: py.toFixed(1), r: 3.5, fill: "var(--accent)" }));
+  });
+  return svg;
+}
+
+    const title = el("strong", "", (ko ? "AI 코치 리포트 · " : "AI Coach Report · ") + (d.riot_id || LAST_SEARCHED_ID) + " · " + d.champion + " (" + d.kda + ")");
+    container.appendChild(title);
+
+    if (d.coaching?.summary) {
+      container.appendChild(el("div", "rev-summary", d.coaching.summary));
+    }
+
+    if (Array.isArray(d.metrics) && d.metrics.length === 6) {
+      const grid = el("div", "rev-grid");
+
+      // 01. Normal distribution profile card
+      const c1 = el("div", "rev-card");
+      c1.appendChild(el("div", "rev-sec-title", ko ? "01 정규분포 역량 프로파일 (T점수 · 백분위)" : "01 Normal Distribution Profile (T-Score · Percentile)"));
+      c1.appendChild(buildNormalDistSvg(d.metrics, ko));
+      const tbl = el("table", "rev-table");
+      const thr = el("tr"); thr.appendChild(el("th", "", ko ? "구분" : "Metric"));
+      d.metrics.forEach(m => thr.appendChild(el("th", "", m.label)));
+      const trT = el("tr"); trT.appendChild(el("td", "", "T-Score"));
+      d.metrics.forEach(m => trT.appendChild(el("td", "", String(m.t_score))));
+      const trP = el("tr"); trP.appendChild(el("td", "", ko ? "백분위" : "%ile"));
+      d.metrics.forEach(m => trP.appendChild(el("td", "", m.percentile + "%")));
+      tbl.append(thr, trT, trP);
+      c1.appendChild(tbl);
+
+      // 02. Hexagon radar profile card
+      const c2 = el("div", "rev-card");
+      c2.appendChild(el("div", "rev-sec-title", ko ? "02 6각형 영역별 역량 프로파일" : "02 Hexagonal Skill Profile"));
+      c2.appendChild(buildHexRadarSvg(d.metrics));
+      const gtbl = el("table", "rev-table");
+      d.metrics.forEach(m => {
+        const r = el("tr");
+        r.appendChild(el("td", "", m.label));
+        const gtd = el("td");
+        const gCls = m.t_score >= 60 ? "hi" : m.t_score < 40 ? "lo" : "mid";
+        gtd.appendChild(el("span", "rev-grade " + gCls, m.grade));
+        r.appendChild(gtd);
+        gtbl.appendChild(r);
+      });
+      c2.appendChild(gtbl);
+
+      grid.append(c1, c2);
+      container.appendChild(grid);
+    }
+
+    if (d.coaching) {
+      const cols = el("div", "rev-coach-cols");
+      const gBox = el("div", "rev-coach-box good");
+      gBox.appendChild(el("div", "rev-sec-title", ko ? "잘한 점 (강점)" : "What You Did Well"));
+      const gul = el("ul");
+      (d.coaching.strengths || []).forEach(s => gul.appendChild(el("li", "", s)));
+      gBox.appendChild(gul);
+
+      const fBox = el("div", "rev-coach-box fix");
+      fBox.appendChild(el("div", "rev-sec-title", ko ? "개선점 & 다음 판 액션" : "Problems & Next-Game Fix"));
+      const ful = el("ul");
+      (d.coaching.improvements || []).forEach(s => ful.appendChild(el("li", "", s)));
+      fBox.appendChild(ful);
+      cols.append(gBox, fBox);
+      container.appendChild(cols);
+    }
+
+    const tlTitle = el("div", "rev-sec-title", ko ? "03 결정적 장면 타임라인" : "03 Key Timeline Moments");
+    tlTitle.style.marginTop = "8px";
     const ul = el("ul");
     (d.findings || []).forEach(f => ul.appendChild(el("li", "", f)));
-    container.append(title, ul, el("div", "ai-review-note", d.limitation || ""));
+    container.append(tlTitle, ul, el("div", "ai-review-note", d.limitation || ""));
   } catch (_) {
     container.replaceChildren(el("div", "", ko ? "복기 서버 연결 실패" : "Review service unavailable"));
   }
