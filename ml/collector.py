@@ -63,7 +63,14 @@ class RiotRateLimitedClient:
         self._last_call = 0.0
 
     def get_json(self, url: str) -> Any:
-        req = urllib.request.Request(url, headers={"X-Riot-Token": self._api_key})
+        req = urllib.request.Request(
+            url,
+            headers={
+                "X-Riot-Token": self._api_key,
+                "User-Agent": "lol-pacemaker-collector/1.0",
+                "Accept": "application/json",
+            },
+        )
         for attempt in range(self.max_retries + 1):
             wait_gap = self.min_interval - (time.monotonic() - self._last_call)
             if wait_gap > 0:

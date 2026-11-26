@@ -111,7 +111,7 @@ lol-pacemaker (Local PC App — Server Cost $0)
 - 승률 하락 원인(`explain`): ONNX만으로 계산한다. 피처 하나씩 중립값(차이 0)으로 되돌린 승률과의 차이를 한 번의 배치 추론으로 구해, 승률을 가장 깎는 피처 상위를 고른다(마스킹된 피처 제외). 모델 종류에 상관없다.
 - 상위 %는 `distribution_stats.json`이 있고 게임 시간이 8분 이상일 때만 개인 지표(`CS/분`·레벨·킬 관여)로 계산한다(가장 가까운 기준 분·내 포지션, 없으면 `ALL`). 통계가 없으면 §8 이전의 팀 격차 방식으로 폴백하되 `rank_mode: legacy`로 표시한다.
 - 브리핑 = (상위 % 약점/강점) + (승률 하락 핵심 원인) + (실시간 오더 1순위). 모두 로케일 키 + 파라미터로 만들고 5개 언어 키 대칭 테스트를 건다.
-- **현재 번들 상태**: 실데이터 학습 전이므로 `assets/`에 확장 모델·분포 통계를 넣지 않는다(합성 데이터로 만든 모델을 사용자에게 배포하지 않는다). 앱은 ③ 8피처 + legacy 상위 %로 동작한다. 실데이터 학습 후 릴리스 자산 또는 `assets/`에 올리면 ①·②가 자동으로 쓰인다.
+- **현재 번들 상태**: KR 서버 실데이터 90경기(`low`·`mid`·`high` 각 30경기, 총 313개 팀 스냅샷 및 72개 정규분포 셀)로 학습한 `assets/model_extended.onnx`(로지스틱 채택: 평가 LogLoss `0.3969`, Brier `0.1312`, AUC `0.9275`, ONNX 오차 `1.19e-7`)와 `assets/distribution_stats.json`이 번들되어 있어 앱이 기본적으로 ② 18피처 확장 모델 + 티어별 정규분포 상위 % 모드로 동작한다. `assets/model_sklearn.onnx`(8피처)는 ③ 최후 폴백으로 유지한다.
 
 ## 11. 무서버 모델 업데이터 (`src/updater.py`)
 - 입력: GitHub Releases `latest` JSON → 자산 `model_extended.onnx`, `distribution_stats.json`, `checksums.sha256`(`<sha256>  <파일명>` 형식).

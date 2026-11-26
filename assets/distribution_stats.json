@@ -1,0 +1,1260 @@
+{
+  "schema": 1,
+  "min_n": 30,
+  "tiers": {
+    "low": {
+      "10": {
+        "ALL": {
+          "cs_per_min": {
+            "mean": 5.2307,
+            "std": 2.253,
+            "n": 300
+          },
+          "level": {
+            "mean": 7.26,
+            "std": 1.0641,
+            "n": 300
+          },
+          "kill_participation": {
+            "mean": 0.3497,
+            "std": 0.2278,
+            "n": 300
+          }
+        },
+        "TOP": {
+          "cs_per_min": {
+            "mean": 5.875,
+            "std": 1.5954,
+            "n": 60
+          },
+          "level": {
+            "mean": 8.1667,
+            "std": 0.84,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.2279,
+            "std": 0.1902,
+            "n": 60
+          }
+        },
+        "JUNGLE": {
+          "cs_per_min": {
+            "mean": 6.0017,
+            "std": 0.8876,
+            "n": 60
+          },
+          "level": {
+            "mean": 6.9833,
+            "std": 0.532,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.3873,
+            "std": 0.2209,
+            "n": 60
+          }
+        },
+        "MIDDLE": {
+          "cs_per_min": {
+            "mean": 6.405,
+            "std": 1.1465,
+            "n": 60
+          },
+          "level": {
+            "mean": 8.3167,
+            "std": 0.6189,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.3102,
+            "std": 0.2218,
+            "n": 60
+          }
+        },
+        "BOTTOM": {
+          "cs_per_min": {
+            "mean": 6.49,
+            "std": 1.192,
+            "n": 60
+          },
+          "level": {
+            "mean": 6.75,
+            "std": 0.5664,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.4062,
+            "std": 0.2227,
+            "n": 60
+          }
+        },
+        "UTILITY": {
+          "cs_per_min": {
+            "mean": 1.3817,
+            "std": 0.7231,
+            "n": 60
+          },
+          "level": {
+            "mean": 6.0833,
+            "std": 0.5565,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.417,
+            "std": 0.2239,
+            "n": 60
+          }
+        }
+      },
+      "15": {
+        "ALL": {
+          "cs_per_min": {
+            "mean": 5.3364,
+            "std": 2.287,
+            "n": 280
+          },
+          "level": {
+            "mean": 9.6,
+            "std": 1.4383,
+            "n": 280
+          },
+          "kill_participation": {
+            "mean": 0.366,
+            "std": 0.1881,
+            "n": 280
+          }
+        },
+        "TOP": {
+          "cs_per_min": {
+            "mean": 6.2786,
+            "std": 1.5451,
+            "n": 56
+          },
+          "level": {
+            "mean": 11.1429,
+            "std": 1.231,
+            "n": 56
+          },
+          "kill_participation": {
+            "mean": 0.2106,
+            "std": 0.1451,
+            "n": 56
+          }
+        },
+        "JUNGLE": {
+          "cs_per_min": {
+            "mean": 5.9345,
+            "std": 1.0,
+            "n": 56
+          },
+          "level": {
+            "mean": 9.3036,
+            "std": 0.7051,
+            "n": 56
+          },
+          "kill_participation": {
+            "mean": 0.4174,
+            "std": 0.1704,
+            "n": 56
+          }
+        },
+        "MIDDLE": {
+          "cs_per_min": {
+            "mean": 6.5393,
+            "std": 1.2986,
+            "n": 56
+          },
+          "level": {
+            "mean": 10.6786,
+            "std": 0.8886,
+            "n": 56
+          },
+          "kill_participation": {
+            "mean": 0.3326,
+            "std": 0.1583,
+            "n": 56
+          }
+        },
+        "BOTTOM": {
+          "cs_per_min": {
+            "mean": 6.5,
+            "std": 1.1511,
+            "n": 56
+          },
+          "level": {
+            "mean": 8.8393,
+            "std": 0.7265,
+            "n": 56
+          },
+          "kill_participation": {
+            "mean": 0.4408,
+            "std": 0.1821,
+            "n": 56
+          }
+        },
+        "UTILITY": {
+          "cs_per_min": {
+            "mean": 1.4298,
+            "std": 0.6671,
+            "n": 56
+          },
+          "level": {
+            "mean": 8.0357,
+            "std": 0.5965,
+            "n": 56
+          },
+          "kill_participation": {
+            "mean": 0.4287,
+            "std": 0.1765,
+            "n": 56
+          }
+        }
+      },
+      "20": {
+        "ALL": {
+          "cs_per_min": {
+            "mean": 5.4873,
+            "std": 2.3627,
+            "n": 220
+          },
+          "level": {
+            "mean": 11.75,
+            "std": 1.5972,
+            "n": 220
+          },
+          "kill_participation": {
+            "mean": 0.386,
+            "std": 0.1762,
+            "n": 220
+          }
+        },
+        "TOP": {
+          "cs_per_min": {
+            "mean": 6.6784,
+            "std": 1.5758,
+            "n": 44
+          },
+          "level": {
+            "mean": 13.4091,
+            "std": 1.5273,
+            "n": 44
+          },
+          "kill_participation": {
+            "mean": 0.2335,
+            "std": 0.1421,
+            "n": 44
+          }
+        },
+        "JUNGLE": {
+          "cs_per_min": {
+            "mean": 5.958,
+            "std": 0.9623,
+            "n": 44
+          },
+          "level": {
+            "mean": 11.6591,
+            "std": 0.9987,
+            "n": 44
+          },
+          "kill_participation": {
+            "mean": 0.4387,
+            "std": 0.1727,
+            "n": 44
+          }
+        },
+        "MIDDLE": {
+          "cs_per_min": {
+            "mean": 6.6989,
+            "std": 1.2974,
+            "n": 44
+          },
+          "level": {
+            "mean": 12.7045,
+            "std": 0.919,
+            "n": 44
+          },
+          "kill_participation": {
+            "mean": 0.3772,
+            "std": 0.1585,
+            "n": 44
+          }
+        },
+        "BOTTOM": {
+          "cs_per_min": {
+            "mean": 6.6432,
+            "std": 1.2225,
+            "n": 44
+          },
+          "level": {
+            "mean": 11.0227,
+            "std": 0.783,
+            "n": 44
+          },
+          "kill_participation": {
+            "mean": 0.441,
+            "std": 0.1616,
+            "n": 44
+          }
+        },
+        "UTILITY": {
+          "cs_per_min": {
+            "mean": 1.458,
+            "std": 0.8035,
+            "n": 44
+          },
+          "level": {
+            "mean": 9.9545,
+            "std": 0.7371,
+            "n": 44
+          },
+          "kill_participation": {
+            "mean": 0.4394,
+            "std": 0.1483,
+            "n": 44
+          }
+        }
+      },
+      "25": {
+        "ALL": {
+          "cs_per_min": {
+            "mean": 5.5102,
+            "std": 2.3472,
+            "n": 180
+          },
+          "level": {
+            "mean": 13.5722,
+            "std": 1.6057,
+            "n": 180
+          },
+          "kill_participation": {
+            "mean": 0.4029,
+            "std": 0.162,
+            "n": 180
+          }
+        },
+        "TOP": {
+          "cs_per_min": {
+            "mean": 6.7711,
+            "std": 1.3808,
+            "n": 36
+          },
+          "level": {
+            "mean": 15.4444,
+            "std": 0.8642,
+            "n": 36
+          },
+          "kill_participation": {
+            "mean": 0.2598,
+            "std": 0.1286,
+            "n": 36
+          }
+        },
+        "JUNGLE": {
+          "cs_per_min": {
+            "mean": 5.8611,
+            "std": 1.0175,
+            "n": 36
+          },
+          "level": {
+            "mean": 13.5278,
+            "std": 1.0134,
+            "n": 36
+          },
+          "kill_participation": {
+            "mean": 0.4598,
+            "std": 0.1671,
+            "n": 36
+          }
+        },
+        "MIDDLE": {
+          "cs_per_min": {
+            "mean": 6.64,
+            "std": 1.2999,
+            "n": 36
+          },
+          "level": {
+            "mean": 14.3333,
+            "std": 1.1304,
+            "n": 36
+          },
+          "kill_participation": {
+            "mean": 0.3901,
+            "std": 0.1465,
+            "n": 36
+          }
+        },
+        "BOTTOM": {
+          "cs_per_min": {
+            "mean": 6.8067,
+            "std": 1.1454,
+            "n": 36
+          },
+          "level": {
+            "mean": 12.9167,
+            "std": 1.0639,
+            "n": 36
+          },
+          "kill_participation": {
+            "mean": 0.4524,
+            "std": 0.1475,
+            "n": 36
+          }
+        },
+        "UTILITY": {
+          "cs_per_min": {
+            "mean": 1.4722,
+            "std": 0.7922,
+            "n": 36
+          },
+          "level": {
+            "mean": 11.6389,
+            "std": 0.673,
+            "n": 36
+          },
+          "kill_participation": {
+            "mean": 0.4523,
+            "std": 0.1218,
+            "n": 36
+          }
+        }
+      }
+    },
+    "mid": {
+      "10": {
+        "ALL": {
+          "cs_per_min": {
+            "mean": 6.0477,
+            "std": 2.5938,
+            "n": 300
+          },
+          "level": {
+            "mean": 7.4033,
+            "std": 1.0711,
+            "n": 300
+          },
+          "kill_participation": {
+            "mean": 0.3766,
+            "std": 0.2207,
+            "n": 300
+          }
+        },
+        "TOP": {
+          "cs_per_min": {
+            "mean": 6.83,
+            "std": 1.4995,
+            "n": 60
+          },
+          "level": {
+            "mean": 8.2667,
+            "std": 0.7272,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.3,
+            "std": 0.196,
+            "n": 60
+          }
+        },
+        "JUNGLE": {
+          "cs_per_min": {
+            "mean": 6.5083,
+            "std": 0.9209,
+            "n": 60
+          },
+          "level": {
+            "mean": 7.2,
+            "std": 0.5099,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.4422,
+            "std": 0.1886,
+            "n": 60
+          }
+        },
+        "MIDDLE": {
+          "cs_per_min": {
+            "mean": 7.8183,
+            "std": 0.9917,
+            "n": 60
+          },
+          "level": {
+            "mean": 8.5667,
+            "std": 0.4955,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.2689,
+            "std": 0.2226,
+            "n": 60
+          }
+        },
+        "BOTTOM": {
+          "cs_per_min": {
+            "mean": 7.65,
+            "std": 1.2327,
+            "n": 60
+          },
+          "level": {
+            "mean": 6.85,
+            "std": 0.5107,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.4263,
+            "std": 0.2045,
+            "n": 60
+          }
+        },
+        "UTILITY": {
+          "cs_per_min": {
+            "mean": 1.4317,
+            "std": 0.4522,
+            "n": 60
+          },
+          "level": {
+            "mean": 6.1333,
+            "std": 0.6182,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.4453,
+            "std": 0.222,
+            "n": 60
+          }
+        }
+      },
+      "15": {
+        "ALL": {
+          "cs_per_min": {
+            "mean": 6.1564,
+            "std": 2.6518,
+            "n": 300
+          },
+          "level": {
+            "mean": 9.71,
+            "std": 1.3926,
+            "n": 300
+          },
+          "kill_participation": {
+            "mean": 0.3966,
+            "std": 0.1931,
+            "n": 300
+          }
+        },
+        "TOP": {
+          "cs_per_min": {
+            "mean": 7.1578,
+            "std": 1.518,
+            "n": 60
+          },
+          "level": {
+            "mean": 11.2333,
+            "std": 0.9012,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.3022,
+            "std": 0.1799,
+            "n": 60
+          }
+        },
+        "JUNGLE": {
+          "cs_per_min": {
+            "mean": 6.4944,
+            "std": 1.0128,
+            "n": 60
+          },
+          "level": {
+            "mean": 9.6333,
+            "std": 0.7739,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.4851,
+            "std": 0.1467,
+            "n": 60
+          }
+        },
+        "MIDDLE": {
+          "cs_per_min": {
+            "mean": 7.8244,
+            "std": 0.9943,
+            "n": 60
+          },
+          "level": {
+            "mean": 10.75,
+            "std": 0.6225,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.3179,
+            "std": 0.1924,
+            "n": 60
+          }
+        },
+        "BOTTOM": {
+          "cs_per_min": {
+            "mean": 7.8778,
+            "std": 1.1999,
+            "n": 60
+          },
+          "level": {
+            "mean": 8.95,
+            "std": 0.669,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.4344,
+            "std": 0.194,
+            "n": 60
+          }
+        },
+        "UTILITY": {
+          "cs_per_min": {
+            "mean": 1.4278,
+            "std": 0.4224,
+            "n": 60
+          },
+          "level": {
+            "mean": 7.9833,
+            "std": 0.695,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.4432,
+            "std": 0.1771,
+            "n": 60
+          }
+        }
+      },
+      "20": {
+        "ALL": {
+          "cs_per_min": {
+            "mean": 6.3188,
+            "std": 2.782,
+            "n": 250
+          },
+          "level": {
+            "mean": 11.864,
+            "std": 1.5892,
+            "n": 250
+          },
+          "kill_participation": {
+            "mean": 0.4077,
+            "std": 0.182,
+            "n": 250
+          }
+        },
+        "TOP": {
+          "cs_per_min": {
+            "mean": 7.544,
+            "std": 1.4912,
+            "n": 50
+          },
+          "level": {
+            "mean": 13.56,
+            "std": 1.08,
+            "n": 50
+          },
+          "kill_participation": {
+            "mean": 0.2992,
+            "std": 0.1659,
+            "n": 50
+          }
+        },
+        "JUNGLE": {
+          "cs_per_min": {
+            "mean": 6.542,
+            "std": 1.054,
+            "n": 50
+          },
+          "level": {
+            "mean": 11.92,
+            "std": 0.8447,
+            "n": 50
+          },
+          "kill_participation": {
+            "mean": 0.4909,
+            "std": 0.1467,
+            "n": 50
+          }
+        },
+        "MIDDLE": {
+          "cs_per_min": {
+            "mean": 7.943,
+            "std": 1.1422,
+            "n": 50
+          },
+          "level": {
+            "mean": 12.92,
+            "std": 0.7705,
+            "n": 50
+          },
+          "kill_participation": {
+            "mean": 0.3557,
+            "std": 0.1738,
+            "n": 50
+          }
+        },
+        "BOTTOM": {
+          "cs_per_min": {
+            "mean": 8.24,
+            "std": 1.032,
+            "n": 50
+          },
+          "level": {
+            "mean": 11.24,
+            "std": 0.7088,
+            "n": 50
+          },
+          "kill_participation": {
+            "mean": 0.4331,
+            "std": 0.1873,
+            "n": 50
+          }
+        },
+        "UTILITY": {
+          "cs_per_min": {
+            "mean": 1.325,
+            "std": 0.4172,
+            "n": 50
+          },
+          "level": {
+            "mean": 9.68,
+            "std": 0.7054,
+            "n": 50
+          },
+          "kill_participation": {
+            "mean": 0.4598,
+            "std": 0.1629,
+            "n": 50
+          }
+        }
+      },
+      "25": {
+        "ALL": {
+          "cs_per_min": {
+            "mean": 6.2458,
+            "std": 2.7977,
+            "n": 240
+          },
+          "level": {
+            "mean": 13.7917,
+            "std": 1.7411,
+            "n": 240
+          },
+          "kill_participation": {
+            "mean": 0.4353,
+            "std": 0.1618,
+            "n": 240
+          }
+        },
+        "TOP": {
+          "cs_per_min": {
+            "mean": 7.5,
+            "std": 1.4976,
+            "n": 48
+          },
+          "level": {
+            "mean": 15.7292,
+            "std": 1.15,
+            "n": 48
+          },
+          "kill_participation": {
+            "mean": 0.3356,
+            "std": 0.1449,
+            "n": 48
+          }
+        },
+        "JUNGLE": {
+          "cs_per_min": {
+            "mean": 6.4667,
+            "std": 1.0152,
+            "n": 48
+          },
+          "level": {
+            "mean": 13.8958,
+            "std": 1.0456,
+            "n": 48
+          },
+          "kill_participation": {
+            "mean": 0.4964,
+            "std": 0.1404,
+            "n": 48
+          }
+        },
+        "MIDDLE": {
+          "cs_per_min": {
+            "mean": 7.7542,
+            "std": 1.0461,
+            "n": 48
+          },
+          "level": {
+            "mean": 14.7083,
+            "std": 0.8154,
+            "n": 48
+          },
+          "kill_participation": {
+            "mean": 0.3902,
+            "std": 0.1425,
+            "n": 48
+          }
+        },
+        "BOTTOM": {
+          "cs_per_min": {
+            "mean": 8.275,
+            "std": 1.2056,
+            "n": 48
+          },
+          "level": {
+            "mean": 13.2292,
+            "std": 0.8953,
+            "n": 48
+          },
+          "kill_participation": {
+            "mean": 0.4692,
+            "std": 0.1744,
+            "n": 48
+          }
+        },
+        "UTILITY": {
+          "cs_per_min": {
+            "mean": 1.2333,
+            "std": 0.4172,
+            "n": 48
+          },
+          "level": {
+            "mean": 11.3958,
+            "std": 0.7837,
+            "n": 48
+          },
+          "kill_participation": {
+            "mean": 0.4851,
+            "std": 0.142,
+            "n": 48
+          }
+        }
+      }
+    },
+    "high": {
+      "10": {
+        "ALL": {
+          "cs_per_min": {
+            "mean": 6.09,
+            "std": 2.5793,
+            "n": 300
+          },
+          "level": {
+            "mean": 7.2767,
+            "std": 1.0646,
+            "n": 300
+          },
+          "kill_participation": {
+            "mean": 0.3904,
+            "std": 0.2329,
+            "n": 300
+          }
+        },
+        "TOP": {
+          "cs_per_min": {
+            "mean": 7.035,
+            "std": 1.2435,
+            "n": 60
+          },
+          "level": {
+            "mean": 8.2,
+            "std": 0.6272,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.257,
+            "std": 0.2054,
+            "n": 60
+          }
+        },
+        "JUNGLE": {
+          "cs_per_min": {
+            "mean": 6.8367,
+            "std": 1.0939,
+            "n": 60
+          },
+          "level": {
+            "mean": 7.2333,
+            "std": 0.5878,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.4666,
+            "std": 0.208,
+            "n": 60
+          }
+        },
+        "MIDDLE": {
+          "cs_per_min": {
+            "mean": 7.6083,
+            "std": 1.1385,
+            "n": 60
+          },
+          "level": {
+            "mean": 8.2667,
+            "std": 0.5121,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.3239,
+            "std": 0.186,
+            "n": 60
+          }
+        },
+        "BOTTOM": {
+          "cs_per_min": {
+            "mean": 7.56,
+            "std": 1.1203,
+            "n": 60
+          },
+          "level": {
+            "mean": 6.8167,
+            "std": 0.4997,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.4301,
+            "std": 0.2418,
+            "n": 60
+          }
+        },
+        "UTILITY": {
+          "cs_per_min": {
+            "mean": 1.41,
+            "std": 0.3893,
+            "n": 60
+          },
+          "level": {
+            "mean": 5.8667,
+            "std": 0.6182,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.4745,
+            "std": 0.2366,
+            "n": 60
+          }
+        }
+      },
+      "15": {
+        "ALL": {
+          "cs_per_min": {
+            "mean": 6.2191,
+            "std": 2.6843,
+            "n": 300
+          },
+          "level": {
+            "mean": 9.6867,
+            "std": 1.4313,
+            "n": 300
+          },
+          "kill_participation": {
+            "mean": 0.4064,
+            "std": 0.2045,
+            "n": 300
+          }
+        },
+        "TOP": {
+          "cs_per_min": {
+            "mean": 7.2067,
+            "std": 1.2356,
+            "n": 60
+          },
+          "level": {
+            "mean": 11.1333,
+            "std": 0.8055,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.2812,
+            "std": 0.1762,
+            "n": 60
+          }
+        },
+        "JUNGLE": {
+          "cs_per_min": {
+            "mean": 6.96,
+            "std": 1.0833,
+            "n": 60
+          },
+          "level": {
+            "mean": 9.85,
+            "std": 0.7489,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.4982,
+            "std": 0.1718,
+            "n": 60
+          }
+        },
+        "MIDDLE": {
+          "cs_per_min": {
+            "mean": 7.7989,
+            "std": 1.1171,
+            "n": 60
+          },
+          "level": {
+            "mean": 10.6833,
+            "std": 0.695,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.3369,
+            "std": 0.1692,
+            "n": 60
+          }
+        },
+        "BOTTOM": {
+          "cs_per_min": {
+            "mean": 7.8133,
+            "std": 1.1676,
+            "n": 60
+          },
+          "level": {
+            "mean": 9.15,
+            "std": 0.6278,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.429,
+            "std": 0.2081,
+            "n": 60
+          }
+        },
+        "UTILITY": {
+          "cs_per_min": {
+            "mean": 1.3167,
+            "std": 0.3457,
+            "n": 60
+          },
+          "level": {
+            "mean": 7.6167,
+            "std": 0.6854,
+            "n": 60
+          },
+          "kill_participation": {
+            "mean": 0.4865,
+            "std": 0.2019,
+            "n": 60
+          }
+        }
+      },
+      "20": {
+        "ALL": {
+          "cs_per_min": {
+            "mean": 6.2438,
+            "std": 2.7515,
+            "n": 260
+          },
+          "level": {
+            "mean": 11.8731,
+            "std": 1.5502,
+            "n": 260
+          },
+          "kill_participation": {
+            "mean": 0.4427,
+            "std": 0.1795,
+            "n": 260
+          }
+        },
+        "TOP": {
+          "cs_per_min": {
+            "mean": 7.3375,
+            "std": 1.1629,
+            "n": 52
+          },
+          "level": {
+            "mean": 13.5192,
+            "std": 0.8877,
+            "n": 52
+          },
+          "kill_participation": {
+            "mean": 0.3135,
+            "std": 0.1268,
+            "n": 52
+          }
+        },
+        "JUNGLE": {
+          "cs_per_min": {
+            "mean": 7.0212,
+            "std": 1.1384,
+            "n": 52
+          },
+          "level": {
+            "mean": 12.2115,
+            "std": 0.8624,
+            "n": 52
+          },
+          "kill_participation": {
+            "mean": 0.5021,
+            "std": 0.1802,
+            "n": 52
+          }
+        },
+        "MIDDLE": {
+          "cs_per_min": {
+            "mean": 7.6779,
+            "std": 1.1066,
+            "n": 52
+          },
+          "level": {
+            "mean": 12.6346,
+            "std": 0.8093,
+            "n": 52
+          },
+          "kill_participation": {
+            "mean": 0.4119,
+            "std": 0.1664,
+            "n": 52
+          }
+        },
+        "BOTTOM": {
+          "cs_per_min": {
+            "mean": 8.0279,
+            "std": 0.9769,
+            "n": 52
+          },
+          "level": {
+            "mean": 11.4615,
+            "std": 0.6032,
+            "n": 52
+          },
+          "kill_participation": {
+            "mean": 0.4568,
+            "std": 0.176,
+            "n": 52
+          }
+        },
+        "UTILITY": {
+          "cs_per_min": {
+            "mean": 1.1548,
+            "std": 0.298,
+            "n": 52
+          },
+          "level": {
+            "mean": 9.5385,
+            "std": 0.6639,
+            "n": 52
+          },
+          "kill_participation": {
+            "mean": 0.5291,
+            "std": 0.1584,
+            "n": 52
+          }
+        }
+      },
+      "25": {
+        "ALL": {
+          "cs_per_min": {
+            "mean": 6.0662,
+            "std": 2.672,
+            "n": 200
+          },
+          "level": {
+            "mean": 13.75,
+            "std": 1.6179,
+            "n": 200
+          },
+          "kill_participation": {
+            "mean": 0.4739,
+            "std": 0.1635,
+            "n": 200
+          }
+        },
+        "TOP": {
+          "cs_per_min": {
+            "mean": 7.038,
+            "std": 1.0332,
+            "n": 40
+          },
+          "level": {
+            "mean": 15.4,
+            "std": 0.8888,
+            "n": 40
+          },
+          "kill_participation": {
+            "mean": 0.3661,
+            "std": 0.1061,
+            "n": 40
+          }
+        },
+        "JUNGLE": {
+          "cs_per_min": {
+            "mean": 6.872,
+            "std": 1.1475,
+            "n": 40
+          },
+          "level": {
+            "mean": 14.25,
+            "std": 1.0186,
+            "n": 40
+          },
+          "kill_participation": {
+            "mean": 0.5137,
+            "std": 0.1553,
+            "n": 40
+          }
+        },
+        "MIDDLE": {
+          "cs_per_min": {
+            "mean": 7.293,
+            "std": 1.0281,
+            "n": 40
+          },
+          "level": {
+            "mean": 14.45,
+            "std": 0.8352,
+            "n": 40
+          },
+          "kill_participation": {
+            "mean": 0.4648,
+            "std": 0.161,
+            "n": 40
+          }
+        },
+        "BOTTOM": {
+          "cs_per_min": {
+            "mean": 8.005,
+            "std": 0.91,
+            "n": 40
+          },
+          "level": {
+            "mean": 13.325,
+            "std": 0.6476,
+            "n": 40
+          },
+          "kill_participation": {
+            "mean": 0.4814,
+            "std": 0.1654,
+            "n": 40
+          }
+        },
+        "UTILITY": {
+          "cs_per_min": {
+            "mean": 1.123,
+            "std": 0.3668,
+            "n": 40
+          },
+          "level": {
+            "mean": 11.325,
+            "std": 0.787,
+            "n": 40
+          },
+          "kill_participation": {
+            "mean": 0.5434,
+            "std": 0.1638,
+            "n": 40
+          }
+        }
+      }
+    }
+  }
+}
