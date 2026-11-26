@@ -360,6 +360,27 @@ export async function handleAccount(request, env, headers) {
         nextDisplay = cleaned || randomChampNickname();
         await env.DB.prepare("UPDATE users SET display_name = ? WHERE user_id = ?").bind(nextDisplay, u.user_id).run();
       }
+      let nextIconId = u.profile_icon_id || 0;
+      let nextAvatarUrl = u.avatar_url || "";
+      if ("profile_icon_id" in body) {
+        const iconId = Number(body.profile_icon_id);
+        if (!Number.isInteger(iconId) || iconId < 0 || iconId > 999999) {
+          return json({ error: "invalid_profile_icon" }, 400, headers);
+        }
+        nextIconId = iconId;
+        if (iconId > 0) nextAvatarUrl = "";
+        await env.DB.prepare("UPDATE users SET profile_icon_id = ?, avatar_url = ? WHERE user_id = ?")
+          .bind(nextIconId, nextAvatarUrl, u.user_id).run();
+      }
+      if ("avatar_url" in body) {
+        const av = String(body.avatar_url || "");
+        const validDataUrl = av === "" || (/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(av) && av.length <= 60000);
+        if (!validDataUrl) return json({ error: "invalid_avatar" }, 400, headers);
+        nextAvatarUrl = av;
+        if (av) nextIconId = 0;
+        await env.DB.prepare("UPDATE users SET avatar_url = ?, profile_icon_id = ? WHERE user_id = ?")
+          .bind(nextAvatarUrl, nextIconId, u.user_id).run();
+      }
       let nextRiotId = u.riot_id || "";
       if (body.sync_riot_id && u.puuid) {
         nextRiotId = await syncRiotIdByPuuid(u.puuid, u.region, nextRiotId, env, 0);
@@ -371,7 +392,8 @@ export async function handleAccount(request, env, headers) {
         riot_id: nextRiotId,
         region: String(u.region || "kr").toUpperCase(),
         display_name: nextDisplay,
-        profile_icon_id: u.profile_icon_id || 0,
+        avatar_url: nextAvatarUrl,
+        profile_icon_id: nextIconId,
         consented_at: (u.consented_at || "").slice(0, 10),
       }, 200, headers);
     }

@@ -147,14 +147,21 @@ export async function handleOAuthCallback(provider, request, env, headers) {
   const day = nowIso.slice(0, 10);
   let userId = existing?.user_id;
 
+  let isNew = false;
   if (!existing) {
+    isNew = true;
     userId = crypto.randomUUID();
     const initNick = randomChampNickname();
     await env.DB.prepare(
       "INSERT INTO users (user_id, provider, provider_sub_hash, display_name, avatar_url, consent_version, consented_at, created_day) " +
       "VALUES (?, ?, ?, ?, ?, '1', ?, ?)",
     ).bind(userId, provider, subHash, initNick, avatarUrl, nowIso, day).run();
-  } else if (avatarUrl && avatarUrl !== existing.avatar_url) {
+  } else if (
+    avatarUrl &&
+    avatarUrl !== existing.avatar_url &&
+    !(existing.profile_icon_id && existing.profile_icon_id > 0) &&
+    !String(existing.avatar_url || "").startsWith("data:image/")
+  ) {
     await env.DB.prepare("UPDATE users SET avatar_url = ? WHERE user_id = ?").bind(avatarUrl, userId).run();
   }
 
@@ -164,5 +171,6 @@ export async function handleOAuthCallback(provider, request, env, headers) {
     exp: Math.floor(Date.now() / 1000) + 30 * 24 * 3600,
   }, env);
 
-  return Response.redirect(`${state.return_to}#auth_token=${encodeURIComponent(sessionToken)}`, 302);
+  const extra = isNew ? "&onboarding=1" : "";
+  return Response.redirect(`${state.return_to}#auth_token=${encodeURIComponent(sessionToken)}${extra}`, 302);
 }

@@ -338,7 +338,23 @@
   .opgg-right { display: grid; gap: 12px; min-width: 0; }
   .profile-head { display: flex; align-items: center; gap: 12px; }
   .profile-icon-wrap { position: relative; width: 56px; height: 56px; flex-shrink: 0; }
-  .profile-icon-wrap img { width: 56px; height: 56px; border-radius: 10px; border: 2px solid var(--accent); display: block; }
+  .profile-icon-wrap img { width: 56px; height: 56px; border-radius: 10px; border: 2px solid var(--accent); display: block; object-fit: cover; }
+  .profile-avatar-btn { padding: 0; border: 0; background: none; cursor: pointer; position: relative; border-radius: 10px; }
+  .profile-avatar-badge {
+    position: absolute; inset: auto 2px 2px 2px; background: rgba(11,13,18,0.84); color: #FFF;
+    font-size: 10px; font-weight: 800; text-align: center; padding: 2px 0; border-radius: 0 0 8px 8px;
+  }
+  .profile-avatar-btn:hover .profile-avatar-badge { background: var(--accent); }
+  .onboard-banner {
+    padding: 10px 12px; border-radius: 7px; background: var(--accent-soft); border: 1px solid var(--accent);
+    color: var(--text); font-size: 13px; font-weight: 700;
+  }
+  .avatar-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; max-height: 220px; overflow-y: auto; padding: 2px; }
+  .avatar-opt {
+    padding: 0; border: 2px solid transparent; border-radius: 8px; background: var(--panel-alt); cursor: pointer; overflow: hidden;
+  }
+  .avatar-opt:hover, .avatar-opt.selected { border-color: var(--accent); }
+  .avatar-opt img { width: 100%; aspect-ratio: 1; display: block; object-fit: cover; }
   .profile-lvl {
     position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
     background: var(--topbar-bg); color: #fff; font: 800 10px/1 var(--mono);
@@ -1628,6 +1644,105 @@ function genRandomNickname() {
   return RANDOM_NICK_PREFIX[Math.floor(Math.random() * RANDOM_NICK_PREFIX.length)] + RANDOM_NICK_CHAMP[Math.floor(Math.random() * RANDOM_NICK_CHAMP.length)];
 }
 
+var NEEDS_NICKNAME = false;
+const SUMMONER_PRESETS = [29, 7, 10, 23, 508, 588, 685, 774, 918, 1386, 1456, 1665, 2077, 3006, 3546, 3869, 4568, 4901, 5062, 5340, 5430, 5805, 6102, 6412];
+
+function compressAlbumImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const size = 160;
+        const canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        let dataUrl = canvas.toDataURL("image/webp", 0.82);
+        if (!dataUrl.startsWith("data:image/webp") || dataUrl.length > 55000) {
+          dataUrl = canvas.toDataURL("image/jpeg", 0.78);
+        }
+        resolve(dataUrl);
+      };
+      img.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function openAvatarModal() {
+  if (!LINKED_USER) return;
+  const ko = document.documentElement.lang === "ko";
+  document.getElementById("auth-modal-title").textContent = ko ? "프로필 이미지 변경" : "Change Profile Image";
+  const body = document.getElementById("auth-modal-body");
+  body.replaceChildren();
+
+  const status = el("div"); status.style.color = "var(--sub)";
+  const savePatch = async (payload) => {
+    status.textContent = ko ? "저장 중..." : "Saving...";
+    try {
+      const res = await fetch(WORKER_URL + "/v1/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + LINKED_USER.token },
+        body: JSON.stringify(payload),
+      });
+      const d = await res.json();
+      if (!res.ok) { status.textContent = ko ? "이미지를 저장하지 못했습니다." : "Failed to save image."; return; }
+      LINKED_USER.profile_icon_id = d.profile_icon_id || 0;
+      LINKED_USER.avatar_url = d.avatar_url || "";
+      closeAuthModal(); renderAuthUI();
+    } catch (_) {
+      status.textContent = ko ? "서버 연결 실패" : "Server unavailable";
+    }
+  };
+
+  body.appendChild(el("div", "", ko ? "소환사 아이콘 선택" : "Choose a Summoner Icon")).style.fontWeight = "800";
+  const grid = el("div", "avatar-grid");
+  SUMMONER_PRESETS.forEach(id => {
+    const b = el("button", "avatar-opt" + (LINKED_USER.profile_icon_id === id ? " selected" : ""));
+    b.type = "button"; b.title = "#" + id;
+    const im = el("img"); im.src = ddImg("icon", id); im.alt = "Icon " + id;
+    b.appendChild(im);
+    b.addEventListener("click", () => savePatch({ profile_icon_id: id }));
+    grid.appendChild(b);
+  });
+  body.appendChild(grid);
+
+  const customRow = el("div"); customRow.style.display = "flex"; customRow.style.gap = "6px";
+  const idInp = el("input"); idInp.type = "number"; idInp.min = "0"; idInp.max = "99999"; idInp.style.flex = "1";
+  idInp.placeholder = ko ? "아이콘 번호 직접 입력 (예: 29, 4568)" : "Icon ID (e.g. 29, 4568)";
+  const idBtn = el("button", "m-btn", ko ? "적용" : "Apply"); idBtn.type = "button";
+  idBtn.addEventListener("click", () => {
+    const n = parseInt(idInp.value, 10);
+    if (!Number.isInteger(n) || n < 0) { status.textContent = ko ? "올바른 아이콘 번호를 입력하세요." : "Enter a valid icon ID."; return; }
+    savePatch({ profile_icon_id: n });
+  });
+  customRow.append(idInp, idBtn);
+  body.appendChild(customRow);
+
+  body.appendChild(el("div", "oauth-divider", ko ? "— 또는 내 기기 앨범에서 선택 —" : "— or choose from your device —"));
+  const fileInp = el("input"); fileInp.type = "file"; fileInp.accept = "image/*"; fileInp.hidden = true;
+  const albumBtn = el("button", "m-btn ai", ko ? "앨범 / 파일에서 사진 선택" : "Choose Photo from Album");
+  albumBtn.type = "button"; albumBtn.style.padding = "10px";
+  albumBtn.addEventListener("click", () => fileInp.click());
+  fileInp.addEventListener("change", async () => {
+    const f = fileInp.files && fileInp.files[0];
+    if (!f) return;
+    try {
+      const dataUrl = await compressAlbumImage(f);
+      await savePatch({ avatar_url: dataUrl });
+    } catch (_) {
+      status.textContent = ko ? "이미지 파일을 읽지 못했습니다." : "Could not read image.";
+    }
+  });
+  body.append(fileInp, albumBtn, status);
+  document.getElementById("auth-modal").hidden = false;
+}
+
 function renderAuthUI() {
   const ko = document.documentElement.lang === "ko";
   const hdrBtn = document.getElementById("hdr-login-btn");
@@ -1647,7 +1762,7 @@ function renderAuthUI() {
   const mpBody = document.getElementById("mypage-body");
   mpBody.replaceChildren();
   if (!LINKED_USER) {
-    const msg = el("div", "", ko ? "로그인하면 활동 닉네임과 내 Riot 프로필을 저장해 둘 수 있습니다." : "Sign in to save your nickname and linked Riot profile.");
+    const msg = el("div", "", ko ? "Google 또는 Discord로 로그인하면 활동 닉네임과 프로필 이미지를 저장할 수 있습니다." : "Sign in with Google or Discord to save your nickname and profile image.");
     msg.style.color = "var(--sub)";
     const btn = el("button", "m-btn ai", ko ? "로그인하기" : "Sign In");
     btn.type = "button";
@@ -1658,18 +1773,27 @@ function renderAuthUI() {
   }
 
   const head = el("div", "profile-head");
-  const iw = el("div", "profile-icon-wrap");
+  const iw = el("button", "profile-icon-wrap profile-avatar-btn");
+  iw.type = "button"; iw.title = ko ? "프로필 이미지 변경" : "Change profile image";
   const pimg = el("img");
   pimg.src = LINKED_USER.profile_icon_id ? ddImg("icon", LINKED_USER.profile_icon_id) : (LINKED_USER.avatar_url || ddImg("icon", 29));
   pimg.alt = "Profile";
-  iw.appendChild(pimg);
+  const badge = el("span", "profile-avatar-badge", ko ? "변경" : "Edit");
+  iw.append(pimg, badge);
+  iw.addEventListener("click", openAvatarModal);
   const idInfo = el("div");
   const dName = el("div", "", LINKED_USER.display_name || LINKED_USER.riot_id);
   dName.style.fontWeight = "900"; dName.style.fontSize = "16px";
-  const rSub = el("div", "", LINKED_USER.riot_id ? (LINKED_USER.riot_id + " (" + LINKED_USER.region + ")") : (ko ? "Riot 계정 미연동" : "No Riot ID linked yet"));
+  const rSub = el("div", "", ko ? "좌측 이미지를 눌러 소환사 아이콘이나 앨범 사진으로 바꿀 수 있습니다." : "Click the image on the left to pick a Summoner icon or photo.");
   rSub.style.fontSize = "12.5px"; rSub.style.color = "var(--sub)";
   idInfo.append(dName, rSub);
   head.append(iw, idInfo);
+
+  if (NEEDS_NICKNAME) {
+    mpBody.appendChild(el("div", "onboard-banner", ko
+      ? "로그인 완료! 사용할 활동 닉네임을 입력하거나 랜덤으로 골라 [저장]을 눌러 주세요."
+      : "Welcome! Choose your display nickname below and click Save."));
+  }
 
   const note = el("div", "", ko
     ? "비밀번호는 저장하지 않으며 개인정보 동의" + (LINKED_USER.consented_at ? " (" + LINKED_USER.consented_at + ")" : "") + "가 DB에 기록되어 있습니다."
@@ -1701,6 +1825,7 @@ function renderAuthUI() {
       const d = await res.json();
       if (!res.ok) { mpStatus.textContent = ko ? "닉네임은 2~20자로 입력해 주세요." : "Use 2–20 characters."; return; }
       LINKED_USER.display_name = d.display_name;
+      NEEDS_NICKNAME = false;
       renderAuthUI();
     } catch (_) {
       mpStatus.textContent = ko ? "저장 실패" : "Save failed";
@@ -1771,15 +1896,15 @@ var OAUTH_PROVIDERS = { google: false, discord: false };
   } catch (_) {}
 })();
 
-function renderAuthModal(prefillId) {
+function renderAuthModal() {
   const ko = document.documentElement.lang === "ko";
   document.getElementById("auth-modal-title").textContent = ko ? "로그인 · 회원가입" : "Sign In / Sign Up";
   const body = document.getElementById("auth-modal-body");
   body.replaceChildren();
 
   const intro = el("div", "", ko
-    ? "소셜 계정으로 바로 로그인하거나, Riot 계정 아이콘 확인으로 가입할 수 있습니다. (비밀번호 미수집)"
-    : "Sign in with Google/Discord or verify your Riot account icon (no password stored).");
+    ? "Google 또는 Discord 계정으로 간편하게 로그인하고, 닉네임과 프로필 이미지를 설정할 수 있습니다."
+    : "Sign in with Google or Discord, then pick your nickname and profile image.");
   intro.style.color = "var(--sub)";
 
   const consentRow = el("label");
@@ -1787,7 +1912,6 @@ function renderAuthModal(prefillId) {
   consentRow.style.fontSize = "12px"; consentRow.style.color = "var(--sub)"; consentRow.style.cursor = "pointer";
   const consentChk = el("input");
   consentChk.type = "checkbox"; consentChk.id = "auth-consent-chk";
-  consentChk.checked = Boolean(PENDING_CHALLENGE);
   const consentSpan = el("span");
   consentSpan.append(document.createTextNode(ko ? "[필수] " : "[Required] "));
   const privLink = el("a", "", ko ? "개인정보 처리방침" : "Privacy Policy");
@@ -1805,7 +1929,7 @@ function renderAuthModal(prefillId) {
     }
     if (!OAUTH_PROVIDERS[prov]) {
       status.textContent = ko
-        ? (prov.toUpperCase() + " OAuth 키가 아직 서버에 등록되지 않았습니다. 아래 Riot 계정 인증을 이용하거나 관리자가 OAuth 키를 설정해야 합니다.")
+        ? (prov.toUpperCase() + " OAuth가 아직 설정되지 않았습니다.")
         : (prov.toUpperCase() + " OAuth is not configured yet.");
       return;
     }
@@ -1821,84 +1945,7 @@ function renderAuthModal(prefillId) {
     dBtn.type = "button"; dBtn.addEventListener("click", () => startOAuth("discord"));
     body.appendChild(dBtn);
   }
-  body.appendChild(el("div", "oauth-divider", ko ? "— 또는 Riot ID 직접 인증 —" : "— or verify Riot ID directly —"));
-
-  const row = el("div"); row.style.display = "flex"; row.style.gap = "6px";
-  const regSel = el("select");
-  ["kr", "na", "euw", "jp", "br", "lan", "las", "sea"].forEach(r => {
-    const o = el("option", "", r.toUpperCase()); o.value = r;
-    if (r === (PENDING_CHALLENGE ? PENDING_CHALLENGE.region.toLowerCase() : document.getElementById("riot-region").value)) o.selected = true;
-    regSel.appendChild(o);
-  });
-  const inp = el("input");
-  inp.type = "text"; inp.style.flex = "1"; inp.placeholder = "GameName#KR1";
-  inp.value = PENDING_CHALLENGE ? PENDING_CHALLENGE.riot_id : (prefillId || "");
-  row.append(regSel, inp);
-
-  const nickRow = el("div"); nickRow.style.display = "flex"; nickRow.style.gap = "6px";
-  const nickInp = el("input");
-  nickInp.type = "text"; nickInp.style.flex = "1";
-  nickInp.placeholder = ko ? "활동 닉네임 (비우면 랜덤: 머리손질하는라이즈)" : "Display nickname (blank = random)";
-  nickInp.value = PENDING_CHALLENGE ? (PENDING_CHALLENGE.display_name || "") : "";
-  const randBtn = el("button", "m-btn", ko ? "랜덤" : "Random");
-  randBtn.type = "button"; randBtn.addEventListener("click", () => { nickInp.value = genRandomNickname(); });
-  nickRow.append(nickInp, randBtn);
-
-  const startBtn = el("button", "m-btn ai", ko ? "Riot 아이콘 확인으로 가입 · 로그인" : "Verify Riot Icon & Sign In");
-  startBtn.type = "button"; startBtn.style.padding = "10px";
-  startBtn.addEventListener("click", async () => {
-    const rid = inp.value.trim(); const reg = regSel.value;
-    if (!consentChk.checked) { status.textContent = ko ? "먼저 개인정보 처리방침에 동의해 주세요." : "Please agree to the Privacy Policy first."; return; }
-    if (!rid.includes("#")) { status.textContent = ko ? "이름#태그 형식으로 입력하세요." : "Use Name#Tag format."; return; }
-    startBtn.disabled = true; status.textContent = ko ? "확인용 아이콘 생성 중..." : "Preparing verification icon...";
-    try {
-      const res = await fetch(WORKER_URL + "/v1/auth/challenge", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ riot_id: rid, region: reg, display_name: nickInp.value.trim(), consent: true }),
-      });
-      const d = await res.json();
-      if (!res.ok) { status.textContent = ko ? "계정을 찾을 수 없거나 시도 횟수를 초과했습니다." : "Account not found or rate-limited."; return; }
-      PENDING_CHALLENGE = d; renderAuthModal(rid);
-    } catch (_) { status.textContent = ko ? "서버 연결 실패" : "Server unavailable"; }
-    finally { startBtn.disabled = false; }
-  });
-  body.append(row, nickRow, startBtn, status);
-
-  if (PENDING_CHALLENGE) {
-    const box = el("div", "auth-icon-challenge");
-    const img = el("img"); img.src = ddImg("icon", PENDING_CHALLENGE.target_icon); img.alt = "Target icon";
-    const txt = el("div", "", ko
-      ? "롤 클라이언트 프로필 아이콘을 왼쪽 기본 아이콘(#" + PENDING_CHALLENGE.target_icon + ")으로 바꾼 뒤 아래 버튼을 누르세요."
-      : "Change your LoL profile icon to #" + PENDING_CHALLENGE.target_icon + ", then click below.");
-    box.append(img, txt);
-    const verBtn = el("button", "m-btn ai", ko ? "아이콘 변경 완료 · 로그인" : "Verify & Sign In");
-    verBtn.type = "button"; verBtn.style.padding = "10px";
-    verBtn.addEventListener("click", async () => {
-      verBtn.disabled = true; status.textContent = ko ? "확인 중..." : "Verifying...";
-      try {
-        const res = await fetch(WORKER_URL + "/v1/auth/verify", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ challenge_id: PENDING_CHALLENGE.challenge_id }),
-        });
-        const d = await res.json();
-        if (!res.ok) {
-          status.textContent = d.error === "icon_mismatch"
-            ? (ko ? "아직 아이콘이 바뀌지 않았습니다. 변경 후 몇 초 뒤 다시 눌러주세요." : "Icon does not match yet. Wait a few seconds and retry.")
-            : (ko ? "인증 시간이 만료되었습니다. 다시 시도해 주세요." : "Challenge expired. Try again.");
-          return;
-        }
-        LINKED_USER = {
-          riot_id: d.riot_id, region: d.region, display_name: d.display_name || "",
-          profile_icon_id: d.profile_icon_id || 0, token: d.token, consented_at: d.consented_at || "",
-        };
-        PENDING_CHALLENGE = null;
-        try { localStorage.setItem("pacemaker_auth_token", d.token); } catch (_) {}
-        closeAuthModal(); renderAuthUI(); location.hash = "#mypage";
-      } catch (_) { status.textContent = ko ? "확인 실패" : "Verification failed"; }
-      finally { verBtn.disabled = false; }
-    });
-    body.append(box, verBtn);
-  }
+  body.appendChild(status);
 }
 
 document.getElementById("hdr-login-btn").addEventListener("click", () => {
@@ -1914,7 +1961,9 @@ document.getElementById("auth-modal").addEventListener("click", e => {
   try {
     // Capture #auth_token=... returned from Google/Discord OAuth callback and strip from URL immediately
     if (location.hash.startsWith("#auth_token=")) {
-      const tokFromHash = decodeURIComponent(location.hash.slice("#auth_token=".length));
+      const hp = new URLSearchParams(location.hash.slice(1));
+      const tokFromHash = hp.get("auth_token") || "";
+      if (hp.get("onboarding") === "1") NEEDS_NICKNAME = true;
       if (tokFromHash) localStorage.setItem("pacemaker_auth_token", tokFromHash);
       history.replaceState(null, "", location.pathname + location.search + "#mypage");
       showView();
