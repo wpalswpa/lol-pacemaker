@@ -38,3 +38,5 @@ def test_portal_structure_has_header_search_and_region_pills():
     docs = _html("docs")
     for needle in ('id="hdr-search-form"', 'id="region-bar"', 'class="workspace-grid"', "LoLPacemaker-Setup.exe"):
         assert needle in docs
+    # Immutable Core (AGENTS.md §0): preserve PACE MAKER signature orange in dark & light themes
+    assert "#ff5a1f" in docs.lower() and "#ea4c14" in docs.lower()
