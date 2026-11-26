@@ -16,6 +16,7 @@ import {
   handleAuthChallenge,
   handleAuthVerify,
   handleAuthMe,
+  handleAccount,
   handleReview,
 } from "./review.js";
 
@@ -31,7 +32,7 @@ function corsHeaders(origin) {
   const allow = ALLOWED_ORIGINS.has(origin) ? origin : "https://wpalswpa.github.io";
   return {
     "Access-Control-Allow-Origin": allow,
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Content-Type": "application/json; charset=utf-8",
     "X-Content-Type-Options": "nosniff",
@@ -54,10 +55,11 @@ export default {
     if (path === "/v1/chat") return handleChat(request, env, headers);
     if (path === "/v1/support") return handleSupport(request, env, headers);
 
-    // AGENTS §15: Riot account ownership auth & self-only AI match review
+    // AGENTS §15: Riot account ownership auth, member account management & self-only AI match review
     if (path === "/v1/auth/challenge") return handleAuthChallenge(request, env, headers);
     if (path === "/v1/auth/verify") return handleAuthVerify(request, env, headers);
     if (path === "/v1/auth/me") return handleAuthMe(request, env, headers);
+    if (path === "/v1/account") return handleAccount(request, env, headers);
     if (path === "/v1/review") return handleReview(request, env, headers);
 
     if (request.method !== "GET") {

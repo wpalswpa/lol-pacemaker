@@ -38,6 +38,30 @@ const DEFAULT_ICONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
 const TOKEN_TTL_SEC = 30 * 24 * 3600;
 const CHALLENGE_TTL_SEC = 600;
 
+const FUN_PREFIXES = [
+  "머리손질하는", "점멸아끼는", "강타놓친", "부쉬숨은", "집안가는", "궁아끼는",
+  "CS놓치는", "바론스틸하는", "우물지키는", "벽못넘는", "와드안박는", "솔킬따인",
+  "눈덩이맞은", "귀환끊는", "포탑때리는", "탈진든", "미드오픈한", "칼바람장인",
+];
+const FUN_CHAMPS = [
+  "라이즈", "이즈리얼", "티모", "야스오", "리신", "블리츠", "가렌", "카서스",
+  "직스", "베인", "룰루", "징크스", "아무무", "애쉬", "탈론", "제드", "다리우스", "럭스", "아칼리", "사일러스",
+];
+const FUN_SPECIALS = ["머리손질하는라이즈", "이즈리얼이즈페이크", "점멸없는야스오", "강타아끼는리신", "부쉬속가렌"];
+
+function randomChampNickname() {
+  if (Math.random() < 0.25) return FUN_SPECIALS[Math.floor(Math.random() * FUN_SPECIALS.length)];
+  const p = FUN_PREFIXES[Math.floor(Math.random() * FUN_PREFIXES.length)];
+  const c = FUN_CHAMPS[Math.floor(Math.random() * FUN_CHAMPS.length)];
+  return p + c;
+}
+
+function cleanDisplayName(raw) {
+  const s = String(raw || "").trim().replace(/\s+/g, " ");
+  if (s.length < 2 || s.length > 20) return "";
+  return s;
+}
+
 function json(body, status, headers) {
   return new Response(JSON.stringify(body), { status, headers });
 }
@@ -106,6 +130,7 @@ export async function handleAuthChallenge(request, env, headers) {
 
   let body;
   try { body = await request.json(); } catch { return json({ error: "invalid_json" }, 400, headers); }
+  if (body.consent !== true) return json({ error: "consent_required" }, 400, headers);
   const riotId = String(body.riot_id || "").trim();
   const region = String(body.region || "kr").toLowerCase();
   const host = REGION_HOST[region] || REGION_HOST.kr;
@@ -142,15 +167,17 @@ export async function handleAuthChallenge(request, env, headers) {
   const targetIcon = candidates[Math.floor(Math.random() * candidates.length)];
   const challengeId = crypto.randomUUID();
   const canonicalId = `${acc.gameName}#${acc.tagLine}`;
+  const displayName = cleanDisplayName(body.display_name) || randomChampNickname();
 
   await env.DB.prepare(
-    "INSERT INTO auth_challenges (challenge_id, puuid, puuid_hash, riot_id, region, target_icon, created_at, expires_at, used) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
-  ).bind(challengeId, acc.puuid, puuidHash, canonicalId, region, targetIcon, now, now + CHALLENGE_TTL_SEC).run();
+    "INSERT INTO auth_challenges (challenge_id, puuid, puuid_hash, riot_id, region, display_name, target_icon, created_at, expires_at, used) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)",
+  ).bind(challengeId, acc.puuid, puuidHash, canonicalId, region, displayName, targetIcon, now, now + CHALLENGE_TTL_SEC).run();
 
   return json({
     challenge_id: challengeId,
     riot_id: canonicalId,
     region: region.toUpperCase(),
+    display_name: displayName,
     current_icon: sum.profileIconId,
     target_icon: targetIcon,
     expires_in: CHALLENGE_TTL_SEC,
@@ -190,28 +217,126 @@ export async function handleAuthVerify(request, env, headers) {
     }, 400, headers);
   }
 
-  const day = new Date().toISOString().slice(0, 10);
+  const nowIso = new Date().toISOString();
+  const day = nowIso.slice(0, 10);
+  const existing = await env.DB.prepare("SELECT display_name FROM linked_accounts WHERE puuid_hash = ?").bind(row.puuid_hash).first();
+  const finalDisplayName = cleanDisplayName(row.display_name) || existing?.display_name || randomChampNickname();
+
   await env.DB.prepare("UPDATE auth_challenges SET used = 1 WHERE challenge_id = ?").bind(challengeId).run();
   await env.DB.prepare(
-    "INSERT INTO linked_accounts (puuid_hash, first_linked_day, last_verified_day) VALUES (?, ?, ?) " +
-    "ON CONFLICT(puuid_hash) DO UPDATE SET last_verified_day = excluded.last_verified_day",
-  ).bind(row.puuid_hash, day, day).run();
+    "INSERT INTO linked_accounts (puuid_hash, riot_id, region, display_name, consent_version, consented_at, first_linked_day, last_verified_day) " +
+    "VALUES (?, ?, ?, ?, '1', ?, ?, ?) " +
+    "ON CONFLICT(puuid_hash) DO UPDATE SET riot_id = excluded.riot_id, region = excluded.region, " +
+    "display_name = CASE WHEN excluded.display_name != '' THEN excluded.display_name ELSE linked_accounts.display_name END, " +
+    "consent_version = excluded.consent_version, consented_at = excluded.consented_at, last_verified_day = excluded.last_verified_day",
+  ).bind(row.puuid_hash, row.riot_id, row.region.toUpperCase(), finalDisplayName, nowIso, day, day).run();
 
   const token = await signToken({
     puuid: row.puuid,
+    puuid_hash: row.puuid_hash,
     riot_id: row.riot_id,
     region: row.region,
+    consented_at: day,
     exp: now + TOKEN_TTL_SEC,
   }, env);
 
-  return json({ token, riot_id: row.riot_id, region: row.region.toUpperCase() }, 200, headers);
+  return json({
+    token,
+    riot_id: row.riot_id,
+    region: row.region.toUpperCase(),
+    display_name: finalDisplayName,
+    consented_at: day,
+  }, 200, headers);
+}
+
+async function syncRiotIdByPuuid(session, env, cacheTtl = 300) {
+  if (!env.RIOT_API_KEY) return session.riot_id;
+  const host = REGION_HOST[session.region] || REGION_HOST.kr;
+  try {
+    const res = await fetch(
+      `https://${host}/riot/account/v1/accounts/by-puuid/${encodeURIComponent(session.puuid)}`,
+      { headers: { "X-Riot-Token": env.RIOT_API_KEY }, cf: { cacheTtl } },
+    );
+    if (!res.ok) return session.riot_id;
+    const acc = await res.json();
+    if (acc.gameName && acc.tagLine) return `${acc.gameName}#${acc.tagLine}`;
+  } catch {}
+  return session.riot_id;
 }
 
 export async function handleAuthMe(request, env, headers) {
   if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405, headers);
   const session = await verifyToken(request, env);
   if (!session) return json({ linked: false }, 200, headers);
-  return json({ linked: true, riot_id: session.riot_id, region: session.region.toUpperCase() }, 200, headers);
+
+  const puuidHash = session.puuid_hash || await sha256Hex(session.puuid + (env.SUPPORT_SALT || ""));
+  const acct = env.DB
+    ? await env.DB.prepare("SELECT * FROM linked_accounts WHERE puuid_hash = ?").bind(puuidHash).first()
+    : null;
+  if (env.DB && !acct) {
+    // Account was deleted (withdrawn)
+    return json({ linked: false }, 200, headers);
+  }
+
+  // Auto-sync Riot ID in case the user changed their Riot nickname/tag
+  const latestRiotId = await syncRiotIdByPuuid(session, env, 300);
+  if (env.DB && acct && latestRiotId && latestRiotId !== acct.riot_id) {
+    await env.DB.prepare("UPDATE linked_accounts SET riot_id = ? WHERE puuid_hash = ?").bind(latestRiotId, puuidHash).run();
+  }
+
+  return json({
+    linked: true,
+    riot_id: latestRiotId || acct?.riot_id || session.riot_id,
+    region: (acct?.region || session.region || "kr").toUpperCase(),
+    display_name: acct?.display_name || randomChampNickname(),
+    consented_at: (acct?.consented_at || session.consented_at || "").slice(0, 10),
+  }, 200, headers);
+}
+
+export async function handleAccount(request, env, headers) {
+  const session = await verifyToken(request, env);
+  if (!session) return json({ error: "auth_required" }, 401, headers);
+  if (!env.DB) return json({ error: "service_unavailable" }, 503, headers);
+
+  const puuidHash = session.puuid_hash || await sha256Hex(session.puuid + (env.SUPPORT_SALT || ""));
+
+  if (request.method === "PATCH") {
+    let body;
+    try { body = await request.json(); } catch { return json({ error: "invalid_json" }, 400, headers); }
+    const acct = await env.DB.prepare("SELECT * FROM linked_accounts WHERE puuid_hash = ?").bind(puuidHash).first();
+    if (!acct) return json({ error: "account_not_found" }, 404, headers);
+
+    let nextDisplay = acct.display_name || randomChampNickname();
+    if ("display_name" in body) {
+      const cleaned = cleanDisplayName(body.display_name);
+      if (body.display_name && !cleaned) return json({ error: "invalid_display_name" }, 400, headers);
+      nextDisplay = cleaned || randomChampNickname();
+      await env.DB.prepare("UPDATE linked_accounts SET display_name = ? WHERE puuid_hash = ?").bind(nextDisplay, puuidHash).run();
+    }
+
+    let nextRiotId = acct.riot_id;
+    if (body.sync_riot_id) {
+      nextRiotId = await syncRiotIdByPuuid(session, env, 0);
+      if (nextRiotId && nextRiotId !== acct.riot_id) {
+        await env.DB.prepare("UPDATE linked_accounts SET riot_id = ? WHERE puuid_hash = ?").bind(nextRiotId, puuidHash).run();
+      }
+    }
+
+    return json({
+      riot_id: nextRiotId,
+      region: acct.region,
+      display_name: nextDisplay,
+      consented_at: (acct.consented_at || "").slice(0, 10),
+    }, 200, headers);
+  }
+
+  if (request.method === "DELETE") {
+    await env.DB.prepare("DELETE FROM linked_accounts WHERE puuid_hash = ?").bind(puuidHash).run();
+    await env.DB.prepare("DELETE FROM auth_challenges WHERE puuid_hash = ?").bind(puuidHash).run();
+    return json({ deleted: true }, 200, headers);
+  }
+
+  return json({ error: "method_not_allowed" }, 405, headers);
 }
 
 // Classify Summoner's Rift (0..15000) coordinates into human-readable map zone

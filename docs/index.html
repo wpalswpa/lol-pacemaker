@@ -416,13 +416,33 @@
   .ai-review-box ul { margin: 6px 0 8px 18px; padding: 0; display: grid; gap: 4px; }
   .ai-review-note { font-size: 11.5px; color: var(--dim); }
 
-  .auth-box { display: grid; gap: 8px; font-size: 12.5px; }
-  .auth-box input {
+  .auth-box { display: grid; gap: 10px; font-size: 13px; }
+  .auth-box input, .auth-box select {
     background: var(--panel-alt); color: var(--text); border: 1px solid var(--line);
-    border-radius: 5px; padding: 8px 10px; font-size: 13px;
+    border-radius: 6px; padding: 9px 11px; font-size: 13.5px; font-weight: 600;
   }
-  .auth-icon-challenge { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 6px; background: var(--panel-alt); border: 1px solid var(--line); }
-  .auth-icon-challenge img { width: 44px; height: 44px; border-radius: 8px; border: 2px solid var(--accent); }
+  .auth-icon-challenge { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 6px; background: var(--panel-alt); border: 1px solid var(--line); }
+  .auth-icon-challenge img { width: 46px; height: 46px; border-radius: 8px; border: 2px solid var(--accent); flex-shrink: 0; }
+  .login-btn {
+    display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px;
+    border-radius: 5px; background: rgba(255,255,255,0.08); color: #F8FAFC;
+    border: 1px solid rgba(255,255,255,0.18); font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap;
+  }
+  .login-btn:hover { border-color: var(--accent); color: #fff; }
+  .login-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--safe); display: inline-block; }
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 60; background: rgba(6, 8, 14, 0.72);
+    display: grid; place-items: center; padding: 16px;
+  }
+  .modal-card {
+    width: 100%; max-width: 420px; background: var(--panel); border: 1px solid var(--line-strong);
+    border-radius: 10px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .modal-close {
+    border: 0; background: transparent; color: var(--sub); font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 6px;
+  }
+  .modal-close:hover { color: var(--text); }
+  .mypage-wrap { max-width: 560px; margin: 12px auto 0; }
   @media (max-width: 960px) {
     .opgg-grid { grid-template-columns: 1fr; }
     .m-main { grid-template-columns: 82px 1fr auto; }
@@ -554,6 +574,7 @@
           <option value="pt">PT · Português</option>
         </select>
         <button class="icon-btn" id="theme-toggle" type="button"><span id="theme-icon" aria-hidden="true"></span></button>
+        <button class="login-btn" id="hdr-login-btn" type="button">로그인</button>
         <a class="nav-cta" href="#downloads" data-i18n="nav_cta">Download App</a>
       </div>
     </div>
@@ -600,7 +621,7 @@
           <h2 class="panel-title" data-i18n="live_panel_title">Intro video</h2>
         </div>
         <div class="preview-frame">
-          <video src="./images/intro_demo.mp4" poster="./images/intro_poster.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="PACE MAKER intro video: the HUD over a real League of Legends match">
+          <video id="intro-video" src="./images/intro_demo.mp4" poster="./images/intro_poster.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="PACE MAKER intro video: the HUD over a real League of Legends match">
             <img src="./images/ingame_demo.jpg" alt="PACE MAKER real-time HUD overlay running over a live League of Legends match">
           </video>
         </div>
@@ -710,18 +731,24 @@
           <div class="panel-head"><h3 class="panel-title" id="pos-title">Position</h3></div>
           <div class="panel-body" id="pos-body"></div>
         </div>
-        <!-- Riot Account Linking & Self-Only AI Review Panel (AGENTS §15) -->
-        <div class="panel" id="auth-panel">
-          <div class="panel-head">
-            <h3 class="panel-title" id="auth-title">Riot 계정 연동 · AI 복기</h3>
-          </div>
-          <div class="panel-body auth-box" id="auth-body"></div>
-        </div>
       </aside>
 
       <div class="opgg-right">
         <div id="summary-slot"></div>
         <div class="match-list" id="match-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── My Page (only for logged-in Riot ID; never pops up auth modal again) ── -->
+  <section class="block" id="mypage" data-view="mypage" hidden>
+    <div class="mypage-wrap">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title" id="mypage-title">마이페이지</h2>
+          <span class="panel-sub" id="mypage-sub">Riot ID</span>
+        </div>
+        <div class="panel-body auth-box" id="mypage-body"></div>
       </div>
     </div>
   </section>
@@ -838,6 +865,17 @@
     <a href="https://www.reddit.com/user/_sogum_bread/" rel="noopener noreferrer">Reddit</a>
   </div>
 </footer>
+
+<!-- ── Riot ID Login Modal (shown only when not logged in; never shown again after 1st verification) ── -->
+<div class="modal-backdrop" id="auth-modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="panel-head">
+      <h3 class="panel-title" id="auth-modal-title">Riot 계정 로그인</h3>
+      <button type="button" class="modal-close" id="auth-modal-close" aria-label="Close">×</button>
+    </div>
+    <div class="panel-body auth-box" id="auth-modal-body"></div>
+  </div>
+</div>
 
 <script>
 const I18N = {
@@ -1367,6 +1405,24 @@ function detectLang() {
   return "en";  // default is English; a chosen language is remembered (2026-11-26)
 }
 
+function syncIntroVideo(lang) {
+  const vid = document.getElementById("intro-video");
+  if (!vid) return;
+  const fallback = "./images/intro_demo.mp4";
+  const localized = "./images/intro_demo_" + lang + ".mp4";
+  vid.onerror = () => {
+    vid.onerror = null;
+    if (vid.getAttribute("src") !== fallback) {
+      vid.setAttribute("src", fallback);
+      vid.load();
+    }
+  };
+  if (vid.getAttribute("src") !== localized) {
+    vid.setAttribute("src", localized);
+    vid.load();
+  }
+}
+
 function applyLang(lang) {
   const dict = I18N[lang] || I18N.en;
   document.documentElement.lang = lang;
@@ -1376,6 +1432,8 @@ function applyLang(lang) {
     if (dict[key]) el.textContent = dict[key];
   });
   paintThemeButton();
+  syncIntroVideo(lang);
+  if (typeof renderAuthUI === "function") renderAuthUI();
   try { localStorage.setItem("pacemaker_lang", lang); } catch (_) {}
 }
 
@@ -1384,16 +1442,16 @@ applyLang(detectLang());
 
 const WORKER_URL = "https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev";
 
-/* Three menus + dedicated downloads view (AGENTS §17) */
+/* Three menus + dedicated downloads & mypage views (AGENTS §15/§17) */
 const VIEW_OF = { "": "home", "#home": "home", "#overview": "home", "#setup": "home",
-  "#downloads": "downloads", "#history": "history", "#support": "support", "#faq": "support", "#contact": "support" };
+  "#downloads": "downloads", "#mypage": "mypage", "#history": "history", "#support": "support", "#faq": "support", "#contact": "support" };
 function showView() {
   const view = VIEW_OF[location.hash] || "home";
   document.querySelectorAll("section[data-view]").forEach(sec => { sec.hidden = sec.getAttribute("data-view") !== view; });
   document.querySelectorAll(".nav-links a[data-view-link]").forEach(a =>
     a.setAttribute("aria-current", a.getAttribute("data-view-link") === view ? "true" : "false"));
   const target = location.hash && document.querySelector(location.hash);
-  if (target && !["#home", "#history", "#support", "#downloads"].includes(location.hash)) target.scrollIntoView();
+  if (target && !["#home", "#history", "#support", "#downloads", "#mypage"].includes(location.hash)) target.scrollIntoView();
   else window.scrollTo(0, 0);
 }
 window.addEventListener("hashchange", showView);
@@ -1519,76 +1577,273 @@ function el(tag, cls, text) {
   return n;
 }
 
-function renderAuthPanel() {
-  const ko = document.documentElement.lang === "ko";
-  document.getElementById("auth-title").textContent = ko ? "Riot 계정 연동 · 내 경기 AI 복기" : "Link Riot Account · AI Review";
-  const body = document.getElementById("auth-body");
-  body.replaceChildren();
+function closeAuthModal() {
+  document.getElementById("auth-modal").hidden = true;
+}
 
+function openAuthModal(prefillId) {
+  // 1회 인증 성공 이후(로그인 상태)에는 팝업을 다시 띄우지 않고 마이페이지로 이동
   if (LINKED_USER) {
-    const ok = el("div", "", ko ? "인증 완료: " + LINKED_USER.riot_id + " (" + LINKED_USER.region + ")" : "Verified: " + LINKED_USER.riot_id + " (" + LINKED_USER.region + ")");
-    ok.style.color = "var(--safe)";
-    ok.style.fontWeight = "800";
-    const desc = el("div", "", ko ? "본인 전적을 조회하면 각 경기 우측의 [AI 복기] 버튼으로 사망·오브젝트 손실 근거를 바로 볼 수 있습니다." : "Search your own Riot ID to unlock the [AI Review] button on your matches.");
-    desc.style.color = "var(--sub)";
-    const row = el("div", "");
-    row.style.display = "flex";
-    row.style.gap = "6px";
-    const myBtn = el("button", "m-btn ai", ko ? "내 전적 보기" : "My Matches");
-    myBtn.type = "button";
-    myBtn.addEventListener("click", () => {
-      setRegion(LINKED_USER.region.toLowerCase());
-      document.getElementById("riot-id-input").value = LINKED_USER.riot_id;
-      runMatchLookup(LINKED_USER.region.toLowerCase(), LINKED_USER.riot_id);
-    });
-    const outBtn = el("button", "m-btn", ko ? "연동 해제" : "Unlink");
-    outBtn.type = "button";
-    outBtn.addEventListener("click", () => {
-      LINKED_USER = null;
-      try { localStorage.removeItem("pacemaker_auth_token"); } catch (_) {}
-      renderAuthPanel();
-    });
-    row.append(myBtn, outBtn);
-    body.append(ok, desc, row);
+    location.hash = "#mypage";
+    return;
+  }
+  renderAuthModal(prefillId);
+  document.getElementById("auth-modal").hidden = false;
+}
+
+const RANDOM_NICK_PREFIX = ["머리손질하는", "점멸아끼는", "강타놓친", "부쉬숨은", "집안가는", "궁아끼는", "CS놓치는", "바론스틸하는", "우물지키는", "벽못넘는", "와드안박는", "솔킬따인", "눈덩이맞은", "귀환끊는"];
+const RANDOM_NICK_CHAMP = ["라이즈", "이즈리얼", "티모", "야스오", "리신", "블리츠", "가렌", "카서스", "직스", "베인", "룰루", "징크스", "아무무", "애쉬", "탈론", "제드", "다리우스", "럭스"];
+const RANDOM_NICK_SPECIAL = ["머리손질하는라이즈", "이즈리얼이즈페이크", "점멸없는야스오", "강타아끼는리신"];
+function genRandomNickname() {
+  if (Math.random() < 0.25) return RANDOM_NICK_SPECIAL[Math.floor(Math.random() * RANDOM_NICK_SPECIAL.length)];
+  return RANDOM_NICK_PREFIX[Math.floor(Math.random() * RANDOM_NICK_PREFIX.length)] + RANDOM_NICK_CHAMP[Math.floor(Math.random() * RANDOM_NICK_CHAMP.length)];
+}
+
+function renderAuthUI() {
+  const ko = document.documentElement.lang === "ko";
+  const hdrBtn = document.getElementById("hdr-login-btn");
+  hdrBtn.replaceChildren();
+  if (LINKED_USER) {
+    hdrBtn.append(el("span", "login-dot"), el("span", "", LINKED_USER.display_name || LINKED_USER.riot_id));
+  } else {
+    hdrBtn.textContent = ko ? "로그인" : "Sign In";
+  }
+
+  // Render My Page
+  document.getElementById("mypage-title").textContent = ko ? "마이페이지" : "My Page";
+  document.getElementById("mypage-sub").textContent = LINKED_USER ? LINKED_USER.riot_id : "Riot ID";
+  const mpBody = document.getElementById("mypage-body");
+  mpBody.replaceChildren();
+  if (!LINKED_USER) {
+    const msg = el("div", "", ko ? "로그인 후 내 Riot 계정, 활동 닉네임, AI 복기 기능을 사용할 수 있습니다." : "Sign in with your Riot ID to unlock My Page and AI Match Review.");
+    msg.style.color = "var(--sub)";
+    const btn = el("button", "m-btn ai", ko ? "Riot 계정으로 로그인" : "Sign In with Riot ID");
+    btn.type = "button";
+    btn.style.padding = "10px";
+    btn.addEventListener("click", () => openAuthModal(""));
+    mpBody.append(msg, btn);
     return;
   }
 
+  const badge = el("div", "", (LINKED_USER.display_name || LINKED_USER.riot_id) + "  ·  " + LINKED_USER.riot_id + " (" + LINKED_USER.region + ")");
+  badge.style.color = "var(--safe)";
+  badge.style.fontWeight = "900";
+  badge.style.fontSize = "15px";
+
+  const note = el("div", "", ko
+    ? "Riot 계정이 곧 회원 ID이며 비밀번호는 저장하지 않습니다. 개인정보 동의" + (LINKED_USER.consented_at ? " (" + LINKED_USER.consented_at + ")" : "") + " 완료."
+    : "Your Riot ID is your account ID (no password stored). Privacy consent recorded" + (LINKED_USER.consented_at ? " (" + LINKED_USER.consented_at + ")" : "") + ".");
+  note.style.color = "var(--sub)";
+
+  // Display nickname edit row
+  const nickLabel = el("div", "", ko ? "활동 닉네임 (2~20자)" : "Display Nickname (2–20 chars)");
+  nickLabel.style.fontWeight = "800";
+  nickLabel.style.marginTop = "4px";
+  const nickRow = el("div");
+  nickRow.style.display = "flex";
+  nickRow.style.gap = "6px";
+  const nickInp = el("input");
+  nickInp.type = "text";
+  nickInp.style.flex = "1";
+  nickInp.value = LINKED_USER.display_name || "";
+  nickInp.placeholder = "머리손질하는라이즈";
+  const randBtn = el("button", "m-btn", ko ? "랜덤" : "Random");
+  randBtn.type = "button";
+  randBtn.addEventListener("click", () => { nickInp.value = genRandomNickname(); });
+  const saveBtn = el("button", "m-btn ai", ko ? "저장" : "Save");
+  saveBtn.type = "button";
+  const mpStatus = el("div");
+  mpStatus.style.color = "var(--sub)";
+  saveBtn.addEventListener("click", async () => {
+    saveBtn.disabled = true;
+    mpStatus.textContent = ko ? "저장 중..." : "Saving...";
+    try {
+      const res = await fetch(WORKER_URL + "/v1/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + LINKED_USER.token },
+        body: JSON.stringify({ display_name: nickInp.value.trim() }),
+      });
+      const d = await res.json();
+      if (!res.ok) { mpStatus.textContent = ko ? "닉네임은 2~20자로 입력해 주세요." : "Use 2–20 characters."; return; }
+      LINKED_USER.display_name = d.display_name;
+      renderAuthUI();
+    } catch (_) {
+      mpStatus.textContent = ko ? "저장 실패" : "Save failed";
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+  nickRow.append(nickInp, randBtn, saveBtn);
+
+  // Actions row: My Matches, Sync Riot ID, Sign Out, Delete Account
+  const row1 = el("div");
+  row1.style.display = "flex";
+  row1.style.gap = "8px";
+  row1.style.flexWrap = "wrap";
+  const myBtn = el("button", "m-btn ai", ko ? "내 전적 · AI 복기 보기" : "My Matches & AI Review");
+  myBtn.type = "button"; myBtn.style.padding = "9px 14px";
+  myBtn.addEventListener("click", () => {
+    setRegion(LINKED_USER.region.toLowerCase());
+    document.getElementById("riot-id-input").value = LINKED_USER.riot_id;
+    location.hash = "#history";
+    runMatchLookup(LINKED_USER.region.toLowerCase(), LINKED_USER.riot_id);
+  });
+  const syncBtn = el("button", "m-btn", ko ? "Riot 닉네임 최신화" : "Sync Riot ID");
+  syncBtn.type = "button"; syncBtn.style.padding = "9px 14px";
+  syncBtn.addEventListener("click", async () => {
+    syncBtn.disabled = true;
+    mpStatus.textContent = ko ? "Riot 서버에서 최신 닉네임 확인 중..." : "Syncing Riot ID...";
+    try {
+      const res = await fetch(WORKER_URL + "/v1/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + LINKED_USER.token },
+        body: JSON.stringify({ sync_riot_id: true }),
+      });
+      const d = await res.json();
+      if (res.ok && d.riot_id) { LINKED_USER.riot_id = d.riot_id; renderAuthUI(); }
+    } finally {
+      syncBtn.disabled = false;
+    }
+  });
+  row1.append(myBtn, syncBtn);
+
+  const row2 = el("div");
+  row2.style.display = "flex";
+  row2.style.gap = "8px";
+  row2.style.marginTop = "6px";
+  row2.style.paddingTop = "10px";
+  row2.style.borderTop = "1px solid var(--line)";
+  const outBtn = el("button", "m-btn", ko ? "로그아웃" : "Sign Out");
+  outBtn.type = "button"; outBtn.style.padding = "8px 12px";
+  outBtn.addEventListener("click", () => {
+    LINKED_USER = null;
+    PENDING_CHALLENGE = null;
+    try { localStorage.removeItem("pacemaker_auth_token"); } catch (_) {}
+    renderAuthUI();
+    location.hash = "#home";
+  });
+  const delBtn = el("button", "m-btn", ko ? "계정 탈퇴 (DB 삭제)" : "Delete Account");
+  delBtn.type = "button"; delBtn.style.padding = "8px 12px"; delBtn.style.color = "var(--loss)"; delBtn.style.borderColor = "var(--loss)";
+  delBtn.addEventListener("click", async () => {
+    const ok = window.confirm(ko ? "정말 탈퇴하시겠습니까? DB에 저장된 연동 정보와 닉네임이 즉시 삭제됩니다." : "Delete your linked account and nickname from our database?");
+    if (!ok) return;
+    delBtn.disabled = true;
+    try {
+      await fetch(WORKER_URL + "/v1/account", { method: "DELETE", headers: { Authorization: "Bearer " + LINKED_USER.token } });
+    } catch (_) {}
+    LINKED_USER = null;
+    PENDING_CHALLENGE = null;
+    try { localStorage.removeItem("pacemaker_auth_token"); } catch (_) {}
+    renderAuthUI();
+    location.hash = "#home";
+  });
+  row2.append(outBtn, delBtn);
+
+  mpBody.append(badge, note, nickLabel, nickRow, mpStatus, row1, row2);
+}
+
+function renderAuthModal(prefillId) {
+  const ko = document.documentElement.lang === "ko";
+  document.getElementById("auth-modal-title").textContent = ko ? "Riot 계정 로그인" : "Sign In with Riot ID";
+  const body = document.getElementById("auth-modal-body");
+  body.replaceChildren();
+
   const intro = el("div", "", ko
-    ? "타인 악용을 막기 위해 본인 인증된 계정의 경기만 AI 복기를 제공합니다. (비밀번호 없음 · 추후 RSO 정식 로그인 전환)"
-    : "AI match review is unlocked only for your verified Riot account (no password; RSO login coming after Riot approval).");
+    ? "Riot ID가 곧 회원 ID입니다. 비밀번호는 받지 않으며, 최초 1회 본인 확인 후에는 이 창이 다시 뜨지 않습니다."
+    : "Your Riot ID is your account ID. No password is requested, and after one-time verification this window will not appear again.");
   intro.style.color = "var(--sub)";
   body.appendChild(intro);
 
+  const row = el("div");
+  row.style.display = "flex";
+  row.style.gap = "6px";
+  const regSel = el("select");
+  ["kr", "na", "euw", "jp", "br", "lan", "las", "sea"].forEach(r => {
+    const o = el("option", "", r.toUpperCase());
+    o.value = r;
+    if (r === (PENDING_CHALLENGE ? PENDING_CHALLENGE.region.toLowerCase() : document.getElementById("riot-region").value)) o.selected = true;
+    regSel.appendChild(o);
+  });
   const inp = el("input");
   inp.type = "text";
+  inp.style.flex = "1";
   inp.placeholder = "GameName#KR1";
-  inp.value = PENDING_CHALLENGE ? PENDING_CHALLENGE.riot_id : (document.getElementById("riot-id-input").value || "");
-  const status = el("div", "");
+  inp.value = PENDING_CHALLENGE ? PENDING_CHALLENGE.riot_id : (prefillId || "");
+  row.append(regSel, inp);
+
+  const nickRow = el("div");
+  nickRow.style.display = "flex";
+  nickRow.style.gap = "6px";
+  const nickInp = el("input");
+  nickInp.type = "text";
+  nickInp.style.flex = "1";
+  nickInp.placeholder = ko ? "활동 닉네임 (비우면 랜덤 생성: 머리손질하는라이즈)" : "Display nickname (blank = random champ name)";
+  nickInp.value = PENDING_CHALLENGE ? (PENDING_CHALLENGE.display_name || "") : "";
+  const randBtn = el("button", "m-btn", ko ? "랜덤" : "Random");
+  randBtn.type = "button";
+  randBtn.addEventListener("click", () => { nickInp.value = genRandomNickname(); });
+  nickRow.append(nickInp, randBtn);
+
+  const consentRow = el("label");
+  consentRow.style.display = "flex";
+  consentRow.style.alignItems = "flex-start";
+  consentRow.style.gap = "8px";
+  consentRow.style.fontSize = "12px";
+  consentRow.style.color = "var(--sub)";
+  consentRow.style.cursor = "pointer";
+  const consentChk = el("input");
+  consentChk.type = "checkbox";
+  consentChk.id = "auth-consent-chk";
+  consentChk.checked = Boolean(PENDING_CHALLENGE);
+  const consentSpan = el("span");
+  consentSpan.append(
+    document.createTextNode(ko ? "[필수] " : "[Required] "),
+  );
+  const privLink = el("a", "", ko ? "개인정보 처리방침" : "Privacy Policy");
+  privLink.href = "./privacy.html";
+  privLink.target = "_blank";
+  privLink.rel = "noopener noreferrer";
+  privLink.style.color = "var(--accent)";
+  privLink.style.textDecoration = "underline";
+  consentSpan.append(
+    privLink,
+    document.createTextNode(ko
+      ? "에 동의합니다. (회원 식별용 Riot ID·PUUID 해시·동의 시각만 DB에 저장, 비밀번호 미수집)"
+      : " — I consent to storing my Riot ID, PUUID hash, and consent date in the DB (no password)."),
+  );
+  consentRow.append(consentChk, consentSpan);
+
+  const status = el("div");
   status.style.color = "var(--sub)";
-  const startBtn = el("button", "m-btn ai", ko ? "Riot 계정 인증 시작" : "Start Riot Verification");
+  const startBtn = el("button", "m-btn ai", ko ? "동의 후 본인 확인 아이콘 받기" : "Agree & Continue with Riot ID");
   startBtn.type = "button";
+  startBtn.style.padding = "10px";
   startBtn.addEventListener("click", async () => {
     const rid = inp.value.trim();
-    const reg = document.getElementById("riot-region").value;
+    const reg = regSel.value;
+    if (!consentChk.checked) {
+      status.textContent = ko ? "먼저 개인정보 처리방침에 동의해 주세요." : "Please agree to the Privacy Policy first.";
+      return;
+    }
     if (!rid.includes("#")) { status.textContent = ko ? "이름#태그 형식으로 입력하세요." : "Use Name#Tag format."; return; }
     startBtn.disabled = true;
-    status.textContent = ko ? "인증 아이콘 생성 중..." : "Creating icon challenge...";
+    status.textContent = ko ? "확인용 아이콘 생성 중..." : "Preparing verification icon...";
     try {
       const res = await fetch(WORKER_URL + "/v1/auth/challenge", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ riot_id: rid, region: reg }),
+        body: JSON.stringify({ riot_id: rid, region: reg, display_name: nickInp.value.trim(), consent: true }),
       });
       const d = await res.json();
       if (!res.ok) { status.textContent = ko ? "계정을 찾을 수 없거나 시도 횟수를 초과했습니다." : "Account not found or rate-limited."; return; }
       PENDING_CHALLENGE = d;
-      renderAuthPanel();
+      renderAuthModal(rid);
     } catch (_) {
-      status.textContent = ko ? "인증 서버 연결 실패" : "Verification server unavailable";
+      status.textContent = ko ? "서버 연결 실패" : "Server unavailable";
     } finally {
       startBtn.disabled = false;
     }
   });
-  body.append(inp, startBtn, status);
+  body.append(row, nickRow, consentRow, startBtn, status);
 
   if (PENDING_CHALLENGE) {
     const box = el("div", "auth-icon-challenge");
@@ -1597,10 +1852,11 @@ function renderAuthPanel() {
     img.alt = "Target icon";
     const txt = el("div", "", ko
       ? "롤 클라이언트 프로필 아이콘을 왼쪽 기본 아이콘(#" + PENDING_CHALLENGE.target_icon + ")으로 바꾼 뒤 아래 버튼을 누르세요."
-      : "Change your LoL profile icon to icon #" + PENDING_CHALLENGE.target_icon + ", then click Verify.");
+      : "Change your LoL profile icon to #" + PENDING_CHALLENGE.target_icon + ", then click below.");
     box.append(img, txt);
-    const verBtn = el("button", "m-btn ai", ko ? "아이콘 변경 완료 · 인증 확인" : "Verify Icon Change");
+    const verBtn = el("button", "m-btn ai", ko ? "아이콘 변경 완료 · 로그인" : "Verify & Sign In");
     verBtn.type = "button";
+    verBtn.style.padding = "10px";
     verBtn.addEventListener("click", async () => {
       verBtn.disabled = true;
       status.textContent = ko ? "확인 중..." : "Verifying...";
@@ -1613,13 +1869,15 @@ function renderAuthPanel() {
         if (!res.ok) {
           status.textContent = d.error === "icon_mismatch"
             ? (ko ? "아직 아이콘이 바뀌지 않았습니다. 변경 후 몇 초 뒤 다시 눌러주세요." : "Icon does not match yet. Wait a few seconds and retry.")
-            : (ko ? "인증 시간이 만료되었습니다. 다시 시작해 주세요." : "Challenge expired. Start again.");
+            : (ko ? "인증 시간이 만료되었습니다. 다시 시도해 주세요." : "Challenge expired. Try again.");
           return;
         }
-        LINKED_USER = { riot_id: d.riot_id, region: d.region, token: d.token };
+        LINKED_USER = { riot_id: d.riot_id, region: d.region, display_name: d.display_name || "", token: d.token, consented_at: d.consented_at || "" };
         PENDING_CHALLENGE = null;
         try { localStorage.setItem("pacemaker_auth_token", d.token); } catch (_) {}
-        renderAuthPanel();
+        closeAuthModal();
+        renderAuthUI();
+        location.hash = "#mypage";
       } catch (_) {
         status.textContent = ko ? "확인 실패" : "Verification failed";
       } finally {
@@ -1630,15 +1888,24 @@ function renderAuthPanel() {
   }
 }
 
+document.getElementById("hdr-login-btn").addEventListener("click", () => {
+  if (LINKED_USER) location.hash = "#mypage";
+  else openAuthModal("");
+});
+document.getElementById("auth-modal-close").addEventListener("click", closeAuthModal);
+document.getElementById("auth-modal").addEventListener("click", e => {
+  if (e.target.id === "auth-modal") closeAuthModal();
+});
+
 (async function restoreSession() {
   try {
     const tok = localStorage.getItem("pacemaker_auth_token");
-    if (!tok) { renderAuthPanel(); return; }
+    if (!tok) { renderAuthUI(); return; }
     const res = await fetch(WORKER_URL + "/v1/auth/me", { headers: { Authorization: "Bearer " + tok } });
     const d = await res.json();
-    if (res.ok && d.linked) LINKED_USER = { riot_id: d.riot_id, region: d.region, token: tok };
+    if (res.ok && d.linked) LINKED_USER = { riot_id: d.riot_id, region: d.region, display_name: d.display_name || "", token: tok, consented_at: d.consented_at || "" };
   } catch (_) {}
-  renderAuthPanel();
+  renderAuthUI();
 })();
 
 function renderProfileAndSummary(data) {
@@ -1805,12 +2072,16 @@ function buildScoreboard(participants, ko) {
 
 async function openAiReview(matchId, container) {
   const ko = document.documentElement.lang === "ko";
+  if (!LINKED_USER) {
+    openAuthModal(LAST_SEARCHED_ID);
+    return;
+  }
   container.hidden = false;
   container.replaceChildren();
-  if (!LINKED_USER || LINKED_USER.riot_id.toLowerCase() !== LAST_SEARCHED_ID.toLowerCase()) {
+  if (LINKED_USER.riot_id.toLowerCase() !== LAST_SEARCHED_ID.toLowerCase()) {
     container.appendChild(el("div", "", ko
-      ? "본인 인증된 계정의 경기만 AI 복기할 수 있습니다. 왼쪽 [Riot 계정 연동]에서 먼저 인증해 주세요."
-      : "AI review is available only on your own verified Riot account. Link your account on the left first."));
+      ? "로그인한 본인 계정(" + LINKED_USER.riot_id + ")의 경기만 AI 복기할 수 있습니다."
+      : "AI review is available only on your signed-in account (" + LINKED_USER.riot_id + ")."));
     return;
   }
   container.appendChild(el("div", "", ko ? "타임라인 데이터 기반 AI 복기 분석 중..." : "Analyzing match timeline..."));

@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS auth_challenges (
   puuid_hash TEXT NOT NULL,
   riot_id TEXT NOT NULL,
   region TEXT NOT NULL,
+  display_name TEXT NOT NULL DEFAULT '',
   target_icon INTEGER NOT NULL,
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL,
@@ -48,6 +49,11 @@ CREATE INDEX IF NOT EXISTS idx_auth_puuid_created ON auth_challenges (puuid_hash
 
 CREATE TABLE IF NOT EXISTS linked_accounts (
   puuid_hash TEXT PRIMARY KEY,
+  riot_id TEXT NOT NULL DEFAULT '',
+  region TEXT NOT NULL DEFAULT '',
+  display_name TEXT NOT NULL DEFAULT '',
+  consent_version TEXT NOT NULL DEFAULT '1',
+  consented_at TEXT NOT NULL DEFAULT '',
   first_linked_day TEXT NOT NULL,
   last_verified_day TEXT NOT NULL
 );
