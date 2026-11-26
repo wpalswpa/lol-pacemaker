@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self' https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https://ddragon.leagueoflegends.com; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self' https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev;">
 <title>PACE MAKER - Real-Time LoL Coach</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23ff5a1f'/%3E%3Cpath d='M4 11V5h3.5a2 2 0 0 1 0 4H6v2H4z' fill='%23fff'/%3E%3C/svg%3E">
 <script>
@@ -223,10 +223,20 @@
   }
   .crumb { font: 700 11.5px/1.3 var(--mono); color: var(--accent); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
   .page-header { padding: 18px 0 10px; }
-  h1 { margin: 0; font-size: clamp(28px, 3.6vw, 44px); font-weight: 900; letter-spacing: -0.035em; line-height: 1.12; }
+  h1 { margin: 0; font-size: clamp(26px, 3.2vw, 40px); font-weight: 900; letter-spacing: -0.035em; line-height: 1.12; }
   h1 span { display: block; }
   .h1-accent { color: var(--accent); }
-  .hero-desc { margin: 12px 0 0; font-size: 15.5px; line-height: 1.55; color: var(--sub); max-width: 60ch; }
+  .hero-desc { margin: 14px 0 0; font-size: 16px; line-height: 1.6; color: var(--sub); max-width: 62ch; }
+  .hero-kicker { margin: 0 0 8px; font: 800 14px/1.3 inherit; font-family: inherit; text-transform: none; letter-spacing: 0; }
+  :lang(ko) .hero-desc, :lang(ko) .benefit-list p, :lang(ko) .guide p { word-break: keep-all; }
+  .benefits { margin-top: 28px; }
+  .benefits-head { margin: 0 0 12px; font-size: clamp(19px, 2vw, 23px); font-weight: 900; letter-spacing: -0.02em; }
+  .benefit-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .benefit-list li { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 14px 16px; }
+  .benefit-list h3 { margin: 0 0 6px; font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em; }
+  .benefit-list p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--sub); }
+  .setup-modes { margin: 0 0 14px; padding: 10px 12px; border-radius: 6px; background: var(--accent-soft); color: var(--text, inherit); font-size: 14px; font-weight: 600; }
+  @media (max-width: 720px) { .benefit-list { grid-template-columns: minmax(0, 1fr); } }
   .workspace-grid .panel:first-child { box-shadow: 0 24px 48px -28px color-mix(in srgb, var(--accent) 55%, transparent); }
   .dl-btn-main { transition: transform .15s ease, background .15s ease; }
   .dl-btn-main:hover { transform: translateY(-1px); }
@@ -249,7 +259,7 @@
   .pill.safe { background: var(--safe-bg); border-color: transparent; color: var(--safe); }
 
   .preview-frame { background: #090B10; }
-  .preview-frame img { display: block; width: 100%; height: auto; }
+  .preview-frame img, .preview-frame video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
   .preview-cap {
     padding: 10px 16px; font-size: 12.5px; color: var(--sub); font-weight: 600;
     border-top: 1px solid var(--line); background: var(--panel-alt);
@@ -313,22 +323,116 @@
   .search-form button:hover { background: var(--accent-hover); }
 
   .match-status { font-size: 13px; color: var(--sub); padding: 4px 2px 8px; }
-  .match-list { display: grid; gap: 6px; }
-  .match-row {
-    display: grid; grid-template-columns: 74px minmax(110px, 1.2fr) minmax(90px, 1fr) minmax(80px, 0.8fr) 72px;
-    align-items: center; gap: 10px;
-    border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: 5px;
-    padding: 10px 14px; font-size: 13px; font-variant-numeric: tabular-nums;
+  .match-list { display: grid; gap: 8px; }
+
+  /* ── OP.GG-style 2-Column Summoner Profile, Match Cards & AI Review ── */
+  .opgg-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 14px; }
+  .opgg-left { display: grid; gap: 12px; }
+  .opgg-right { display: grid; gap: 12px; min-width: 0; }
+  .profile-head { display: flex; align-items: center; gap: 12px; }
+  .profile-icon-wrap { position: relative; width: 56px; height: 56px; flex-shrink: 0; }
+  .profile-icon-wrap img { width: 56px; height: 56px; border-radius: 10px; border: 2px solid var(--accent); display: block; }
+  .profile-lvl {
+    position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+    background: var(--topbar-bg); color: #fff; font: 800 10px/1 var(--mono);
+    padding: 2px 6px; border-radius: 99px; border: 1px solid var(--line-strong);
   }
-  .match-row.win { border-left-color: var(--win); background: var(--win-bg); }
-  .match-row.loss { border-left-color: var(--loss); background: var(--loss-bg); }
-  .match-res { font: 900 12.5px/1 var(--mono); letter-spacing: .04em; }
-  .match-row.win .match-res { color: var(--win); }
-  .match-row.loss .match-res { color: var(--loss); }
-  .match-champ { font-weight: 800; color: var(--text); }
-  .match-kda { font: 700 13px/1.2 var(--mono); color: var(--text); }
-  .match-cs { font: 600 12.5px/1.2 var(--mono); color: var(--sub); }
-  .match-dur { font: 600 12px/1.2 var(--mono); color: var(--dim); text-align: right; }
+  .rank-box { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+  .rank-box:first-child { border-top: 0; padding-top: 0; }
+  .rank-tier { font-size: 15px; font-weight: 900; color: var(--text); }
+  .rank-lp { font: 700 12px/1.3 var(--mono); color: var(--sub); }
+  .rank-wl { text-align: right; font: 600 12px/1.4 var(--mono); color: var(--sub); }
+
+  .pos-bars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; align-items: end; height: 84px; padding-top: 8px; }
+  .pos-col { display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+  .pos-track { width: 14px; flex: 1; background: var(--panel-alt); border-radius: 3px; display: flex; align-items: flex-end; overflow: hidden; }
+  .pos-fill { width: 100%; background: var(--win); border-radius: 3px; min-height: 2px; }
+  .pos-lbl { font: 700 10.5px/1 var(--mono); color: var(--sub); }
+
+  .summary-card {
+    display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 16px; align-items: center;
+    padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .donut-wrap { display: flex; align-items: center; gap: 14px; }
+  .donut {
+    width: 74px; height: 74px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
+  }
+  .donut-inner {
+    width: 52px; height: 52px; border-radius: 50%; background: var(--panel);
+    display: grid; place-items: center; font: 900 13px/1 var(--mono); color: var(--text);
+  }
+  .top-champs { display: grid; gap: 6px; }
+  .top-champ-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .top-champ-row img { width: 24px; height: 24px; border-radius: 50%; }
+
+  .m-card { border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .m-card.win { border-left-color: var(--win); background: var(--win-bg); }
+  .m-card.loss { border-left-color: var(--loss); background: var(--loss-bg); }
+  .m-main {
+    display: grid; grid-template-columns: 96px 190px 128px minmax(0, 1fr) 74px;
+    align-items: center; gap: 10px; padding: 10px 12px; font-variant-numeric: tabular-nums;
+  }
+  .m-meta { font-size: 11.5px; color: var(--sub); line-height: 1.45; }
+  .m-meta strong { display: block; font-size: 12.5px; }
+  .m-card.win .m-res { color: var(--win); }
+  .m-card.loss .m-res { color: var(--loss); }
+
+  .m-champ-items { display: flex; flex-direction: column; gap: 6px; }
+  .m-champ-top { display: flex; align-items: center; gap: 8px; }
+  .m-champ-icon { position: relative; width: 42px; height: 42px; flex-shrink: 0; }
+  .m-champ-icon img { width: 42px; height: 42px; border-radius: 8px; display: block; }
+  .m-champ-lvl {
+    position: absolute; right: -2px; bottom: -2px; background: #0B0D12; color: #fff;
+    font: 800 10px/1 var(--mono); padding: 2px 4px; border-radius: 4px;
+  }
+  .m-kda-big { font: 900 15px/1.2 var(--mono); color: var(--text); }
+  .m-kda-sub { font: 700 11.5px/1.3 var(--mono); color: var(--sub); }
+  .m-items { display: flex; gap: 3px; }
+  .m-item { width: 22px; height: 22px; border-radius: 4px; background: rgba(0,0,0,0.25); overflow: hidden; }
+  .m-item img { width: 22px; height: 22px; display: block; }
+
+  .m-stats { font-size: 12px; color: var(--sub); line-height: 1.5; font-variant-numeric: tabular-nums; }
+  .m-roster { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; font-size: 11px; }
+  .m-p { display: flex; align-items: center; gap: 4px; min-width: 0; color: var(--sub); }
+  .m-p.me { color: var(--text); font-weight: 800; }
+  .m-p img { width: 15px; height: 15px; border-radius: 3px; flex-shrink: 0; }
+  .m-p span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .m-actions { display: flex; flex-direction: column; gap: 5px; align-items: stretch; }
+  .m-btn {
+    border: 1px solid var(--line-strong); background: var(--panel); color: var(--text);
+    border-radius: 4px; padding: 5px 6px; font-size: 11px; font-weight: 800; cursor: pointer; text-align: center;
+  }
+  .m-btn.ai { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .m-btn:hover { opacity: 0.9; }
+
+  .m-detail { background: var(--panel); border-top: 1px solid var(--line); padding: 10px 12px; overflow-x: auto; }
+  .sb-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .sb-table th { text-align: left; padding: 5px 6px; color: var(--dim); font-size: 11px; border-bottom: 1px solid var(--line); }
+  .sb-table td { padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .sb-table tr.me-row { background: var(--accent-soft); }
+  .dmg-bar { width: 70px; height: 6px; background: var(--panel-alt); border-radius: 3px; overflow: hidden; margin-top: 2px; }
+  .dmg-fill { height: 100%; background: var(--loss); }
+
+  .ai-review-box {
+    background: var(--panel); border-top: 1px solid var(--accent); padding: 12px 14px; font-size: 13px;
+  }
+  .ai-review-box ul { margin: 6px 0 8px 18px; padding: 0; display: grid; gap: 4px; }
+  .ai-review-note { font-size: 11.5px; color: var(--dim); }
+
+  .auth-box { display: grid; gap: 8px; font-size: 12.5px; }
+  .auth-box input {
+    background: var(--panel-alt); color: var(--text); border: 1px solid var(--line);
+    border-radius: 5px; padding: 8px 10px; font-size: 13px;
+  }
+  .auth-icon-challenge { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 6px; background: var(--panel-alt); border: 1px solid var(--line); }
+  .auth-icon-challenge img { width: 44px; height: 44px; border-radius: 8px; border: 2px solid var(--accent); }
+  @media (max-width: 960px) {
+    .opgg-grid { grid-template-columns: 1fr; }
+    .m-main { grid-template-columns: 82px 1fr auto; }
+    .m-stats, .m-roster { display: none; }
+    .summary-card { grid-template-columns: 1fr; }
+  }
 
   /* ── 4-Step Visual Setup Grid ── */
   .steps-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
@@ -488,8 +592,9 @@
   <section class="block" id="overview" data-view="home">
     <div class="page-header">
       <div>
-        <h1><span data-i18n="hero_title_a">Real-Time</span> <span class="h1-accent" data-i18n="hero_title_b">LoL AI Coach</span></h1>
-        <p class="hero-desc" data-i18n="hero_sub">Live win chance and the play to make now, right on top of your game. Ranked, Normal and ARAM.</p>
+        <p class="crumb hero-kicker" data-i18n="hero_kicker">Real-Time LoL AI Coach</p>
+        <h1><span data-i18n="hero_title_a">Your win chance and the next play,</span> <span class="h1-accent" data-i18n="hero_title_b">right on your game screen</span></h1>
+        <p class="hero-desc" data-i18n="hero_sub">While you play, PACE MAKER reads Riot&#39;s official in-game data every 2 seconds and shows your team&#39;s win chance and the play to make now in a corner of the screen.</p>
       </div>
     </div>
 
@@ -497,19 +602,28 @@
       <!-- Main Panel: Real In-Game Screenshot -->
       <div class="panel">
         <div class="panel-head">
-          <h2 class="panel-title" data-i18n="live_panel_title">In-game screen</h2>
-          <div class="mode-pills">
-            <span class="pill hot" data-i18n="m2_v">Ranked · Normal · ARAM</span>
-          </div>
+          <h2 class="panel-title" data-i18n="live_panel_title">Intro video</h2>
         </div>
         <div class="preview-frame">
-          <img src="./images/ingame_demo.jpg" alt="PACE MAKER real-time HUD overlay running over a live League of Legends match">
+          <video src="./images/intro_demo.mp4" poster="./images/ingame_demo.jpg" autoplay muted loop playsinline preload="metadata" aria-label="PACE MAKER intro video: the HUD over a real League of Legends match">
+            <img src="./images/ingame_demo.jpg" alt="PACE MAKER real-time HUD overlay running over a live League of Legends match">
+          </video>
         </div>
         <div class="preview-cap">
-          <span data-i18n="ingame_cap">The HUD on top of a real 5v5 match</span>
+          <span data-i18n="ingame_cap">Made from real match footage and app captures</span>
           <a href="https://github.com/wpalswpa/lol-pacemaker" rel="noopener noreferrer" style="color:var(--accent);font-weight:700;" data-i18n="btn_source">View Open Source →</a>
         </div>
       </div>
+    </div>
+
+    <div class="benefits">
+      <h2 class="benefits-head" data-i18n="b_head">What changes during a match</h2>
+      <ul class="benefit-list">
+        <li><h3 data-i18n="b1_t">Read the game in numbers, not gut feeling</h3><p data-i18n="b1_d">Team gold, kills and objectives become one win chance, so you can see whether to press or hold.</p></li>
+        <li><h3 data-i18n="b2_t">An answer to “what now?”</h3><p data-i18n="b2_d">Right after a fight, when a decision is needed, it picks up to three things to do: an objective, a tower or a recall.</p></li>
+        <li><h3 data-i18n="b3_t">Something to fix next game</h3><p data-i18n="b3_d">It compares you with the average of your tier and points out your weakest stat this match.</p></li>
+        <li><h3 data-i18n="b4_t">Stays out of your way</h3><p data-i18n="b4_d">It shows small in the top-left corner only during a match, folds into one button, and lets you turn panels off.</p></li>
+      </ul>
     </div>
   </section>
 
@@ -535,7 +649,6 @@
           </a>
 
           <table class="spec-table" aria-label="Technical specs">
-            <tr><th data-i18n="m2_k">Modes</th><td data-i18n="m2_v">Ranked · Normal · ARAM</td></tr>
             <tr><th data-i18n="m3_k">Languages</th><td>EN · KO · JA · ES · PT</td></tr>
             <tr><th data-i18n="m4_k">Cost &amp; Ads</th><td data-i18n="m4_v">100% Free · Zero Ads</td></tr>
           </table>
@@ -558,7 +671,7 @@
     </div>
   </section>
 
-  <!-- ── Global Riot Match Lookup (OP.GG Region Pills + Tabular Match Rows) ── -->
+  <!-- ── Global Riot Match Lookup (OP.GG 2-Column Profile + Rich Match Cards + Self-Only AI Review) ── -->
   <section class="block" id="history" data-view="history">
     <div class="panel">
       <div class="panel-head">
@@ -587,10 +700,35 @@
             <option value="las">LAS</option>
             <option value="sea">SEA</option>
           </select>
-          <input id="riot-id-input" type="text" value="Hide on bush#KR1" placeholder="GameName#Tag" required>
+          <input id="riot-id-input" type="text" value="사모예드#1021" placeholder="GameName#Tag" required>
           <button type="submit" data-i18n="hist_btn">Search</button>
         </form>
         <div class="match-status" id="match-status"></div>
+      </div>
+    </div>
+
+    <div class="opgg-grid" id="opgg-grid">
+      <aside class="opgg-left">
+        <!-- Profile & Rank Panel -->
+        <div class="panel" id="profile-panel" hidden>
+          <div class="panel-body" id="profile-body"></div>
+        </div>
+        <!-- Position Distribution Panel -->
+        <div class="panel" id="pos-panel" hidden>
+          <div class="panel-head"><h3 class="panel-title" id="pos-title">Position</h3></div>
+          <div class="panel-body" id="pos-body"></div>
+        </div>
+        <!-- Riot Account Linking & Self-Only AI Review Panel (AGENTS §15) -->
+        <div class="panel" id="auth-panel">
+          <div class="panel-head">
+            <h3 class="panel-title" id="auth-title">Riot 계정 연동 · AI 복기</h3>
+          </div>
+          <div class="panel-body auth-box" id="auth-body"></div>
+        </div>
+      </aside>
+
+      <div class="opgg-right">
+        <div id="summary-slot"></div>
         <div class="match-list" id="match-list"></div>
       </div>
     </div>
@@ -604,6 +742,7 @@
         
       </div>
       <div class="panel-body">
+        <p class="setup-modes" data-i18n="setup_modes">Supported modes: Ranked, Normal, ARAM and Practice Tool. The mode is detected automatically when the match starts.</p>
         <div class="os-tabs" role="tablist">
           <button type="button" class="os-tab" data-os="win" role="tab" aria-selected="true">Windows</button>
           <button type="button" class="os-tab" data-os="mac" role="tab" aria-selected="false">macOS</button>
@@ -647,7 +786,7 @@
           <p data-i18n="a3">The Riot local API (127.0.0.1:2999) opens only after the loading screen finishes and the match starts. Check that local firewall rules do not block loopback port 2999.</p>
         </details>
         <details class="faq">
-          <summary data-i18n="q4">Is this safe under Riot Games Third-Party Policy (Ranked &amp; ARAM)?</summary>
+          <summary data-i18n="q4">Is this safe under Riot Games&#39; Third-Party Policy?</summary>
           <p data-i18n="a4">Yes. It reads only Riot's official local scoreboard/events API (127.0.0.1:2999) for player improvement coaching - zero memory reading, zero OCR, zero hidden enemy timers or wards.</p>
         </details>
       </div>
@@ -713,13 +852,24 @@ const I18N = {
   en: {
     game_lol: "League of Legends",
     nav_overview: "Product", nav_history: "Match History", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download App",
-    live_panel_title: "In-game screen",
+    live_panel_title: "Intro video",
     hist_head: "Global Riot Match Lookup", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
-    hero_title_a: "Real-Time", hero_title_b: "LoL AI Coach",
-    hero_sub: "Live win rate and real-time macro calls right over your League screen. Works in Ranked, Normal, and ARAM.",
+    hero_kicker: "Real-Time LoL AI Coach",
+    b_head: "What changes during a match",
+    b1_t: "Read the game in numbers, not gut feeling",
+    b1_d: "Team gold, kills and objectives become one win chance, so you can see whether to press or hold.",
+    b2_t: "An answer to “what now?”",
+    b2_d: "Right after a fight, when a decision is needed, it picks up to three things to do: an objective, a tower or a recall.",
+    b3_t: "Something to fix next game",
+    b3_d: "It compares you with the average of your tier and points out your weakest stat this match.",
+    b4_t: "Stays out of your way",
+    b4_d: "It shows small in the top-left corner only during a match, folds into one button, and lets you turn panels off.",
+    setup_modes: "Supported modes: Ranked, Normal, ARAM and Practice Tool. The mode is detected automatically when the match starts.",
+    hero_title_a: "Your win chance and the next play,", hero_title_b: "right on your game screen",
+    hero_sub: "While you play, PACE MAKER reads Riot's official in-game data every 2 seconds and shows your team's win chance and the play to make now in a corner of the screen.",
     btn_source: "View Open Source →",
-    m2_k: "Modes", m2_v: "Ranked · Normal · ARAM", m3_k: "Languages", m4_k: "Cost & Ads", m4_v: "100% Free · Zero Ads",
-    ingame_cap: "The HUD on top of a real 5v5 match",
+    m3_k: "Languages", m4_k: "Cost & Ads", m4_v: "100% Free · Zero Ads",
+    ingame_cap: "Made from real match footage and app captures",
     dl_head: "Download Desktop App",
     dl_win_t: "Windows 10 / 11 (1-Click Setup .exe)", dl_win_d: "Pops up by itself when your match starts",
     dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon (M1 or later)",
@@ -728,13 +878,13 @@ const I18N = {
     setup_head: "How to set it up",
     s1_t: "1-Click Install & Auto-Start", s1_d: "Run LoLPacemaker-Setup.exe once (or click AUTO on the HUD). It waits silently and pops up automatically when a LoL match starts.",
     s2_t: "Borderless Window", s2_d: "In League Video Settings, set Window Mode to Borderless so the transparent HUD floats cleanly over the game.",
-    s3_t: "Auto-Connect (All Modes)", s3_d: "Start Ranked, Normal, ARAM, or Practice Tool. The HUD detects your mode automatically and updates every 2 seconds.",
+    s3_t: "Auto-Connect", s3_d: "Start a match and the HUD connects by itself, updating every 2 seconds.",
     s4_t: "Companion Controls", s4_d: "Drag anywhere to avoid Blitz/Porofessor. F8 click-through, F9 hide/show, [ / ] opacity, and 1-click 5-language switch.",
     faq_head: "Troubleshooting & FAQ",
     q1: "The HUD does not appear on top of League of Legends.", a1: "Switch League's Video setting from Fullscreen to Borderless. Windows prevents any overlay from drawing above exclusive Fullscreen games.",
     q2: "Windows SmartScreen or macOS Gatekeeper shows a warning.", a2: "PACE MAKER is a free open-source project without a paid code-signing certificate. You can inspect 100% of the source code on GitHub and verify the SHA-256 hash before running.",
     q3: "It stays on \"Waiting for LoL...\" during a match.", a3: "The Riot local API (127.0.0.1:2999) opens only after the loading screen finishes and the match starts. Check that local firewall rules do not block loopback port 2999.",
-    q4: "Is this safe under Riot Games Third-Party Policy (Ranked & ARAM)?", a4: "Yes. It reads only Riot's official local scoreboard/events API (127.0.0.1:2999) for player improvement coaching - zero memory reading, zero OCR, zero hidden enemy timers or wards.",
+    q4: "Is this safe under Riot Games' Third-Party Policy?", a4: "Yes. It reads only Riot's official local scoreboard/events API (127.0.0.1:2999) for player improvement coaching - zero memory reading, zero OCR, zero hidden enemy timers or wards.",
     sup_bug_t: "Bug Reports & Feature Requests", sup_bug_d: "Found a bug or want a new language/call? Open an issue directly on GitHub.", sup_bug_btn: "GitHub Issue",
     sup_com_t: "Community & Updates", sup_com_d: "Follow updates, share match feedback, and vote on upcoming coaching features on Reddit.", sup_com_btn: "Reddit",
     sec_title: "Riot Policy Safe & Security Guaranteed",
@@ -780,13 +930,24 @@ const I18N = {
   ko: {
     game_lol: "리그 오브 레전드",
     nav_overview: "제품 소개", nav_history: "전적 검색", nav_setup: "설치 · 적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
-    live_panel_title: "실제 인게임 화면",
+    live_panel_title: "소개 영상",
     hist_head: "전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "검색", hist_loading: "불러오는 중...", hist_err: "소환사를 찾을 수 없습니다. (예: Hide on bush#KR1)", hist_win: "승리", hist_loss: "패배",
-    hero_title_a: "실시간", hero_title_b: "LoL AI 코치",
-    hero_sub: "롤 인게임 화면 위에 실시간 승률과 지금 할 일(오더)을 띄워줍니다. 랭크·일반·칼바람 모두 지원.",
+    hero_kicker: "실시간 LoL AI 코치",
+    b_head: "경기 중에 이렇게 달라집니다",
+    b1_t: "형세를 감이 아니라 숫자로",
+    b1_d: "팀 골드·킬·오브젝트 차이를 승률 하나로 묶어 보여 줘서, 지금 밀어붙일 판인지 버틸 판인지 바로 보입니다.",
+    b2_t: "'이제 뭐 하지?'에 답이 있습니다",
+    b2_d: "한타가 끝난 뒤처럼 판단이 필요한 순간에 오브젝트·포탑·귀환 중 지금 할 일을 최대 3개까지 골라 줍니다.",
+    b3_t: "다음 판에 고칠 것이 남습니다",
+    b3_d: "같은 티어 평균과 비교해 이번 경기에서 가장 약한 지표를 짚어 줍니다.",
+    b4_t: "게임을 가리지 않습니다",
+    b4_d: "경기 중에만 화면 왼쪽 위에 작게 뜨고, 버튼 하나로 접거나 필요 없는 패널을 끌 수 있습니다.",
+    setup_modes: "지원 게임 모드: 랭크·일반·칼바람·연습 모드. 경기가 시작되면 모드를 자동으로 알아봅니다.",
+    hero_title_a: "이 판의 승률과 지금 할 일,", hero_title_b: "게임 화면 위에서 바로",
+    hero_sub: "경기 중 라이엇 공식 인게임 데이터를 2초마다 읽어, 우리 팀 승률과 지금 할 일을 화면 구석에 띄워 줍니다.",
     btn_source: "오픈소스 보기 →",
-    m2_k: "지원 모드", m2_v: "랭크 · 일반 · 칼바람", m3_k: "지원 언어", m4_k: "비용 · 광고", m4_v: "무료 · 광고 없음",
-    ingame_cap: "실제 5대5 경기 화면에 뜬 HUD",
+    m3_k: "지원 언어", m4_k: "비용 · 광고", m4_v: "무료 · 광고 없음",
+    ingame_cap: "실제 경기 화면과 앱 캡처로 만든 소개 영상",
     dl_head: "데스크톱 앱 다운로드",
     dl_win_t: "Windows 10 / 11 설치 파일 (.exe)", dl_win_d: "한 번 설치하면 롤 시작 시 자동으로 뜹니다",
     dl_mac_t: "macOS 앱 (.app.zip)", dl_mac_d: "M1 이상 Apple Silicon 맥 전용",
@@ -795,13 +956,13 @@ const I18N = {
     setup_head: "설치 · 적용 방법",
     s1_t: "원클릭 설치 & 자동 실행", s1_d: "LoLPacemaker-Setup.exe를 한 번 설치해 두면 롤 시작 시 HUD가 자동으로 뜹니다.",
     s2_t: "테두리 없는 창모드", s2_d: "롤 화면 설정을 '테두리 없음'으로 맞춰야 HUD가 게임 위에 뜹니다.",
-    s3_t: "전 모드 자동 연결", s3_d: "랭크, 일반, 칼바람, 연습모드 모두 자동 인식해 2초마다 오더를 갱신합니다.",
+    s3_t: "자동 연결", s3_d: "경기를 시작하면 자동으로 연결해 2초마다 오더를 갱신합니다.",
     s4_t: "단축키", s4_d: "드래그 이동, F8 클릭 통과, F9 접기/펼치기, [ / ] 투명도 조절, 5개 국어 전환.",
     faq_head: "자주 묻는 질문 · 오류 해결",
     q1: "게임 위에 HUD가 안 떠요.", a1: "롤 화면 설정이 '전체 화면'이면 가려집니다. [설정 → 화면 → 창 모드]를 '테두리 없음'으로 바꿔주세요.",
     q2: "설치할 때 보안 경고가 떠요.", a2: "유료 코드 서명이 없는 무료 오픈소스 앱이라 뜨는 정상 안내입니다. GitHub에서 전체 소스를 볼 수 있고 SHA-256으로 파일도 확인할 수 있습니다.",
     q3: "게임 중인데 HUD가 안 나와요.", a3: "로딩이 끝나고 경기에 들어간 직후 연결됩니다. 그래도 안 뜨면 방화벽에서 로컬 2999 포트가 막혀 있는지 확인해 주세요.",
-    q4: "정지 위험은 없나요? (랭크·칼바람)", a4: "없습니다. 라이엇이 공식 제공하는 로컬 점수판 API(127.0.0.1:2999)만 읽기 전용으로 쓰며, 상대 와드·스펠 추적이나 메모리 변조는 일절 하지 않습니다.",
+    q4: "정지 위험은 없나요?", a4: "없습니다. 라이엇이 공식 제공하는 로컬 점수판 API(127.0.0.1:2999)만 읽기 전용으로 쓰며, 상대 와드·스펠 추적이나 메모리 변조는 일절 하지 않습니다.",
     sup_bug_t: "오류 제보 · 기능 건의", sup_bug_d: "실행 오류나 원하는 기능이 있으면 아래 문의 칸으로 바로 보내주세요.", sup_bug_btn: "문의하기",
     sup_com_t: "커뮤니티 · 업데이트", sup_com_d: "Reddit에서 업데이트 소식과 유저 피드백을 볼 수 있습니다.", sup_com_btn: "Reddit",
     sec_title: "라이엇 규정 준수 · 안전 보증",
@@ -847,13 +1008,24 @@ const I18N = {
   ja: {
     game_lol: "リーグ・オブ・レジェンド",
     nav_overview: "製品紹介", nav_history: "戦績検索", nav_setup: "導入手順", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
-    live_panel_title: "ゲーム画面",
+    live_panel_title: "紹介動画",
     hist_head: "グローバル Riot 戦績検索", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "検索", hist_loading: "戦績を取得中...", hist_err: "サモナーが見つかりません（GameName#Tag形式で入力してください）。", hist_win: "勝利", hist_loss: "敗北",
-    hero_title_a: "リアルタイム", hero_title_b: "LoL AIコーチ",
-    hero_sub: "試合中の勝率と今やるべき行動を、ゲーム画面の上に表示します。ランク・ノーマル・ARAM対応。",
+    hero_kicker: "リアルタイム LoL AIコーチ",
+    b_head: "試合中に変わること",
+    b1_t: "形勢を勘ではなく数字で",
+    b1_d: "チームのゴールド・キル・オブジェクト差をひとつの勝率にまとめ、攻めるべきか耐えるべきかがすぐ分かります。",
+    b2_t: "「次どうする？」に答えがある",
+    b2_d: "集団戦の後など判断が必要な瞬間に、オブジェクト・タワー・リコールから今やることを最大3つ選びます。",
+    b3_t: "次の試合で直すことが残る",
+    b3_d: "同じティアの平均と比べて、この試合でいちばん弱い指標を示します。",
+    b4_t: "ゲームの邪魔をしない",
+    b4_d: "試合中だけ画面左上に小さく表示し、ボタンひとつで畳んだり不要なパネルを消したりできます。",
+    setup_modes: "対応モード：ランク・ノーマル・ARAM・練習モード。試合が始まるとモードを自動で認識します。",
+    hero_title_a: "この試合の勝率と今やること、", hero_title_b: "ゲーム画面の上にそのまま",
+    hero_sub: "試合中、Riot公式のゲーム内データを2秒ごとに読み取り、チームの勝率と今やることを画面の隅に表示します。",
     btn_source: "ソースコードを見る →",
-    m2_k: "対応モード", m2_v: "ランク · ノーマル · ARAM", m3_k: "対応言語", m4_k: "料金・広告", m4_v: "完全無料・広告ゼロ",
-    ingame_cap: "実際の5v5の試合画面に表示されたHUD",
+    m3_k: "対応言語", m4_k: "料金・広告", m4_v: "完全無料・広告ゼロ",
+    ingame_cap: "実際の試合画面とアプリのキャプチャで作った紹介動画",
     dl_head: "デスクトップ版ダウンロード",
     dl_win_t: "Windows 10 / 11 (ワンクリック .exe)", dl_win_d: "試合が始まると自動で表示",
     dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon（M1以降）",
@@ -862,13 +1034,13 @@ const I18N = {
     setup_head: "導入方法",
     s1_t: "ワンクリック導入・自動起動", s1_d: "LoLPacemaker-Setup.exeを一度入れる（またはHUDのAUTOを押す）だけで、次回からは試合開始時に自動でHUDが表示されます。",
     s2_t: "ボーダレス設定", s2_d: "LoLのビデオ設定でウィンドウモードを「ボーダレス」にすると透過HUDがゲーム上に表示されます。",
-    s3_t: "全モード自動接続", s3_d: "ランク・ノーマル・ARAM開始後に公式2999 APIへ自動接続し、モード別のコールを2秒ごとに更新します。",
+    s3_t: "自動接続", s3_d: "試合を始めると自動で接続し、2秒ごとにコールを更新します。",
     s4_t: "HUD操作キー", s4_d: "ドラッグ移動、F8クリック透過、F9表示切替、[ / ] 透明度調整、言語ボタンで5言語切替に対応。",
     faq_head: "トラブルシューティング & FAQ",
     q1: "ゲーム画面の上にHUDが表示されません。", a1: "LoLの画面設定を「フルスクリーン」から「ボーダレス」に変更してください。",
     q2: "WindowsやmacOSのセキュリティ警告が出ます。", a2: "有料署名のない無料オープンソースのため表示されます。GitHubの全コードとSHA-256ハッシュを確認して利用できます。",
     q3: "試合中も「Waiting for LoL...」のままです。", a3: "公式ローカルAPI(127.0.0.1:2999)はロード完了後に開きます。開始後も反応しない場合はファイアウォール設定を確認してください。",
-    q4: "ランク戦やARAMで使っても規約違反になりませんか？", a4: "はい。Riot公式の公開スコアAPIのみ読み取り専用で使用し、メモリ改ざん・OCR・非公開タイマー取得は一切行いません。",
+    q4: "使っても規約違反になりませんか？", a4: "はい。Riot公式の公開スコアAPIのみ読み取り専用で使用し、メモリ改ざん・OCR・非公開タイマー取得は一切行いません。",
     sup_bug_t: "バグ報告・機能要望", sup_bug_d: "不具合や追加してほしい機能があればGitHub Issuesへお寄せください。", sup_bug_btn: "GitHub Issue",
     sup_com_t: "コミュニティ & 更新情報", sup_com_d: "Redditプロフィールで最新アップデートと開発状況を確認できます。", sup_com_btn: "Reddit",
     sec_title: "Riotポリシー準拠・セキュリティ保証",
@@ -914,13 +1086,24 @@ const I18N = {
   es: {
     game_lol: "League of Legends",
     nav_overview: "Producto", nav_history: "Historial", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
-    live_panel_title: "Pantalla de juego",
+    live_panel_title: "Video de presentación",
     hist_head: "Búsqueda Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Cargando partidas...", hist_err: "Invocador no encontrado (usa el formato Nombre#Tag).", hist_win: "VICTORIA", hist_loss: "DERROTA",
-    hero_title_a: "Coach IA de LoL", hero_title_b: "en Tiempo Real",
-    hero_sub: "Tu probabilidad de victoria y la jugada que toca, encima de tu partida. Clasificatoria, Normal y ARAM.",
+    hero_kicker: "Coach IA de LoL en tiempo real",
+    b_head: "Qué cambia durante la partida",
+    b1_t: "Lee la partida con números, no a ojo",
+    b1_d: "El oro, las kills y los objetivos del equipo se resumen en una probabilidad de victoria, para saber si presionar o aguantar.",
+    b2_t: "Una respuesta a «¿y ahora qué?»",
+    b2_d: "Justo después de una pelea, cuando hay que decidir, elige hasta tres cosas que hacer: un objetivo, una torre o volver a base.",
+    b3_t: "Algo que mejorar en la próxima",
+    b3_d: "Te compara con la media de tu liga y señala tu estadística más débil de la partida.",
+    b4_t: "No estorba",
+    b4_d: "Aparece pequeño en la esquina superior izquierda solo durante la partida, se pliega en un botón y permite apagar paneles.",
+    setup_modes: "Modos compatibles: Clasificatoria, Normal, ARAM y Herramienta de práctica. El modo se detecta solo al empezar la partida.",
+    hero_title_a: "Tu probabilidad de victoria y la jugada de ahora,", hero_title_b: "encima de tu partida",
+    hero_sub: "Durante la partida, PACE MAKER lee cada 2 segundos los datos oficiales de Riot y muestra en una esquina la probabilidad de victoria de tu equipo y la jugada de ahora.",
     btn_source: "Ver Código Abierto →",
-    m2_k: "Modos", m2_v: "Ranked · Normal · ARAM", m3_k: "Idiomas", m4_k: "Precio", m4_v: "100% Gratis · Sin Anuncios",
-    ingame_cap: "El HUD sobre una partida real 5v5",
+    m3_k: "Idiomas", m4_k: "Precio", m4_v: "100% Gratis · Sin Anuncios",
+    ingame_cap: "Hecho con capturas reales de partida y de la app",
     dl_head: "Descargar App de Escritorio",
     dl_win_t: "Windows 10 / 11 (Instalador .exe)", dl_win_d: "Aparece solo al empezar la partida",
     dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon (M1 o posterior)",
@@ -929,13 +1112,13 @@ const I18N = {
     setup_head: "Cómo instalarlo",
     s1_t: "Instalación 1-Clic y Auto-Inicio", s1_d: "Instala LoLPacemaker-Setup.exe una vez (o activa AUTO en el HUD) para que aparezca automáticamente al empezar cualquier partida.",
     s2_t: "Modo Sin Bordes", s2_d: "En los ajustes de video de LoL, cambia el modo de ventana a Sin Bordes (Borderless) para ver el HUD sobre el juego.",
-    s3_t: "Conexión Automática", s3_d: "Inicia Ranked, Normal o ARAM. El HUD detecta el modo automáticamente y actualiza calls cada 2 segundos.",
+    s3_t: "Conexión automática", s3_d: "Empieza una partida y el HUD se conecta solo, actualizando cada 2 segundos.",
     s4_t: "Controles del HUD", s4_d: "Arrastra para mover, F8 click-through, F9 ocultar/mostrar, [ / ] opacidad, o cambia entre 5 idiomas con un clic.",
     faq_head: "Solución de Problemas y FAQ",
     q1: "El HUD no aparece encima de League of Legends.", a1: "Cambia el modo de pantalla de Pantalla Completa a Sin Bordes (Borderless) en los ajustes de video de LoL.",
     q2: "Aparece una advertencia de SmartScreen o Gatekeeper.", a2: "Es un proyecto gratuito de código abierto sin certificado comercial. Puedes revisar todo el código en GitHub y comprobar el SHA-256.",
     q3: "Se queda en \"Waiting for LoL...\" durante la partida.", a3: "La API local de Riot (127.0.0.1:2999) solo se abre al terminar la pantalla de carga. Verifica que tu firewall no bloquee el puerto 2999.",
-    q4: "¿Es seguro bajo la política de Riot en Ranked y ARAM?", a4: "Sí. Solo lee la API local oficial de marcador público (127.0.0.1:2999) para mejorar tu toma de decisiones: cero inyección de memoria u OCR.",
+    q4: "¿Es seguro según la política de terceros de Riot?", a4: "Sí. Solo lee la API local oficial de marcador público (127.0.0.1:2999) para mejorar tu toma de decisiones: cero inyección de memoria u OCR.",
     sup_bug_t: "Reportar Errores y Sugerencias", sup_bug_d: "¿Encontraste un fallo o quieres sugerir mejoras? Abre un issue en GitHub.", sup_bug_btn: "GitHub Issue",
     sup_com_t: "Comunidad y Novedades", sup_com_d: "Sigue las actualizaciones y comparte tu feedback en Reddit.", sup_com_btn: "Reddit",
     sec_title: "Seguro bajo Políticas de Riot",
@@ -981,13 +1164,24 @@ const I18N = {
   pt: {
     game_lol: "League of Legends",
     nav_overview: "Produto", nav_history: "Histórico", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar App",
-    live_panel_title: "Tela do jogo",
+    live_panel_title: "Vídeo de apresentação",
     hist_head: "Busca Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Carregando partidas...", hist_err: "Invocador não encontrado (use o formato Nome#Tag).", hist_win: "VITÓRIA", hist_loss: "DERROTA",
-    hero_title_a: "Coach IA de LoL", hero_title_b: "em Tempo Real",
-    hero_sub: "Sua chance de vitória e a jogada certa agora, em cima do jogo. Ranqueada, Normal e ARAM.",
+    hero_kicker: "Coach IA de LoL em tempo real",
+    b_head: "O que muda durante a partida",
+    b1_t: "Leia a partida em números, não no feeling",
+    b1_d: "Ouro, abates e objetivos do time viram uma chance de vitória, para saber se é hora de pressionar ou segurar.",
+    b2_t: "Uma resposta para “e agora?”",
+    b2_d: "Logo depois de uma luta, quando é preciso decidir, escolhe até três coisas para fazer: um objetivo, uma torre ou voltar à base.",
+    b3_t: "Algo para corrigir na próxima",
+    b3_d: "Compara você com a média do seu elo e aponta sua estatística mais fraca na partida.",
+    b4_t: "Não atrapalha",
+    b4_d: "Aparece pequeno no canto superior esquerdo só durante a partida, vira um botão e deixa desligar painéis.",
+    setup_modes: "Modos suportados: Ranqueada, Normal, ARAM e Modo de treino. O modo é detectado sozinho quando a partida começa.",
+    hero_title_a: "Sua chance de vitória e a jogada de agora,", hero_title_b: "em cima do jogo",
+    hero_sub: "Durante a partida, o PACE MAKER lê a cada 2 segundos os dados oficiais da Riot e mostra num canto da tela a chance de vitória do seu time e a jogada de agora.",
     btn_source: "Ver Código Aberto →",
-    m2_k: "Modos", m2_v: "Ranqueada · Normal · ARAM", m3_k: "Idiomas", m4_k: "Custo", m4_v: "100% Grátis · Sem Anúncios",
-    ingame_cap: "O HUD sobre uma partida real 5v5",
+    m3_k: "Idiomas", m4_k: "Custo", m4_v: "100% Grátis · Sem Anúncios",
+    ingame_cap: "Feito com capturas reais da partida e do app",
     dl_head: "Baixar App Desktop",
     dl_win_t: "Windows 10 / 11 (Instalador .exe)", dl_win_d: "Aparece sozinho quando a partida começa",
     dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon (M1 ou posterior)",
@@ -996,13 +1190,13 @@ const I18N = {
     setup_head: "Como instalar",
     s1_t: "Instalação 1-Clique e Auto-Início", s1_d: "Instale LoLPacemaker-Setup.exe uma vez (ou clique em AUTO no HUD) para abrir automaticamente sempre que uma partida começar.",
     s2_t: "Modo Sem Moldura", s2_d: "Nas configurações de vídeo do LoL, mude o modo de janela para Sem Moldura (Borderless) para o HUD aparecer sobre o jogo.",
-    s3_t: "Conexão Automática", s3_d: "Entre em Ranqueada, Normal ou ARAM. O HUD detecta o modo automaticamente e atualiza calls a cada 2 segundos.",
+    s3_t: "Conexão automática", s3_d: "Comece uma partida e o HUD se conecta sozinho, atualizando a cada 2 segundos.",
     s4_t: "Atalhos do HUD", s4_d: "Arraste para posicionar, F8 click-through, F9 ocultar/exibir, [ / ] opacidade, ou troque entre 5 idiomas com um clique.",
     faq_head: "Solução de Problemas e FAQ",
     q1: "O HUD não aparece em cima do League of Legends.", a1: "Mude o modo de vídeo do LoL de Tela Cheia para Sem Moldura (Borderless).",
     q2: "O Windows SmartScreen ou macOS mostra um aviso.", a2: "É um app gratuito e open-source sem certificado pago. Você pode auditar todo o código no GitHub e validar o hash SHA-256.",
     q3: "Fica preso em \"Waiting for LoL...\" na partida.", a3: "A API local da Riot (127.0.0.1:2999) só abre após a tela de carregamento. Confira se o firewall local não bloqueia a porta 2999.",
-    q4: "É seguro nas políticas da Riot em Ranqueada e ARAM?", a4: "Sim. Apenas lê a API local oficial do placar público (127.0.0.1:2999) para coaching educativo - sem injeção de memória, OCR ou timers ocultos.",
+    q4: "É seguro pelas políticas de terceiros da Riot?", a4: "Sim. Apenas lê a API local oficial do placar público (127.0.0.1:2999) para coaching educativo - sem injeção de memória, OCR ou timers ocultos.",
     sup_bug_t: "Reportar Bugs e Ideias", sup_bug_d: "Encontrou algum erro ou quer sugerir recursos? Abra uma issue no GitHub.", sup_bug_btn: "GitHub Issue",
     sup_com_t: "Comunidade e Atualizações", sup_com_d: "Acompanhe novidades e envie feedback no perfil do Reddit.", sup_com_btn: "Reddit",
     sec_title: "Seguro nas Políticas da Riot",
@@ -1201,11 +1395,365 @@ document.querySelectorAll(".region-btn").forEach(btn => {
 document.getElementById("riot-region").addEventListener("change", e => setRegion(e.target.value));
 document.getElementById("hdr-region").addEventListener("change", e => setRegion(e.target.value));
 
+/* Riot Account Linking (AGENTS §15) + OP.GG-style Match History & Self-Only AI Review */
+let CURRENT_DD = "16.23.1";
+let LINKED_USER = null; // { riot_id, region, token }
+let PENDING_CHALLENGE = null;
+let LAST_SEARCHED_ID = "";
+
+function ddImg(kind, id) {
+  if (kind === "champ") return "https://ddragon.leagueoflegends.com/cdn/" + CURRENT_DD + "/img/champion/" + encodeURIComponent(id) + ".png";
+  if (kind === "item") return "https://ddragon.leagueoflegends.com/cdn/" + CURRENT_DD + "/img/item/" + encodeURIComponent(id) + ".png";
+  return "https://ddragon.leagueoflegends.com/cdn/" + CURRENT_DD + "/img/profileicon/" + encodeURIComponent(id) + ".png";
+}
+
+function queueLabel(q, mode, ko) {
+  if (q === 420) return ko ? "솔로랭크" : "Ranked Solo";
+  if (q === 440) return ko ? "자유랭크" : "Ranked Flex";
+  if (q === 450 || mode === "ARAM") return ko ? "칼바람" : "ARAM";
+  if (q === 400 || q === 430 || q === 490) return ko ? "일반" : "Normal";
+  return mode || (ko ? "경기" : "Match");
+}
+
+function timeAgo(ts, ko) {
+  if (!ts) return "";
+  const mins = Math.max(1, Math.floor((Date.now() - ts) / 60000));
+  if (mins < 60) return ko ? mins + "분 전" : mins + "m ago";
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return ko ? hrs + "시간 전" : hrs + "h ago";
+  const days = Math.floor(hrs / 24);
+  return ko ? days + "일 전" : days + "d ago";
+}
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined && text !== null) n.textContent = String(text);
+  return n;
+}
+
+function renderAuthPanel() {
+  const ko = document.documentElement.lang === "ko";
+  document.getElementById("auth-title").textContent = ko ? "Riot 계정 연동 · 내 경기 AI 복기" : "Link Riot Account · AI Review";
+  const body = document.getElementById("auth-body");
+  body.replaceChildren();
+
+  if (LINKED_USER) {
+    const ok = el("div", "", ko ? "인증 완료: " + LINKED_USER.riot_id + " (" + LINKED_USER.region + ")" : "Verified: " + LINKED_USER.riot_id + " (" + LINKED_USER.region + ")");
+    ok.style.color = "var(--safe)";
+    ok.style.fontWeight = "800";
+    const desc = el("div", "", ko ? "본인 전적을 조회하면 각 경기 우측의 [AI 복기] 버튼으로 사망·오브젝트 손실 근거를 바로 볼 수 있습니다." : "Search your own Riot ID to unlock the [AI Review] button on your matches.");
+    desc.style.color = "var(--sub)";
+    const row = el("div", "");
+    row.style.display = "flex";
+    row.style.gap = "6px";
+    const myBtn = el("button", "m-btn ai", ko ? "내 전적 보기" : "My Matches");
+    myBtn.type = "button";
+    myBtn.addEventListener("click", () => {
+      setRegion(LINKED_USER.region.toLowerCase());
+      document.getElementById("riot-id-input").value = LINKED_USER.riot_id;
+      runMatchLookup(LINKED_USER.region.toLowerCase(), LINKED_USER.riot_id);
+    });
+    const outBtn = el("button", "m-btn", ko ? "연동 해제" : "Unlink");
+    outBtn.type = "button";
+    outBtn.addEventListener("click", () => {
+      LINKED_USER = null;
+      try { localStorage.removeItem("pacemaker_auth_token"); } catch (_) {}
+      renderAuthPanel();
+    });
+    row.append(myBtn, outBtn);
+    body.append(ok, desc, row);
+    return;
+  }
+
+  const intro = el("div", "", ko
+    ? "타인 악용을 막기 위해 본인 인증된 계정의 경기만 AI 복기를 제공합니다. (비밀번호 없음 · 추후 RSO 정식 로그인 전환)"
+    : "AI match review is unlocked only for your verified Riot account (no password; RSO login coming after Riot approval).");
+  intro.style.color = "var(--sub)";
+  body.appendChild(intro);
+
+  const inp = el("input");
+  inp.type = "text";
+  inp.placeholder = "GameName#KR1";
+  inp.value = PENDING_CHALLENGE ? PENDING_CHALLENGE.riot_id : (document.getElementById("riot-id-input").value || "");
+  const status = el("div", "");
+  status.style.color = "var(--sub)";
+  const startBtn = el("button", "m-btn ai", ko ? "Riot 계정 인증 시작" : "Start Riot Verification");
+  startBtn.type = "button";
+  startBtn.addEventListener("click", async () => {
+    const rid = inp.value.trim();
+    const reg = document.getElementById("riot-region").value;
+    if (!rid.includes("#")) { status.textContent = ko ? "이름#태그 형식으로 입력하세요." : "Use Name#Tag format."; return; }
+    startBtn.disabled = true;
+    status.textContent = ko ? "인증 아이콘 생성 중..." : "Creating icon challenge...";
+    try {
+      const res = await fetch(WORKER_URL + "/v1/auth/challenge", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ riot_id: rid, region: reg }),
+      });
+      const d = await res.json();
+      if (!res.ok) { status.textContent = ko ? "계정을 찾을 수 없거나 시도 횟수를 초과했습니다." : "Account not found or rate-limited."; return; }
+      PENDING_CHALLENGE = d;
+      renderAuthPanel();
+    } catch (_) {
+      status.textContent = ko ? "인증 서버 연결 실패" : "Verification server unavailable";
+    } finally {
+      startBtn.disabled = false;
+    }
+  });
+  body.append(inp, startBtn, status);
+
+  if (PENDING_CHALLENGE) {
+    const box = el("div", "auth-icon-challenge");
+    const img = el("img");
+    img.src = ddImg("icon", PENDING_CHALLENGE.target_icon);
+    img.alt = "Target icon";
+    const txt = el("div", "", ko
+      ? "롤 클라이언트 프로필 아이콘을 왼쪽 기본 아이콘(#" + PENDING_CHALLENGE.target_icon + ")으로 바꾼 뒤 아래 버튼을 누르세요."
+      : "Change your LoL profile icon to icon #" + PENDING_CHALLENGE.target_icon + ", then click Verify.");
+    box.append(img, txt);
+    const verBtn = el("button", "m-btn ai", ko ? "아이콘 변경 완료 · 인증 확인" : "Verify Icon Change");
+    verBtn.type = "button";
+    verBtn.addEventListener("click", async () => {
+      verBtn.disabled = true;
+      status.textContent = ko ? "확인 중..." : "Verifying...";
+      try {
+        const res = await fetch(WORKER_URL + "/v1/auth/verify", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ challenge_id: PENDING_CHALLENGE.challenge_id }),
+        });
+        const d = await res.json();
+        if (!res.ok) {
+          status.textContent = d.error === "icon_mismatch"
+            ? (ko ? "아직 아이콘이 바뀌지 않았습니다. 변경 후 몇 초 뒤 다시 눌러주세요." : "Icon does not match yet. Wait a few seconds and retry.")
+            : (ko ? "인증 시간이 만료되었습니다. 다시 시작해 주세요." : "Challenge expired. Start again.");
+          return;
+        }
+        LINKED_USER = { riot_id: d.riot_id, region: d.region, token: d.token };
+        PENDING_CHALLENGE = null;
+        try { localStorage.setItem("pacemaker_auth_token", d.token); } catch (_) {}
+        renderAuthPanel();
+      } catch (_) {
+        status.textContent = ko ? "확인 실패" : "Verification failed";
+      } finally {
+        verBtn.disabled = false;
+      }
+    });
+    body.append(box, verBtn);
+  }
+}
+
+(async function restoreSession() {
+  try {
+    const tok = localStorage.getItem("pacemaker_auth_token");
+    if (!tok) { renderAuthPanel(); return; }
+    const res = await fetch(WORKER_URL + "/v1/auth/me", { headers: { Authorization: "Bearer " + tok } });
+    const d = await res.json();
+    if (res.ok && d.linked) LINKED_USER = { riot_id: d.riot_id, region: d.region, token: tok };
+  } catch (_) {}
+  renderAuthPanel();
+})();
+
+function renderProfileAndSummary(data) {
+  const ko = document.documentElement.lang === "ko";
+  const profPanel = document.getElementById("profile-panel");
+  const profBody = document.getElementById("profile-body");
+  const posPanel = document.getElementById("pos-panel");
+  const posBody = document.getElementById("pos-body");
+  const sumSlot = document.getElementById("summary-slot");
+  profBody.replaceChildren(); posBody.replaceChildren(); sumSlot.replaceChildren();
+
+  const prof = data.profile || {};
+  const matches = data.matches || [];
+  profPanel.hidden = false;
+
+  // Profile header
+  const head = el("div", "profile-head");
+  const iw = el("div", "profile-icon-wrap");
+  const pimg = el("img");
+  pimg.src = ddImg("icon", prof.profileIconId || 0);
+  pimg.alt = data.riot_id;
+  iw.append(pimg, el("span", "profile-lvl", prof.level || "-"));
+  const idBox = el("div");
+  const nameEl = el("div", "", data.riot_id);
+  nameEl.style.fontWeight = "900";
+  nameEl.style.fontSize = "16px";
+  const regEl = el("div", "", String(data.region || "KR").toUpperCase());
+  regEl.style.fontSize = "12px";
+  regEl.style.color = "var(--sub)";
+  idBox.append(nameEl, regEl);
+  head.append(iw, idBox);
+  profBody.appendChild(head);
+
+  // Solo / Flex Rank
+  const addRank = (label, r) => {
+    const box = el("div", "rank-box");
+    const left = el("div");
+    const l = el("div", "", label); l.style.fontSize = "11.5px"; l.style.color = "var(--dim)";
+    const tierTxt = r ? (r.tier + " " + (["CHALLENGER", "GRANDMASTER", "MASTER"].includes(r.tier) ? "" : r.rank)).trim() : (ko ? "언랭크" : "Unranked");
+    left.append(l, el("div", "rank-tier", tierTxt), el("div", "rank-lp", r ? r.lp + " LP" : "-"));
+    const right = el("div", "rank-wl");
+    if (r) {
+      const wr = Math.round((r.wins / Math.max(1, r.wins + r.losses)) * 100);
+      right.append(el("div", "", r.wins + (ko ? "승 " : "W ") + r.losses + (ko ? "패" : "L")), el("div", "", (ko ? "승률 " : "WR ") + wr + "%"));
+    }
+    box.append(left, right);
+    profBody.appendChild(box);
+  };
+  addRank(ko ? "개인/2인 랭크" : "Ranked Solo", prof.soloRank);
+  addRank(ko ? "자유 랭크" : "Ranked Flex", prof.flexRank);
+
+  // Position distribution bars
+  const posCounts = { TOP: 0, JUNGLE: 0, MIDDLE: 0, BOTTOM: 0, UTILITY: 0 };
+  matches.forEach(m => { if (posCounts[m.position] !== undefined) posCounts[m.position]++; });
+  const totalPos = Object.values(posCounts).reduce((a, b) => a + b, 0);
+  if (totalPos > 0) {
+    posPanel.hidden = false;
+    document.getElementById("pos-title").textContent = ko ? "선호 포지션 (최근 경기)" : "Preferred Roles";
+    const bars = el("div", "pos-bars");
+    const labels = ko ? { TOP: "탑", JUNGLE: "정글", MIDDLE: "미드", BOTTOM: "원딜", UTILITY: "서폿" } : { TOP: "TOP", JUNGLE: "JG", MIDDLE: "MID", BOTTOM: "ADC", UTILITY: "SUP" };
+    Object.keys(posCounts).forEach(k => {
+      const pct = Math.round((posCounts[k] / totalPos) * 100);
+      const col = el("div", "pos-col");
+      const trk = el("div", "pos-track");
+      const fill = el("div", "pos-fill");
+      fill.style.height = pct + "%";
+      trk.appendChild(fill);
+      col.append(el("span", "pos-lbl", pct + "%"), trk, el("span", "pos-lbl", labels[k]));
+      bars.appendChild(col);
+    });
+    posBody.appendChild(bars);
+  } else {
+    posPanel.hidden = true;
+  }
+
+  // Recent Games Summary Card (Donut + Avg KDA + Top 3 Champs)
+  if (!matches.length) return;
+  const wins = matches.filter(m => m.win).length;
+  const losses = matches.length - wins;
+  const wr = Math.round((wins / matches.length) * 100);
+  const avgK = (matches.reduce((a, m) => a + m.kills, 0) / matches.length).toFixed(1);
+  const avgD = (matches.reduce((a, m) => a + m.deaths, 0) / matches.length).toFixed(1);
+  const avgA = (matches.reduce((a, m) => a + m.assists, 0) / matches.length).toFixed(1);
+  const avgKda = (matches.reduce((a, m) => a + m.kills + m.assists, 0) / Math.max(1, matches.reduce((a, m) => a + m.deaths, 0))).toFixed(2);
+  const avgKp = Math.round(matches.reduce((a, m) => a + (m.killParticipation || 0), 0) / matches.length);
+
+  const card = el("div", "summary-card");
+  const dWrap = el("div", "donut-wrap");
+  const donut = el("div", "donut");
+  donut.style.background = "conic-gradient(var(--win) 0% " + wr + "%, var(--loss) " + wr + "% 100%)";
+  donut.appendChild(el("div", "donut-inner", wr + "%"));
+  const kBox = el("div");
+  const wlTxt = el("div", "", matches.length + (ko ? "전 " : "G ") + wins + (ko ? "승 " : "W ") + losses + (ko ? "패" : "L"));
+  wlTxt.style.fontSize = "12px"; wlTxt.style.color = "var(--sub)";
+  const kdaTxt = el("div", "m-kda-big", avgKda + " : 1");
+  const subTxt = el("div", "m-kda-sub", avgK + " / " + avgD + " / " + avgA + " · " + (ko ? "킬관여 " : "KP ") + avgKp + "%");
+  kBox.append(wlTxt, kdaTxt, subTxt);
+  dWrap.append(donut, kBox);
+
+  // Top 3 champs
+  const byChamp = {};
+  matches.forEach(m => {
+    const c = byChamp[m.champion] || (byChamp[m.champion] = { name: m.champion, g: 0, w: 0, k: 0, d: 0, a: 0 });
+    c.g++; if (m.win) c.w++; c.k += m.kills; c.d += m.deaths; c.a += m.assists;
+  });
+  const top3 = Object.values(byChamp).sort((a, b) => b.g - a.g).slice(0, 3);
+  const tcWrap = el("div", "top-champs");
+  top3.forEach(c => {
+    const row = el("div", "top-champ-row");
+    const ci = el("img"); ci.src = ddImg("champ", c.name); ci.alt = c.name;
+    const cwr = Math.round((c.w / c.g) * 100);
+    const ckda = ((c.k + c.a) / Math.max(1, c.d)).toFixed(2);
+    const txt = el("span", "", c.name + " · " + cwr + "% (" + c.w + (ko ? "승 " : "W ") + (c.g - c.w) + (ko ? "패" : "L") + ") · " + ckda + ":1");
+    row.append(ci, txt);
+    tcWrap.appendChild(row);
+  });
+  card.append(dWrap, tcWrap);
+  sumSlot.appendChild(card);
+}
+
+function buildScoreboard(participants, ko) {
+  const wrap = el("div", "m-detail");
+  const tbl = el("table", "sb-table");
+  const thead = el("thead");
+  const hr = el("tr");
+  (ko ? ["챔피언", "소환사", "KDA", "피해량", "와드", "CS", "아이템"] : ["Champ", "Player", "KDA", "Damage", "Wards", "CS", "Items"])
+    .forEach(h => hr.appendChild(el("th", "", h)));
+  thead.appendChild(hr);
+  tbl.appendChild(thead);
+  const tbody = el("tbody");
+  (participants || []).forEach(p => {
+    const tr = el("tr", p.isMe ? "me-row" : "");
+    const cTd = el("td");
+    const ci = el("img"); ci.src = ddImg("champ", p.champion); ci.alt = p.champion;
+    ci.style.width = "24px"; ci.style.height = "24px"; ci.style.borderRadius = "4px"; ci.style.verticalAlign = "middle";
+    cTd.append(ci, el("span", "", " " + p.champLevel));
+
+    const nTd = el("td", "", p.riotId || "-");
+    if (p.isMe) nTd.style.fontWeight = "800";
+    const kdaTd = el("td", "", p.kills + "/" + p.deaths + "/" + p.assists);
+    const dTd = el("td");
+    dTd.appendChild(el("div", "", (p.damage || 0).toLocaleString()));
+    const db = el("div", "dmg-bar");
+    const df = el("div", "dmg-fill"); df.style.width = (p.damagePct || 0) + "%";
+    db.appendChild(df); dTd.appendChild(db);
+
+    const wTd = el("td", "", p.wards || 0);
+    const csTd = el("td", "", p.cs || 0);
+    const itTd = el("td");
+    const its = el("div", "m-items");
+    (p.items || []).slice(0, 6).forEach(id => {
+      const box = el("div", "m-item");
+      if (id) { const im = el("img"); im.src = ddImg("item", id); im.alt = ""; box.appendChild(im); }
+      its.appendChild(box);
+    });
+    itTd.appendChild(its);
+    tr.append(cTd, nTd, kdaTd, dTd, wTd, csTd, itTd);
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+  wrap.appendChild(tbl);
+  return wrap;
+}
+
+async function openAiReview(matchId, container) {
+  const ko = document.documentElement.lang === "ko";
+  container.hidden = false;
+  container.replaceChildren();
+  if (!LINKED_USER || LINKED_USER.riot_id.toLowerCase() !== LAST_SEARCHED_ID.toLowerCase()) {
+    container.appendChild(el("div", "", ko
+      ? "본인 인증된 계정의 경기만 AI 복기할 수 있습니다. 왼쪽 [Riot 계정 연동]에서 먼저 인증해 주세요."
+      : "AI review is available only on your own verified Riot account. Link your account on the left first."));
+    return;
+  }
+  container.appendChild(el("div", "", ko ? "타임라인 데이터 기반 AI 복기 분석 중..." : "Analyzing match timeline..."));
+  try {
+    const res = await fetch(WORKER_URL + "/v1/review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + LINKED_USER.token },
+      body: JSON.stringify({ match_id: matchId, lang: document.documentElement.lang }),
+    });
+    const d = await res.json();
+    container.replaceChildren();
+    if (!res.ok) {
+      container.appendChild(el("div", "", ko ? "복기 분석을 불러오지 못했습니다. (본인 경기만 가능)" : "Could not analyze this match (own matches only)."));
+      return;
+    }
+    const title = el("strong", "", (ko ? "AI 복기 결과 · " : "AI Match Review · ") + d.champion + " (" + d.kda + ")");
+    const ul = el("ul");
+    (d.findings || []).forEach(f => ul.appendChild(el("li", "", f)));
+    container.append(title, ul, el("div", "ai-review-note", d.limitation || ""));
+  } catch (_) {
+    container.replaceChildren(el("div", "", ko ? "복기 서버 연결 실패" : "Review service unavailable"));
+  }
+}
+
 /* Riot match lookup through our Cloudflare Worker proxy */
 async function runMatchLookup(region, rawInput) {
   const statusEl = document.getElementById("match-status");
   const listEl = document.getElementById("match-list");
   const dict = I18N[document.documentElement.lang] || I18N.en;
+  const ko = document.documentElement.lang === "ko";
   const raw = rawInput.trim();
   const parts = raw.split("#");
   if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) {
@@ -1224,37 +1772,99 @@ async function runMatchLookup(region, rawInput) {
     const res = await fetch(url);
     const data = await res.json();
     if (!res.ok || !Array.isArray(data.matches)) {
-      statusEl.textContent = dict.hist_err;  // never show raw error codes to players
+      statusEl.textContent = dict.hist_err;
       return;
     }
+    if (data.ddragonVersion) CURRENT_DD = data.ddragonVersion;
+    LAST_SEARCHED_ID = data.riot_id || "";
     statusEl.textContent = data.riot_id + " (" + String(data.region || region).toUpperCase() + ")";
+    renderProfileAndSummary(data);
+
     data.matches.forEach(m => {
-      const row = document.createElement("div");
-      row.className = "match-row " + (m.win ? "win" : "loss");
+      const card = el("div", "m-card " + (m.win ? "win" : "loss"));
+      const main = el("div", "m-main");
 
-      const badge = document.createElement("span");
-      badge.className = "match-res";
-      badge.textContent = m.win ? dict.hist_win : dict.hist_loss;
+      // Col 1: Queue, Win/Loss, Time, Duration
+      const c1 = el("div", "m-meta");
+      const durStr = m.durationSec
+        ? (Math.floor(m.durationSec / 60) + (ko ? "분 " : "m ") + String(m.durationSec % 60).padStart(2, "0") + (ko ? "초" : "s"))
+        : (m.durationMin + "m");
+      c1.append(
+        el("strong", "", queueLabel(m.queueId, m.gameMode, ko)),
+        el("div", "", timeAgo(m.gameEndTimestamp, ko)),
+        el("strong", "m-res", m.win ? dict.hist_win : dict.hist_loss),
+        el("div", "", durStr),
+      );
 
-      const champ = document.createElement("span");
-      champ.className = "match-champ";
-      champ.textContent = m.champion;
-
+      // Col 2: Champion + KDA + Items
+      const c2 = el("div", "m-champ-items");
+      const top = el("div", "m-champ-top");
+      const ciWrap = el("div", "m-champ-icon");
+      const ci = el("img"); ci.src = ddImg("champ", m.champion); ci.alt = m.champion;
+      ciWrap.append(ci, el("span", "m-champ-lvl", m.champLevel || 1));
+      const kdaCol = el("div");
       const kdaRatio = m.deaths === 0 ? "Perfect" : ((m.kills + m.assists) / m.deaths).toFixed(2) + ":1";
-      const kda = document.createElement("span");
-      kda.className = "match-kda";
-      kda.textContent = m.kills + " / " + m.deaths + " / " + m.assists + " (" + kdaRatio + ")";
+      kdaCol.append(
+        el("div", "m-kda-big", m.kills + " / " + m.deaths + " / " + m.assists),
+        el("div", "m-kda-sub", kdaRatio + (ko ? " 평점" : " KDA")),
+      );
+      top.append(ciWrap, kdaCol);
+      const itemsRow = el("div", "m-items");
+      (m.items || []).forEach(id => {
+        const b = el("div", "m-item");
+        if (id) { const im = el("img"); im.src = ddImg("item", id); im.alt = ""; b.appendChild(im); }
+        itemsRow.appendChild(b);
+      });
+      c2.append(top, itemsRow);
 
-      const cs = document.createElement("span");
-      cs.className = "match-cs";
-      cs.textContent = "CS " + m.cs;
+      // Col 3: KP, CS/m, Wards
+      const c3 = el("div", "m-stats");
+      const csMin = (m.cs / Math.max(1, (m.durationSec || (m.durationMin * 60)) / 60)).toFixed(1);
+      c3.append(
+        el("div", "", (ko ? "킬관여 " : "P/Kill ") + (m.killParticipation || 0) + "%"),
+        el("div", "", "CS " + m.cs + " (" + csMin + ")"),
+        el("div", "", (ko ? "와드 " : "Wards ") + (m.wardsPlaced || 0)),
+      );
 
-      const dur = document.createElement("span");
-      dur.className = "match-dur";
-      dur.textContent = m.durationMin + "m";
+      // Col 4: 10-player roster
+      const c4 = el("div", "m-roster");
+      const blue = (m.participants || []).filter(p => p.teamId === 100);
+      const red = (m.participants || []).filter(p => p.teamId === 200);
+      for (let i = 0; i < 5; i++) {
+        [blue[i], red[i]].forEach(p => {
+          if (!p) { c4.appendChild(el("div")); return; }
+          const pr = el("div", "m-p" + (p.isMe ? " me" : ""));
+          const pi = el("img"); pi.src = ddImg("champ", p.champion); pi.alt = p.champion;
+          pr.append(pi, el("span", "", p.riotId || p.champion));
+          c4.appendChild(pr);
+        });
+      }
 
-      row.append(badge, champ, kda, cs, dur);
-      listEl.appendChild(row);
+      // Col 5: Actions (AI Review + Expand Scoreboard)
+      const c5 = el("div", "m-actions");
+      const aiBtn = el("button", "m-btn ai", ko ? "AI 복기" : "AI Review");
+      aiBtn.type = "button";
+      const detBtn = el("button", "m-btn", ko ? "상세 ▼" : "Detail ▼");
+      detBtn.type = "button";
+      c5.append(aiBtn, detBtn);
+
+      const aiBox = el("div", "ai-review-box"); aiBox.hidden = true;
+      const sbSlot = el("div"); sbSlot.hidden = true;
+
+      aiBtn.addEventListener("click", () => {
+        if (!aiBox.hidden) { aiBox.hidden = true; return; }
+        openAiReview(m.matchId, aiBox);
+      });
+      detBtn.addEventListener("click", () => {
+        if (!sbSlot.hidden) { sbSlot.hidden = true; detBtn.textContent = ko ? "상세 ▼" : "Detail ▼"; return; }
+        if (!sbSlot.childElementCount) sbSlot.appendChild(buildScoreboard(m.participants, ko));
+        sbSlot.hidden = false;
+        detBtn.textContent = ko ? "접기 ▲" : "Hide ▲";
+      });
+
+      main.append(c1, c2, c3, c4, c5);
+      card.append(main, aiBox, sbSlot);
+      listEl.appendChild(card);
     });
   } catch (_) {
     statusEl.textContent = dict.hist_err;
@@ -1271,7 +1881,7 @@ document.getElementById("hdr-search-form").addEventListener("submit", e => {
   const val = document.getElementById("hdr-riot-input").value.trim() || document.getElementById("riot-id-input").value;
   setRegion(reg);
   document.getElementById("riot-id-input").value = val;
-  document.getElementById("history").scrollIntoView({ behavior: "smooth" });
+  location.hash = "#history";
   runMatchLookup(reg, val);
 });
 </script>
