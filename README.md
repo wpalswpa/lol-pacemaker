@@ -4,26 +4,36 @@
 
 Built to run **alongside** pre/post-game tools like Blitz, Porofessor, or U.GG — without overlapping their UI or hurting your FPS.
 
+![LoL Pacemaker Companion HUD](docs/images/hud_preview.png)
+
 ---
 
 ## Why LoL Pacemaker?
 
 Existing League apps excel at **pre-game** (runes, bans, matchups) and **post-game** stats. What's missing is an ultra-light **in-game macro shotcaller** that reads the live board every 2 seconds and tells you what actually matters *right now*:
 
-- **Jungle Smite Tracking**: Instant **"Free Baron — Enemy JG Dead (32s)"** call when enemy Smite is off the map, and **"Do NOT 50/50"** warnings when your jungler is down.
-- **Respawn-Timed Push Windows**: Computes exact numerical advantage & max enemy respawn timer (`5v3 · 28s window`) so you know whether to force Baron, take towers, or reset.
-- **Dragon Soul & Voidgrubs Tempo**: Alerts you 45s before Soul Point / Enemy Soul Threat and tracks Voidgrub / Herald windows.
-- **Carry Grouping & Gold Recall Spikes**: Identifies your team's fed carry lane and flags optimal recall gold timings without cluttering the screen.
-- **$0 Server Cost & <1ms Local ONNX**: Runs a 585-byte ONNX win-rate model locally on your CPU (`onnxruntime`). Zero cloud latency, zero ads, and zero gameplay data leaving your PC.
-- **Multi-Language (`i18n`)**: Automatically detects your locale (`en`, `ko`, and extensible via `locales/*.json`).
+- **Live Smite & Respawn-Window Shotcalls**: Instant **"Free Baron — Enemy JG Dead (32s)"** when enemy Smite is off the map, **"Do NOT 50/50"** when your jungler is down, and respawn-timed push calls (`5v3 · 32s window`).
+- **Normal-Distribution Top % Pace**: Compares your live CS/min, level, and kill participation against 72-cell tier/minute/role normal distributions (`distribution_stats.json`) to show your **Top X% standing** and actionable briefings.
+- **18-Feature Local ONNX (`<1ms`, $0 Server)**: Runs a verified ONNX model locally on CPU (`onnxruntime`) trained on tier-stratified Riot `MATCH-V5` timelines (`LogLoss 0.3969`, `AUC 0.9275`, ONNX parity `1.19e-7`). Zero cloud latency, zero ads, and zero gameplay data leaves your PC.
+- **Multi-Language (`EN · KO · JA · ES · PT`)**: Switch languages in one click on the HUD or on the download page. New regions only require adding a single JSON pack in `locales/`.
+- **Companion UX**: Compact borderless transparent window (`~300px`), drag to move, `[` / `]` opacity, **`F8` click-through**, **`F9` instant hide**.
 
 ---
 
-## Riot Policy & Fair-Play Guarantee
+## Multi-Language Download Page (`web/index.html`)
 
-- **Read-only Official Local API**: Uses only `https://127.0.0.1:2999/liveclientdata/allgamedata` (public Tab scoreboard & events).
+Automatically detects the visitor's browser language (`en`, `ko`, `ja`, `es`, `pt`) and supports instant switching with zero external trackers or ads. Ready for $0 static hosting on Cloudflare Pages or GitHub Pages.
+
+![LoL Pacemaker Multi-Language Web Page](docs/images/web_landing.png)
+
+---
+
+## Riot Policy & Security Guarantee
+
+- **Read-Only Official Local API**: Uses only `https://127.0.0.1:2999/liveclientdata/allgamedata` (public Tab scoreboard & events).
 - **No Unfair Advantage**: Never reads hidden enemy gold, wards, fog-of-war positions, or enemy cooldowns.
-- **No Memory Injection / No OCR**: Runs as a standalone companion overlay window (`F8` click-through, `F9` hide).
+- **No Memory Injection / No OCR**: Standalone companion overlay window with `127.0.0.1` loopback binding, `textContent`-only DOM rendering, and CSP headers.
+- **Verified Serverless Updates**: Optional model updates from GitHub Releases enforce **HTTPS-only** transport, **`SHA-256` checksum verification**, ONNX schema validation, and atomic swap with automatic fallback to the bundled model.
 
 ---
 
@@ -31,55 +41,24 @@ Existing League apps excel at **pre-game** (runes, bans, matchups) and **post-ga
 
 ```
 lol-pacemaker/
-├── AGENTS.md            # Architecture & design specification (source of truth)
-├── pacemaker.py         # PyInstaller entry point
-├── assets/              # Bundled 8-feature ONNX fallback (+ model_extended.onnx / distribution_stats.json once trained)
-├── locales/             # en / ko / ja / es / pt language packs (keys kept 100% symmetric by tests)
-├── src/
-│   ├── main.py          # Entry point: overlay (default) or --web browser HUD
-│   ├── engine.py        # 2s Live Client poller -> snapshot -> localized result
-│   ├── overlay.py       # Tk transparent HUD (drag, opacity, F8 click-through, F9 hide, language chip)
-│   ├── hud_state.py     # HUD settings & clamping (pure logic, tested)
-│   ├── predictor.py     # ONNX inference: updated model -> 18-feature -> 8-feature fallback; win-rate drivers
-│   ├── strategy_core.py # Priority shotcaller + Top-% / cause / action briefing
-│   ├── percentile.py    # Tier-distribution Top-% (math.erf, no SciPy)
-│   ├── updater.py       # HTTPS + SHA-256 verified, atomic model updates from GitHub Releases
-│   └── i18n.py
-├── ml/                  # Offline only: collector (Riot API -> JSONL), features, train (ONNX + distribution_stats.json)
-├── scripts/             # build.py (PyInstaller), make_checksums.py
-├── .github/workflows/release.yml   # tag-triggered clean builds -> draft release
-├── web/index.html       # 5-language static download page
-└── tests/
+├── AGENTS.md                 # Architecture, ML pipeline & security specification
+├── assets/                   # Bundled 18-feature ONNX model, 72-cell stats & legacy fallback
+├── locales/                  # 5 language packs (en, ko, ja, es, pt — 100% key parity tested)
+├── ml/                       # Offline tier-stratified MATCH-V5 collector & ONNX trainer
+├── src/                      # Local ONNX predictor, shotcaller engine, Tk HUD, SHA-256 updater
+├── web/index.html            # 5-language static landing & download page
+├── scripts/                  # PyInstaller Windows/macOS builder & checksums.sha256 generator
+└── tests/                    # 56 automated tests (i18n, ONNX parity, updater tamper, HUD state)
 ```
 
 ---
 
-## Quick Start
+## Quick Start (From Source)
 
 ```bash
 uv sync --all-groups
-uv run python -m pytest -v            # full suite
-uv run python -m src.main --lang en --tier mid      # overlay window
-uv run python -m src.main --web                     # or the browser HUD: http://127.0.0.1:8787/overlay
+uv run python -m pytest -v
+uv run python -m src.main
 ```
 
-HUD keys: **F8** click-through · **F9** hide/show · **[ ]** opacity · drag to move · click the language chip to cycle languages.
-
-## Training a model (offline, needs your own Riot API key)
-
-```bash
-export RIOT_API_KEY=...                                   # never commit or log it
-uv run python -m ml.collector --platform kr --bucket mid --max-matches 500 --patch 16.5
-uv run python -m ml.train --data data/snapshots.jsonl --out build/model
-```
-
-The collector resumes from `data/checkpoint.json`. Copy `model_extended.onnx` and `distribution_stats.json` to `assets/` (or attach them to a release together with `checksums.sha256`) and the app picks them up.
-
-## Build & release
-
-```bash
-uv run python scripts/build.py        # -> dist/LoLPacemaker-<windows|macos>.zip
-```
-
-Pushing a `v*` tag runs the release workflow (tests -> Windows/macOS builds -> `checksums.sha256` -> **draft** release).
-Binaries are unsigned, so Windows SmartScreen / macOS Gatekeeper show a first-run warning.
+Or download the pre-built **Windows / macOS** binary from [GitHub Releases](https://github.com/wpalswpa/lol-pacemaker/releases).
