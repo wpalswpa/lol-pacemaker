@@ -2,7 +2,8 @@
 
 **Zero-server, ad-free, real-time AI shotcaller & win-rate companion for League of Legends.**
 
-Built to run **alongside** pre/post-game tools like Blitz, Porofessor, or U.GG — without overlapping their UI or hurting your FPS.
+- **Live Multi-Language Website (5 Languages)**: https://wpalswpa.github.io/lol-pacemaker/
+- Built to run **alongside** pre/post-game tools like Blitz, Porofessor, or U.GG — without overlapping their UI or hurting your FPS.
 
 ![LoL Pacemaker Companion HUD](docs/images/hud_preview.png)
 

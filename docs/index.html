@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<title>LoL Pacemaker — Real-Time Local AI Shotcaller</title>
+<style>
+  :root {
+    --bg: #070B14; --panel: #0F172A; --border: #1E293B;
+    --text: #F8FAFC; --muted: #94A3B8; --accent: #38BDF8; --gold: #F59E0B; --green: #34D399;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at 20% 0%, #0F2342 0%, var(--bg) 55%);
+    color: var(--text); font-family: system-ui, -apple-system, "Noto Sans KR", "Noto Sans JP", sans-serif;
+    line-height: 1.6; min-height: 100vh;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 64px; }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 0; border-bottom: 1px solid var(--border); gap: 12px; flex-wrap: wrap;
+  }
+  .brand { font-weight: 900; font-size: 20px; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  select#lang-select {
+    background: var(--panel); color: var(--text); border: 1px solid #334155;
+    border-radius: 8px; padding: 7px 12px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  }
+  .hero { padding: 52px 0 36px; text-align: center; }
+  .pill {
+    display: inline-block; font-size: 12.5px; font-weight: 700; color: var(--gold);
+    background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35);
+    padding: 5px 14px; border-radius: 999px; margin-bottom: 18px;
+  }
+  h1 { font-size: clamp(30px, 5vw, 48px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.18; margin-bottom: 16px; }
+  .sub { max-width: 680px; margin: 0 auto 28px; color: var(--muted); font-size: 16.5px; }
+  .cta-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+    padding: 13px 24px; border-radius: 10px; font-weight: 800; font-size: 15px; transition: opacity .15s;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn-primary { background: linear-gradient(135deg, #38BDF8, #2563EB); color: #04101F; }
+  .btn-ghost { background: var(--panel); color: var(--text); border: 1px solid #334155; }
+  .preview {
+    margin: 34px auto 0; max-width: 900px; border-radius: 16px; overflow: hidden;
+    border: 1px solid #1E293B; box-shadow: 0 20px 56px rgba(0,0,0,0.55);
+  }
+  .preview img { display: block; width: 100%; height: auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 36px; }
+  .card {
+    background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px;
+  }
+  .card h3 { font-size: 17px; margin-bottom: 8px; color: var(--accent); }
+  .card p { font-size: 14.5px; color: #CBD5E1; }
+  .trust {
+    margin-top: 32px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(52, 211, 153, 0.35);
+    border-radius: 14px; padding: 22px 24px;
+  }
+  .trust h2 { font-size: 17px; color: var(--green); margin-bottom: 8px; }
+  .trust p { font-size: 14px; color: #CBD5E1; }
+  footer { margin-top: 48px; text-align: center; font-size: 12.5px; color: #64748B; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="dot"></span><span>LoL Pacemaker</span></div>
+    <div class="nav-right">
+      <label for="lang-select" style="font-size:13px;color:var(--muted);" data-i18n="lang_label">Language</label>
+      <select id="lang-select" aria-label="Language">
+        <option value="en">English (Global)</option>
+        <option value="ko">한국어 (KR)</option>
+        <option value="ja">日本語 (JP)</option>
+        <option value="es">Español (LAN/LAS/EUW)</option>
+        <option value="pt">Português (BR)</option>
+      </select>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="pill" data-i18n="badge">100% Local · $0 Server · No Ads · Works Alongside Blitz &amp; Porofessor</div>
+    <h1 data-i18n="hero_title">Real-Time AI Shotcaller for League of Legends</h1>
+    <p class="sub" data-i18n="hero_sub">Reads Riot's official local scoreboard every 2 seconds, calculates win probability &amp; tier Top-% pace locally via ONNX (&lt;1ms), and gives instant macro calls without FPS drops.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer" data-i18n="btn_download">Download Free (GitHub Releases)</a>
+      <a class="btn btn-ghost" href="https://github.com/wpalswpa/lol-pacemaker" rel="noopener noreferrer" data-i18n="btn_source">View Open Source</a>
+    </div>
+    <div class="preview">
+      <img src="./images/hud_preview.png" alt="LoL Pacemaker Companion HUD Preview">
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h3 data-i18n="f1_title">Live Smite &amp; Objective Shotcalls</h3>
+      <p data-i18n="f1_desc">Tracks enemy jungler death timers, respawn push windows (5v3), Dragon Soul threat, and Baron timings in real time.</p>
+    </div>
+    <div class="card">
+      <h3 data-i18n="f2_title">Normal-Distribution Top % Pace</h3>
+      <p data-i18n="f2_desc">Compares your live CS and level curve against your tier's normal distribution to show Top X% standing and actionable briefings.</p>
+    </div>
+    <div class="card">
+      <h3 data-i18n="f3_title">Ultra-Light Companion HUD</h3>
+      <p data-i18n="f3_desc">Built to run alongside Porofessor, Blitz, or U.GG. Zero ads, local CPU ONNX (&lt;1ms), F8 click-through, and F9 instant hide.</p>
+    </div>
+  </section>
+
+  <section class="trust">
+    <h2 data-i18n="sec_title">Riot Policy Safe &amp; Security Guaranteed</h2>
+    <p data-i18n="sec_desc">Read-only access to Riot's official local Live Client Data API (127.0.0.1:2999). No memory injection, no OCR, no hidden enemy wards/cooldowns, and zero gameplay data leaves your PC.</p>
+  </section>
+
+  <footer>
+    <p data-i18n="footer">LoL Pacemaker isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games.</p>
+  </footer>
+</div>
+
+<script>
+const I18N = {
+  en: {
+    lang_label: "Language",
+    badge: "100% Local · $0 Server · No Ads · Works Alongside Blitz & Porofessor",
+    hero_title: "Real-Time AI Shotcaller for League of Legends",
+    hero_sub: "Reads Riot's official local scoreboard every 2 seconds, calculates win probability & tier Top-% pace locally via ONNX (<1ms), and gives instant macro calls without FPS drops.",
+    btn_download: "Download Free (GitHub Releases)",
+    btn_source: "View Open Source",
+    f1_title: "Live Smite & Objective Shotcalls",
+    f1_desc: "Tracks enemy jungler death timers, respawn push windows (5v3), Dragon Soul threat, and Baron timings in real time.",
+    f2_title: "Normal-Distribution Top % Pace",
+    f2_desc: "Compares your live CS and level curve against your tier's normal distribution to show Top X% standing and actionable briefings.",
+    f3_title: "Ultra-Light Companion HUD",
+    f3_desc: "Built to run alongside Porofessor, Blitz, or U.GG. Zero ads, local CPU ONNX (<1ms), F8 click-through, and F9 instant hide.",
+    sec_title: "Riot Policy Safe & Security Guaranteed",
+    sec_desc: "Read-only access to Riot's official local Live Client Data API (127.0.0.1:2999). No memory injection, no OCR, no hidden enemy wards/cooldowns, and zero gameplay data leaves your PC.",
+    footer: "LoL Pacemaker isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games."
+  },
+  ko: {
+    lang_label: "언어",
+    badge: "100% 로컬 실행 · 서버비 0원 · 무광고 · 기존 앱과 병행 사용",
+    hero_title: "리그 오브 레전드 실시간 AI 전략 코치",
+    hero_sub: "Riot 공식 로컬 점수판을 2초마다 읽어 내 PC에서 ONNX(1ms 미만)로 승률과 티어 대비 상위 % 페이스를 계산하고, 프레임 저하 없이 실시간 운영 오더를 띄워 줍니다.",
+    btn_download: "무료 다운로드 (GitHub Releases)",
+    btn_source: "오픈소스 보기",
+    f1_title: "실시간 강타 · 오브젝트 오더",
+    f1_desc: "상대 정글러 부재(강타 없음), 부활 타이머 기반 수적 우위(5대3), 용 영혼 저지, 바론 타이밍을 즉시 알려 줍니다.",
+    f2_title: "정규분포 기반 상위 % 페이스 진단",
+    f2_desc: "현재 CS와 레벨 성장을 티어 정규분포와 비교해 상위 몇 % 플레이 중인지 계산하고 맞춤 브리핑을 제공합니다.",
+    f3_title: "기존 앱과 공존하는 초경량 HUD",
+    f3_desc: "Blitz · Porofessor · U.GG와 함께 켜도 겹치지 않는 미니 투명 팝업. 광고 0%, F8 클릭 통과, F9 즉시 숨김 지원.",
+    sec_title: "Riot 정책 준수 및 보안 보증",
+    sec_desc: "Riot 공식 로컬 API(127.0.0.1:2999) 공개 점수판만 읽기 전용으로 사용합니다. 메모리 변조·화면 캡처·비공개 정보 조회가 없으며 외부로 플레이 데이터가 전송되지 않습니다.",
+    footer: "LoL Pacemaker는 Riot Games의 공식 승인을 받은 서비스가 아니며 Riot Games의 입장을 대변하지 않습니다."
+  },
+  ja: {
+    lang_label: "言語",
+    badge: "100% ローカル実行 · 広告なし · Blitz / Porofessor 併用対応",
+    hero_title: "League of Legends リアルタイムAIショットコーラー",
+    hero_sub: "Riot公式ローカルAPIから2秒ごとに公開スコアを取得し、PC上のONNX(<1ms)で勝率とティア上位%を算出。FPS低下なしで今すぐ取るべきマクロ行動を提示します。",
+    btn_download: "無料ダウンロード (GitHub Releases)",
+    btn_source: "ソースコードを見る",
+    f1_title: "スマイト・オブジェクト即時コール",
+    f1_desc: "敵ジャングラーのデス時間、人数有利(5v3)のプッシュ時間、ドラゴンソウル阻止、バロン開始タイミングを即座に通知。",
+    f2_title: "正規分布ベースの上位%ペース診断",
+    f2_desc: "現在のCS・レベルをティア平均の正規分布と比較し、上位何%のペースかをリアルタイムでブリーフィングします。",
+    f3_title: "超軽量コンパニオンHUD",
+    f3_desc: "PorofessorやBlitzと同時起動しても邪魔にならない小型透過HUD。広告ゼロ、F8クリック透過、F9非表示に対応。",
+    sec_title: "Riotポリシー準拠・セキュリティ保証",
+    sec_desc: "Riot公式ローカルAPI(127.0.0.1:2999)の公開情報のみを読み取り専用で使用。メモリ改ざん・OCR・非公開情報の取得は一切行わず、外部送信もゼロです。",
+    footer: "LoL PacemakerはRiot Gamesの承認を受けたものではなく、Riot Gamesの見解を反映するものではありません。"
+  },
+  es: {
+    lang_label: "Idioma",
+    badge: "100% Local · Sin Anuncios · Compatible con Blitz y Porofessor",
+    hero_title: "Shotcaller IA en Tiempo Real para League of Legends",
+    hero_sub: "Lee el marcador local oficial de Riot cada 2s, calcula tu probabilidad de victoria y Top % de tu tier con ONNX local (<1ms), y da calls de macro sin bajar tus FPS.",
+    btn_download: "Descargar Gratis (GitHub Releases)",
+    btn_source: "Ver Código Abierto",
+    f1_title: "Calls de Castigo y Objetivos en Vivo",
+    f1_desc: "Detecta jungla enemigo muerto (sin Castigo), ventanas de ventaja numérica (5v3), Alma de Dragón y Barón al instante.",
+    f2_title: "Ritmo Top % por Distribución Normal",
+    f2_desc: "Compara tu CS y nivel en vivo contra la distribución normal de tu elo para mostrar tu Top % y consejos accionables.",
+    f3_title: "HUD Compañero Ultraligero",
+    f3_desc: "Diseñado para usarse junto a Porofessor, Blitz o U.GG. Cero anuncios, ONNX local (<1ms), F8 click-through y F9 ocultar.",
+    sec_title: "Seguro bajo Políticas de Riot",
+    sec_desc: "Solo lectura sobre la API local oficial de Riot (127.0.0.1:2999). Sin inyección de memoria, sin OCR, sin datos ocultos del rival y cero datos enviados a servidores externos.",
+    footer: "LoL Pacemaker no está avalado por Riot Games y no refleja las opiniones ni puntos de vista de Riot Games."
+  },
+  pt: {
+    lang_label: "Idioma",
+    badge: "100% Local · Sem Anúncios · Funciona junto com Blitz e Porofessor",
+    hero_title: "Shotcaller IA em Tempo Real para League of Legends",
+    hero_sub: "Lê o placar local oficial da Riot a cada 2s, calcula probabilidade de vitória e seu Top % do elo localmente via ONNX (<1ms), e entrega calls de macro sem queda de FPS.",
+    btn_download: "Baixar Grátis (GitHub Releases)",
+    btn_source: "Ver Código Aberto",
+    f1_title: "Calls de Golpear e Objetivos ao Vivo",
+    f1_desc: "Monitora morte do caçador inimigo, janelas de vantagem numérica (5v3), Alma do Dragão e Barão em tempo real.",
+    f2_title: "Ritmo Top % por Distribuição Normal",
+    f2_desc: "Compara seu CS e nível ao vivo com a distribuição normal do seu elo para exibir seu Top % e briefing tático.",
+    f3_title: "HUD Companheiro Ultraleve",
+    f3_desc: "Feito para rodar ao lado de Porofessor, Blitz ou U.GG. Zero anúncios, ONNX local (<1ms), F8 click-through e F9 ocultar.",
+    sec_title: "Seguro nas Políticas da Riot",
+    sec_desc: "Acesso somente leitura à API local oficial da Riot (127.0.0.1:2999). Sem injeção de memória, sem OCR, sem dados ocultos do inimigo e nenhum dado sai do seu PC.",
+    footer: "LoL Pacemaker não é endossado pela Riot Games e não reflete as visões ou opiniões da Riot Games."
+  }
+};
+
+function detectLang() {
+  const params = new URLSearchParams(window.location.search);
+  const q = (params.get("lang") || "").toLowerCase();
+  if (I18N[q]) return q;
+  const saved = (localStorage.getItem("pacemaker_lang") || "").toLowerCase();
+  if (I18N[saved]) return saved;
+  const nav = (navigator.language || "en").slice(0, 2).toLowerCase();
+  return I18N[nav] ? nav : "en";
+}
+
+function applyLang(lang) {
+  const dict = I18N[lang] || I18N.en;
+  document.documentElement.lang = lang;
+  document.getElementById("lang-select").value = lang;
+  for (const el of document.querySelectorAll("[data-i18n]")) {
+    const key = el.getAttribute("data-i18n");
+    if (dict[key]) el.textContent = dict[key];
+  }
+  try { localStorage.setItem("pacemaker_lang", lang); } catch (_) {}
+  const url = new URL(window.location.href);
+  url.searchParams.set("lang", lang);
+  window.history.replaceState({}, "", url.toString());
+}
+
+document.getElementById("lang-select").addEventListener("change", (e) => applyLang(e.target.value));
+applyLang(detectLang());
+</script>
+</body>
+</html>
