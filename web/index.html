@@ -223,11 +223,10 @@
   }
   .crumb { font: 700 11.5px/1.3 var(--mono); color: var(--accent); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
   .page-header { padding: 18px 0 10px; }
-  h1 { margin: 0; font-size: clamp(26px, 3.2vw, 40px); font-weight: 900; letter-spacing: -0.035em; line-height: 1.12; }
+  h1 { margin: 0; font-size: clamp(28px, 3.6vw, 44px); font-weight: 900; letter-spacing: -0.035em; line-height: 1.12; }
   h1 span { display: block; }
   .h1-accent { color: var(--accent); }
   .hero-desc { margin: 14px 0 0; font-size: 16px; line-height: 1.6; color: var(--sub); max-width: 62ch; }
-  .hero-kicker { margin: 0 0 8px; font: 800 14px/1.3 inherit; font-family: inherit; text-transform: none; letter-spacing: 0; }
   :lang(ko) .hero-desc, :lang(ko) .benefit-list p, :lang(ko) .guide p { word-break: keep-all; }
   .benefits { margin-top: 28px; }
   .benefits-head { margin: 0 0 12px; font-size: clamp(19px, 2vw, 23px); font-weight: 900; letter-spacing: -0.02em; }
@@ -592,9 +591,8 @@
   <section class="block" id="overview" data-view="home">
     <div class="page-header">
       <div>
-        <p class="crumb hero-kicker" data-i18n="hero_kicker">Real-Time LoL AI Coach</p>
-        <h1><span data-i18n="hero_title_a">Your win chance and the next play,</span> <span class="h1-accent" data-i18n="hero_title_b">right on your game screen</span></h1>
-        <p class="hero-desc" data-i18n="hero_sub">While you play, PACE MAKER reads Riot&#39;s official in-game data every 2 seconds and shows your team&#39;s win chance and the play to make now in a corner of the screen.</p>
+        <h1><span data-i18n="hero_title_a">Real-Time</span> <span class="h1-accent" data-i18n="hero_title_b">LoL AI Coach</span></h1>
+        <p class="hero-desc" data-i18n="hero_sub">Live win rate and real-time macro calls right over your League screen.</p>
       </div>
     </div>
 
@@ -617,12 +615,12 @@
     </div>
 
     <div class="benefits">
-      <h2 class="benefits-head" data-i18n="b_head">What changes during a match</h2>
+      <h2 class="benefits-head" data-i18n="b_head">Features</h2>
       <ul class="benefit-list">
-        <li><h3 data-i18n="b1_t">Read the game in numbers, not gut feeling</h3><p data-i18n="b1_d">Team gold, kills and objectives become one win chance, so you can see whether to press or hold.</p></li>
-        <li><h3 data-i18n="b2_t">An answer to “what now?”</h3><p data-i18n="b2_d">Right after a fight, when a decision is needed, it picks up to three things to do: an objective, a tower or a recall.</p></li>
-        <li><h3 data-i18n="b3_t">Something to fix next game</h3><p data-i18n="b3_d">It compares you with the average of your tier and points out your weakest stat this match.</p></li>
-        <li><h3 data-i18n="b4_t">Stays out of your way</h3><p data-i18n="b4_d">It shows small in the top-left corner only during a match, folds into one button, and lets you turn panels off.</p></li>
+        <li><h3 data-i18n="b1_t">Live win rate</h3><p data-i18n="b1_d">Calculated from team gold, kills and objectives.</p></li>
+        <li><h3 data-i18n="b2_t">Calls</h3><p data-i18n="b2_d">Shows up to 3 things to do now.</p></li>
+        <li><h3 data-i18n="b3_t">Weak-point briefing</h3><p data-i18n="b3_d">Shows stats below your tier's average.</p></li>
+        <li><h3 data-i18n="b4_t">Small overlay</h3><p data-i18n="b4_d">Appears top-left only during a match. Folds into one button.</p></li>
       </ul>
     </div>
   </section>
@@ -742,7 +740,7 @@
         
       </div>
       <div class="panel-body">
-        <p class="setup-modes" data-i18n="setup_modes">Supported modes: Ranked, Normal, ARAM and Practice Tool. The mode is detected automatically when the match starts.</p>
+        <p class="setup-modes" data-i18n="setup_modes">Supported modes: Ranked · Normal · ARAM · Practice Tool</p>
         <div class="os-tabs" role="tablist">
           <button type="button" class="os-tab" data-os="win" role="tab" aria-selected="true">Windows</button>
           <button type="button" class="os-tab" data-os="mac" role="tab" aria-selected="false">macOS</button>
@@ -854,19 +852,18 @@ const I18N = {
     nav_overview: "Product", nav_history: "Match History", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download App",
     live_panel_title: "Intro video",
     hist_head: "Global Riot Match Lookup", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
-    hero_kicker: "Real-Time LoL AI Coach",
-    b_head: "What changes during a match",
-    b1_t: "Read the game in numbers, not gut feeling",
-    b1_d: "Team gold, kills and objectives become one win chance, so you can see whether to press or hold.",
-    b2_t: "An answer to “what now?”",
-    b2_d: "Right after a fight, when a decision is needed, it picks up to three things to do: an objective, a tower or a recall.",
-    b3_t: "Something to fix next game",
-    b3_d: "It compares you with the average of your tier and points out your weakest stat this match.",
-    b4_t: "Stays out of your way",
-    b4_d: "It shows small in the top-left corner only during a match, folds into one button, and lets you turn panels off.",
-    setup_modes: "Supported modes: Ranked, Normal, ARAM and Practice Tool. The mode is detected automatically when the match starts.",
-    hero_title_a: "Your win chance and the next play,", hero_title_b: "right on your game screen",
-    hero_sub: "While you play, PACE MAKER reads Riot's official in-game data every 2 seconds and shows your team's win chance and the play to make now in a corner of the screen.",
+    b_head: "Features",
+    b1_t: "Live win rate",
+    b1_d: "Calculated from team gold, kills and objectives.",
+    b2_t: "Calls",
+    b2_d: "Shows up to 3 things to do now.",
+    b3_t: "Weak-point briefing",
+    b3_d: "Shows stats below your tier's average.",
+    b4_t: "Small overlay",
+    b4_d: "Appears top-left only during a match. Folds into one button.",
+    setup_modes: "Supported modes: Ranked · Normal · ARAM · Practice Tool",
+    hero_title_a: "Real-Time", hero_title_b: "LoL AI Coach",
+    hero_sub: "Live win rate and real-time macro calls right over your League screen.",
     btn_source: "View Open Source →",
     m3_k: "Languages", m4_k: "Cost & Ads", m4_v: "100% Free · Zero Ads",
     ingame_cap: "Made from real match footage and app captures",
@@ -932,19 +929,18 @@ const I18N = {
     nav_overview: "제품 소개", nav_history: "전적 검색", nav_setup: "설치 · 적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
     live_panel_title: "소개 영상",
     hist_head: "전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "검색", hist_loading: "불러오는 중...", hist_err: "소환사를 찾을 수 없습니다. (예: Hide on bush#KR1)", hist_win: "승리", hist_loss: "패배",
-    hero_kicker: "실시간 LoL AI 코치",
-    b_head: "경기 중에 이렇게 달라집니다",
-    b1_t: "형세를 감이 아니라 숫자로",
-    b1_d: "팀 골드·킬·오브젝트 차이를 승률 하나로 묶어 보여 줘서, 지금 밀어붙일 판인지 버틸 판인지 바로 보입니다.",
-    b2_t: "'이제 뭐 하지?'에 답이 있습니다",
-    b2_d: "한타가 끝난 뒤처럼 판단이 필요한 순간에 오브젝트·포탑·귀환 중 지금 할 일을 최대 3개까지 골라 줍니다.",
-    b3_t: "다음 판에 고칠 것이 남습니다",
-    b3_d: "같은 티어 평균과 비교해 이번 경기에서 가장 약한 지표를 짚어 줍니다.",
-    b4_t: "게임을 가리지 않습니다",
-    b4_d: "경기 중에만 화면 왼쪽 위에 작게 뜨고, 버튼 하나로 접거나 필요 없는 패널을 끌 수 있습니다.",
-    setup_modes: "지원 게임 모드: 랭크·일반·칼바람·연습 모드. 경기가 시작되면 모드를 자동으로 알아봅니다.",
-    hero_title_a: "이 판의 승률과 지금 할 일,", hero_title_b: "게임 화면 위에서 바로",
-    hero_sub: "경기 중 라이엇 공식 인게임 데이터를 2초마다 읽어, 우리 팀 승률과 지금 할 일을 화면 구석에 띄워 줍니다.",
+    b_head: "기능",
+    b1_t: "실시간 승률",
+    b1_d: "팀 골드·킬·오브젝트 차이로 승률을 계산합니다.",
+    b2_t: "오더",
+    b2_d: "지금 할 일을 최대 3개 보여줍니다.",
+    b3_t: "약점 브리핑",
+    b3_d: "같은 티어 평균보다 낮은 지표를 알려줍니다.",
+    b4_t: "작은 HUD",
+    b4_d: "경기 중에만 왼쪽 위에 뜨고, 버튼 하나로 접힙니다.",
+    setup_modes: "지원 모드: 랭크 · 일반 · 칼바람 · 연습",
+    hero_title_a: "실시간", hero_title_b: "LoL AI 코치",
+    hero_sub: "롤 인게임 화면 위에 실시간 승률과 지금 할 일(오더)을 띄워줍니다.",
     btn_source: "오픈소스 보기 →",
     m3_k: "지원 언어", m4_k: "비용 · 광고", m4_v: "무료 · 광고 없음",
     ingame_cap: "실제 경기 화면과 앱 캡처로 만든 소개 영상",
@@ -1010,19 +1006,18 @@ const I18N = {
     nav_overview: "製品紹介", nav_history: "戦績検索", nav_setup: "導入手順", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
     live_panel_title: "紹介動画",
     hist_head: "グローバル Riot 戦績検索", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "検索", hist_loading: "戦績を取得中...", hist_err: "サモナーが見つかりません（GameName#Tag形式で入力してください）。", hist_win: "勝利", hist_loss: "敗北",
-    hero_kicker: "リアルタイム LoL AIコーチ",
-    b_head: "試合中に変わること",
-    b1_t: "形勢を勘ではなく数字で",
-    b1_d: "チームのゴールド・キル・オブジェクト差をひとつの勝率にまとめ、攻めるべきか耐えるべきかがすぐ分かります。",
-    b2_t: "「次どうする？」に答えがある",
-    b2_d: "集団戦の後など判断が必要な瞬間に、オブジェクト・タワー・リコールから今やることを最大3つ選びます。",
-    b3_t: "次の試合で直すことが残る",
-    b3_d: "同じティアの平均と比べて、この試合でいちばん弱い指標を示します。",
-    b4_t: "ゲームの邪魔をしない",
-    b4_d: "試合中だけ画面左上に小さく表示し、ボタンひとつで畳んだり不要なパネルを消したりできます。",
-    setup_modes: "対応モード：ランク・ノーマル・ARAM・練習モード。試合が始まるとモードを自動で認識します。",
-    hero_title_a: "この試合の勝率と今やること、", hero_title_b: "ゲーム画面の上にそのまま",
-    hero_sub: "試合中、Riot公式のゲーム内データを2秒ごとに読み取り、チームの勝率と今やることを画面の隅に表示します。",
+    b_head: "機能",
+    b1_t: "リアルタイム勝率",
+    b1_d: "チームのゴールド・キル・オブジェクト差から計算します。",
+    b2_t: "コール",
+    b2_d: "今やることを最大3つ表示します。",
+    b3_t: "弱点ブリーフィング",
+    b3_d: "同じティアの平均より低い指標を表示します。",
+    b4_t: "小さなHUD",
+    b4_d: "試合中だけ左上に表示。ボタンひとつで畳めます。",
+    setup_modes: "対応モード：ランク · ノーマル · ARAM · 練習",
+    hero_title_a: "リアルタイム", hero_title_b: "LoL AIコーチ",
+    hero_sub: "試合中の勝率と今やるべき行動を、ゲーム画面の上に表示します。",
     btn_source: "ソースコードを見る →",
     m3_k: "対応言語", m4_k: "料金・広告", m4_v: "完全無料・広告ゼロ",
     ingame_cap: "実際の試合画面とアプリのキャプチャで作った紹介動画",
@@ -1088,19 +1083,18 @@ const I18N = {
     nav_overview: "Producto", nav_history: "Historial", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
     live_panel_title: "Video de presentación",
     hist_head: "Búsqueda Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Cargando partidas...", hist_err: "Invocador no encontrado (usa el formato Nombre#Tag).", hist_win: "VICTORIA", hist_loss: "DERROTA",
-    hero_kicker: "Coach IA de LoL en tiempo real",
-    b_head: "Qué cambia durante la partida",
-    b1_t: "Lee la partida con números, no a ojo",
-    b1_d: "El oro, las kills y los objetivos del equipo se resumen en una probabilidad de victoria, para saber si presionar o aguantar.",
-    b2_t: "Una respuesta a «¿y ahora qué?»",
-    b2_d: "Justo después de una pelea, cuando hay que decidir, elige hasta tres cosas que hacer: un objetivo, una torre o volver a base.",
-    b3_t: "Algo que mejorar en la próxima",
-    b3_d: "Te compara con la media de tu liga y señala tu estadística más débil de la partida.",
-    b4_t: "No estorba",
-    b4_d: "Aparece pequeño en la esquina superior izquierda solo durante la partida, se pliega en un botón y permite apagar paneles.",
-    setup_modes: "Modos compatibles: Clasificatoria, Normal, ARAM y Herramienta de práctica. El modo se detecta solo al empezar la partida.",
-    hero_title_a: "Tu probabilidad de victoria y la jugada de ahora,", hero_title_b: "encima de tu partida",
-    hero_sub: "Durante la partida, PACE MAKER lee cada 2 segundos los datos oficiales de Riot y muestra en una esquina la probabilidad de victoria de tu equipo y la jugada de ahora.",
+    b_head: "Funciones",
+    b1_t: "Probabilidad de victoria en vivo",
+    b1_d: "Calculada con el oro, las kills y los objetivos del equipo.",
+    b2_t: "Calls",
+    b2_d: "Muestra hasta 3 cosas que hacer ahora.",
+    b3_t: "Resumen de puntos débiles",
+    b3_d: "Muestra las estadísticas por debajo de la media de tu liga.",
+    b4_t: "HUD pequeño",
+    b4_d: "Aparece arriba a la izquierda solo en partida. Se pliega en un botón.",
+    setup_modes: "Modos: Clasificatoria · Normal · ARAM · Práctica",
+    hero_title_a: "Coach IA de LoL", hero_title_b: "en Tiempo Real",
+    hero_sub: "Tu probabilidad de victoria y la jugada que toca, encima de tu partida.",
     btn_source: "Ver Código Abierto →",
     m3_k: "Idiomas", m4_k: "Precio", m4_v: "100% Gratis · Sin Anuncios",
     ingame_cap: "Hecho con capturas reales de partida y de la app",
@@ -1166,19 +1160,18 @@ const I18N = {
     nav_overview: "Produto", nav_history: "Histórico", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar App",
     live_panel_title: "Vídeo de apresentação",
     hist_head: "Busca Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Carregando partidas...", hist_err: "Invocador não encontrado (use o formato Nome#Tag).", hist_win: "VITÓRIA", hist_loss: "DERROTA",
-    hero_kicker: "Coach IA de LoL em tempo real",
-    b_head: "O que muda durante a partida",
-    b1_t: "Leia a partida em números, não no feeling",
-    b1_d: "Ouro, abates e objetivos do time viram uma chance de vitória, para saber se é hora de pressionar ou segurar.",
-    b2_t: "Uma resposta para “e agora?”",
-    b2_d: "Logo depois de uma luta, quando é preciso decidir, escolhe até três coisas para fazer: um objetivo, uma torre ou voltar à base.",
-    b3_t: "Algo para corrigir na próxima",
-    b3_d: "Compara você com a média do seu elo e aponta sua estatística mais fraca na partida.",
-    b4_t: "Não atrapalha",
-    b4_d: "Aparece pequeno no canto superior esquerdo só durante a partida, vira um botão e deixa desligar painéis.",
-    setup_modes: "Modos suportados: Ranqueada, Normal, ARAM e Modo de treino. O modo é detectado sozinho quando a partida começa.",
-    hero_title_a: "Sua chance de vitória e a jogada de agora,", hero_title_b: "em cima do jogo",
-    hero_sub: "Durante a partida, o PACE MAKER lê a cada 2 segundos os dados oficiais da Riot e mostra num canto da tela a chance de vitória do seu time e a jogada de agora.",
+    b_head: "Recursos",
+    b1_t: "Chance de vitória ao vivo",
+    b1_d: "Calculada com ouro, abates e objetivos do time.",
+    b2_t: "Calls",
+    b2_d: "Mostra até 3 coisas para fazer agora.",
+    b3_t: "Resumo de pontos fracos",
+    b3_d: "Mostra estatísticas abaixo da média do seu elo.",
+    b4_t: "HUD pequeno",
+    b4_d: "Aparece no canto superior esquerdo só na partida. Vira um botão.",
+    setup_modes: "Modos: Ranqueada · Normal · ARAM · Treino",
+    hero_title_a: "Coach IA de LoL", hero_title_b: "em Tempo Real",
+    hero_sub: "Sua chance de vitória e a jogada certa agora, em cima do jogo.",
     btn_source: "Ver Código Aberto →",
     m3_k: "Idiomas", m4_k: "Custo", m4_v: "100% Grátis · Sem Anúncios",
     ingame_cap: "Feito com capturas reais da partida e do app",

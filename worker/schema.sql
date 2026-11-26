@@ -31,3 +31,23 @@ CREATE TABLE IF NOT EXISTS chat_usage (
   n INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (ip_hash, hour)
 );
+
+-- AGENTS §15: Riot account ownership verification (temporary profile-icon flow until RSO approval)
+CREATE TABLE IF NOT EXISTS auth_challenges (
+  challenge_id TEXT PRIMARY KEY,
+  puuid TEXT NOT NULL,
+  puuid_hash TEXT NOT NULL,
+  riot_id TEXT NOT NULL,
+  region TEXT NOT NULL,
+  target_icon INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  used INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_auth_puuid_created ON auth_challenges (puuid_hash, created_at);
+
+CREATE TABLE IF NOT EXISTS linked_accounts (
+  puuid_hash TEXT PRIMARY KEY,
+  first_linked_day TEXT NOT NULL,
+  last_verified_day TEXT NOT NULL
+);
