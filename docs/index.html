@@ -1814,10 +1814,13 @@ function renderAuthModal(prefillId) {
 
   const gBtn = el("button", "oauth-btn google", ko ? "Google 계정으로 계속하기" : "Continue with Google");
   gBtn.type = "button"; gBtn.addEventListener("click", () => startOAuth("google"));
-  const dBtn = el("button", "oauth-btn discord", ko ? "Discord 계정으로 계속하기" : "Continue with Discord");
-  dBtn.type = "button"; dBtn.addEventListener("click", () => startOAuth("discord"));
-
-  body.append(intro, consentRow, gBtn, dBtn, el("div", "oauth-divider", ko ? "— 또는 Riot ID 직접 인증 —" : "— or verify Riot ID directly —"));
+  body.append(intro, consentRow, gBtn);
+  if (OAUTH_PROVIDERS.discord) {
+    const dBtn = el("button", "oauth-btn discord", ko ? "Discord 계정으로 계속하기" : "Continue with Discord");
+    dBtn.type = "button"; dBtn.addEventListener("click", () => startOAuth("discord"));
+    body.appendChild(dBtn);
+  }
+  body.appendChild(el("div", "oauth-divider", ko ? "— 또는 Riot ID 직접 인증 —" : "— or verify Riot ID directly —"));
 
   const row = el("div"); row.style.display = "flex"; row.style.gap = "6px";
   const regSel = el("select");
