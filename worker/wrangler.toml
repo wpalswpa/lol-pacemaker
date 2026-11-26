@@ -1,4 +1,4 @@
-name = "lol-pacemaker-riot-proxy"
+name = "api"
 main = "riot-proxy.js"
 compatibility_date = "2026-11-01"
 
@@ -11,7 +11,7 @@ compatibility_date = "2026-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "lol-pacemaker-games"
-database_id = "c006a48b-ca4a-4b47-8c8c-235aaed36555"
+database_id = "acfc1b30-b213-4682-a9be-8a25f9eb3285"
 
 # AGENTS §16: support chatbot (Workers AI free tier: 10,000 neurons/day; over the limit requests fail, no charge on Free)
 [ai]

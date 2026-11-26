@@ -18,7 +18,7 @@ from ml.features import EXTENDED_FEATURES
 
 CONSENT_VERSION = 1
 APP_VERSION = "0.2.2"
-CONTRIB_URL = "https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev/v1/games"
+CONTRIB_URL = "https://api.lol-pacemaker.workers.dev/v1/games"
 CHECKPOINTS = (10, 15, 20, 25)
 # Cloudflare blocks the default "Python-urllib" agent with error 1010 (seen 2026-11-26 on the live worker).
 USER_AGENT = f"LoLPacemaker/{APP_VERSION}"

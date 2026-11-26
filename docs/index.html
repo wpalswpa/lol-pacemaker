@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https://ddragon.leagueoflegends.com https://lh3.googleusercontent.com https://cdn.discordapp.com; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self' https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https://ddragon.leagueoflegends.com https://lh3.googleusercontent.com https://cdn.discordapp.com; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self' https://api.lol-pacemaker.workers.dev;">
 <title>PACE MAKER - Real-Time LoL Coach</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23ff5a1f'/%3E%3Cpath d='M4 11V5h3.5a2 2 0 0 1 0 4H6v2H4z' fill='%23fff'/%3E%3C/svg%3E">
 <script>
@@ -1468,7 +1468,7 @@ function applyLang(lang) {
 document.getElementById("lang-select").addEventListener("change", e => applyLang(e.target.value));
 applyLang(detectLang());
 
-const WORKER_URL = "https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev";
+const WORKER_URL = "https://api.lol-pacemaker.workers.dev";
 
 /* Three menus + dedicated downloads & mypage views (AGENTS §15/§17) */
 const VIEW_OF = { "": "home", "#home": "home", "#overview": "home", "#setup": "home",
