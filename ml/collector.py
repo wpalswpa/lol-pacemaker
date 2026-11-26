@@ -6,11 +6,16 @@ and malformed timelines.
 """
 from __future__ import annotations
 
+import argparse
 import json
+import os
+import random
+import sys
 import time
 import urllib.error
 import urllib.request
-from typing import Any
+from pathlib import Path
+from typing import Any, Callable
 
 from ml.features import TIER_BUCKETS
 
@@ -31,25 +36,58 @@ TIER_MAP: dict[str, str] = {
 }
 
 
-class RiotRateLimitedClient:
-    """Lightweight Riot API HTTP client with 429 Retry-After backoff."""
+class FatalApiError(RuntimeError):
+    """Invalid/expired key or forbidden: retrying cannot help."""
 
-    def __init__(self, api_key: str, max_retries: int = 3) -> None:
-        self.api_key = api_key
+
+class RiotRateLimitedClient:
+    """Riot API HTTP client: min call interval, 429 Retry-After, 5xx exponential backoff.
+
+    The key is only ever sent in the `X-Riot-Token` header; it is never put in a URL,
+    log line or exception message.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        max_retries: int = 5,
+        min_interval: float = 1.25,  # dev key: 100 req / 2 min
+        sleep: Callable[[float], None] = time.sleep,
+        opener: Callable[..., Any] = urllib.request.urlopen,
+    ) -> None:
+        self._api_key = api_key
         self.max_retries = max_retries
+        self.min_interval = min_interval
+        self._sleep = sleep
+        self._opener = opener
+        self._last_call = 0.0
 
     def get_json(self, url: str) -> Any:
-        req = urllib.request.Request(url, headers={"X-Riot-Token": self.api_key})
+        req = urllib.request.Request(url, headers={"X-Riot-Token": self._api_key})
         for attempt in range(self.max_retries + 1):
+            wait_gap = self.min_interval - (time.monotonic() - self._last_call)
+            if wait_gap > 0:
+                self._sleep(wait_gap)
+            self._last_call = time.monotonic()
             try:
-                with urllib.request.urlopen(req, timeout=10.0) as resp:
+                with self._opener(req, timeout=10.0) as resp:
                     return json.loads(resp.read().decode("utf-8"))
             except urllib.error.HTTPError as exc:
+                if exc.code in (401, 403):
+                    raise FatalApiError(f"Riot API rejected the key (HTTP {exc.code})") from None
                 if exc.code == 429 and attempt < self.max_retries:
-                    wait = float(exc.headers.get("Retry-After", "2"))
-                    time.sleep(min(wait, 15.0))
+                    self._sleep(min(float(exc.headers.get("Retry-After", "2")), 130.0))
+                    continue
+                if exc.code >= 500 and attempt < self.max_retries:
+                    self._sleep(min(2.0 ** attempt, 30.0))
                     continue
                 raise
+            except (urllib.error.URLError, TimeoutError):
+                if attempt < self.max_retries:
+                    self._sleep(min(2.0 ** attempt, 30.0))
+                    continue
+                raise
+        raise RuntimeError("unreachable")
 
 
 def tier_to_bucket(tier: str) -> str:
@@ -67,7 +105,14 @@ def is_valid_ranked_match(match_json: dict[str, Any]) -> bool:
     participants = info.get("participants") or []
     if len(participants) != 10:
         return False
+    if any(p.get("gameEndedInEarlySurrender") or p.get("teamEarlySurrendered") for p in participants):
+        return False
     return True
+
+
+def patch_of(match_json: dict[str, Any]) -> str:
+    """'16.5.123.4567' -> '16.5'."""
+    return ".".join(str((match_json.get("info") or {}).get("gameVersion") or "").split(".")[:2])
 
 
 def extract_timeline_snapshots(
@@ -229,7 +274,234 @@ def extract_timeline_snapshots(
                 "alive_diff": 0.0,
                 "tier_bucket": float(bucket_id),
                 "blue_win": blue_win,
+                "match_id": str((match_json.get("metadata") or {}).get("matchId") or ""),
+                "patch": patch_of(match_json),
             }
         )
 
     return rows
+
+
+def extract_player_stats(
+    match_json: dict[str, Any],
+    timeline_json: dict[str, Any],
+    tier_bucket: str = "mid",
+    minutes: tuple[int, ...] = SNAPSHOT_MINUTES,
+) -> list[dict[str, Any]]:
+    """Per-player rows (CS/min, level, kill participation) for the tier distribution baseline."""
+    if not is_valid_ranked_match(match_json):
+        return []
+    info = match_json["info"]
+    frames = (timeline_json.get("info") or {}).get("frames") or []
+    if not frames:
+        return []
+    p_team = {int(p["participantId"]): int(p["teamId"]) for p in info["participants"]}
+    p_role = {int(p["participantId"]): str(p.get("teamPosition") or "") for p in info["participants"]}
+    events = [e for fr in frames for e in (fr.get("events") or [])]
+    match_id = str((match_json.get("metadata") or {}).get("matchId") or "")
+
+    rows: list[dict[str, Any]] = []
+    for minute in minutes:
+        target_ms = minute * 60_000
+        frame = next((fr for fr in frames if int(fr.get("timestamp", 0)) >= target_ms - 5_000), None)
+        if frame is None or int(frame.get("timestamp", 0)) > target_ms + 30_000:
+            continue
+        kills: dict[int, int] = {}
+        assists: dict[int, int] = {}
+        team_kills = {100: 0, 200: 0}
+        for ev in events:
+            if ev.get("type") != "CHAMPION_KILL" or int(ev.get("timestamp") or 0) > target_ms:
+                continue
+            kid = int(ev.get("killerId") or 0)
+            if kid in p_team:
+                kills[kid] = kills.get(kid, 0) + 1
+                team_kills[p_team[kid]] += 1
+            for aid in ev.get("assistingParticipantIds") or []:
+                assists[int(aid)] = assists.get(int(aid), 0) + 1
+        for pid_str, pf in (frame.get("participantFrames") or {}).items():
+            pid = int(pid_str)
+            if pid not in p_team:
+                continue
+            tk = team_kills[p_team[pid]]
+            cs = int(pf.get("minionsKilled") or 0) + int(pf.get("jungleMinionsKilled") or 0)
+            rows.append(
+                {
+                    "match_id": match_id,
+                    "tier": tier_bucket,
+                    "minute": minute,
+                    "role": p_role.get(pid) or "ALL",
+                    "cs_per_min": cs / minute,
+                    "level": float(pf.get("level") or 1),
+                    "kill_participation": ((kills.get(pid, 0) + assists.get(pid, 0)) / tk) if tk > 0 else None,
+                }
+            )
+    return rows
+
+
+# ---------------------------------------------------------------------------------------------
+# CLI: LEAGUE-V4 sampling -> MATCH-V5 -> JSONL with checkpoint/resume
+# ---------------------------------------------------------------------------------------------
+BUCKET_TIERS: dict[str, list[str]] = {
+    "low": ["IRON", "BRONZE", "SILVER", "GOLD"],
+    "mid": ["PLATINUM", "EMERALD"],
+    "high": ["DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"],
+}
+DIVISIONS = ["I", "II", "III", "IV"]
+APEX_PATH = {"MASTER": "masterleagues", "GRANDMASTER": "grandmasterleagues", "CHALLENGER": "challengerleagues"}
+REGION_OF = {
+    "kr": "asia", "jp1": "asia",
+    "na1": "americas", "br1": "americas", "la1": "americas", "la2": "americas",
+    "euw1": "europe", "eun1": "europe", "tr1": "europe", "ru": "europe",
+    "oc1": "sea", "ph2": "sea", "sg2": "sea", "th2": "sea", "tw2": "sea", "vn2": "sea",
+}
+QUEUE = "RANKED_SOLO_5x5"
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
+
+
+class Collector:
+    """Tier-bucket sampler. Safe to stop at any time and re-run with the same checkpoint."""
+
+    def __init__(
+        self,
+        client: Any,
+        platform: str,
+        bucket: str,
+        out_path: Path,
+        checkpoint_path: Path,
+        patch: str | None = None,
+        seed: int = 42,
+        log: Callable[[str], None] = lambda m: print(m, file=sys.stderr),
+    ) -> None:
+        if platform not in REGION_OF:
+            raise ValueError(f"unknown platform {platform!r}; choose from {sorted(REGION_OF)}")
+        if bucket not in BUCKET_TIERS:
+            raise ValueError(f"unknown bucket {bucket!r}; choose from {sorted(BUCKET_TIERS)}")
+        self.client, self.platform, self.bucket = client, platform, bucket
+        self.region = REGION_OF[platform]
+        self.out_path, self.checkpoint_path = Path(out_path), Path(checkpoint_path)
+        self.patch, self.rng, self.log = patch, random.Random(seed), log
+        self.state: dict[str, Any] = {"done_puuids": [], "done_matches": [], "skipped": 0, "written_matches": 0}
+        if self.checkpoint_path.exists():
+            self.state.update(json.loads(self.checkpoint_path.read_text(encoding="utf-8")))
+
+    def _save(self) -> None:
+        _atomic_write(self.checkpoint_path, json.dumps(self.state))
+
+    def sample_puuids(self, per_tier: int, pages: int = 3) -> list[str]:
+        base = f"https://{self.platform}.api.riotgames.com/lol/league/v4"
+        found: list[str] = []
+        for tier in BUCKET_TIERS[self.bucket]:
+            try:
+                if tier in APEX_PATH:
+                    entries = (self.client.get_json(f"{base}/{APEX_PATH[tier]}/by-queue/{QUEUE}") or {}).get("entries") or []
+                else:
+                    div = self.rng.choice(DIVISIONS)
+                    entries = self.client.get_json(f"{base}/entries/{QUEUE}/{tier}/{div}?page={self.rng.randint(1, pages)}") or []
+            except urllib.error.HTTPError as exc:
+                self.log(f"league {tier}: HTTP {exc.code}, skipped")
+                continue
+            ids = [e["puuid"] for e in entries if isinstance(e, dict) and e.get("puuid")]
+            self.rng.shuffle(ids)
+            found.extend(ids[:per_tier])
+        return [p for p in dict.fromkeys(found) if p not in set(self.state["done_puuids"])]
+
+    def collect(self, max_matches: int, per_tier: int = 10, matches_per_player: int = 5) -> int:
+        """Write up to `max_matches` new matches. Returns how many were written this run."""
+        mbase = f"https://{self.region}.api.riotgames.com/lol/match/v5/matches"
+        written = 0
+        self.out_path.parent.mkdir(parents=True, exist_ok=True)
+        for puuid in self.sample_puuids(per_tier):
+            if written >= max_matches:
+                break
+            try:
+                ids = self.client.get_json(f"{mbase}/by-puuid/{puuid}/ids?queue=420&type=ranked&start=0&count={matches_per_player}")
+            except urllib.error.HTTPError as exc:
+                self.log(f"match ids: HTTP {exc.code}, skipped")
+                continue
+            for mid in ids or []:
+                if written >= max_matches:
+                    break
+                if mid in self.state["done_matches"]:
+                    continue
+                self.state["done_matches"].append(mid)
+                try:
+                    match = self.client.get_json(f"{mbase}/{mid}")
+                    if self.patch and patch_of(match) != self.patch:
+                        self.state["skipped"] += 1
+                        continue
+                    if not is_valid_ranked_match(match):
+                        self.state["skipped"] += 1
+                        continue
+                    timeline = self.client.get_json(f"{mbase}/{mid}/timeline")
+                except urllib.error.HTTPError as exc:
+                    self.log(f"{mid}: HTTP {exc.code}, skipped")
+                    self.state["skipped"] += 1
+                    continue
+                snaps = extract_timeline_snapshots(match, timeline, self.bucket)
+                players = extract_player_stats(match, timeline, self.bucket)
+                if not snaps:
+                    self.state["skipped"] += 1
+                    continue
+                with self.out_path.open("a", encoding="utf-8") as fh:
+                    for r in snaps:
+                        fh.write(json.dumps({"kind": "snapshot", **r}) + "\n")
+                    for r in players:
+                        fh.write(json.dumps({"kind": "player", **r}) + "\n")
+                self.state["written_matches"] += 1
+                written += 1
+                self._save()
+            self.state["done_puuids"].append(puuid)
+            self._save()
+        self._save()
+        return written
+
+
+def load_jsonl(paths: list[Path]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Read collector output -> (snapshot rows, player rows)."""
+    snaps: list[dict[str, Any]] = []
+    players: list[dict[str, Any]] = []
+    for path in paths:
+        for line in Path(path).read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            (snaps if row.pop("kind", "snapshot") == "snapshot" else players).append(row)
+    return snaps, players
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description="Collect tier-stratified MATCH-V5 snapshots (offline dev use; needs RIOT_API_KEY)")
+    ap.add_argument("--platform", default="kr", choices=sorted(REGION_OF))
+    ap.add_argument("--bucket", required=True, choices=sorted(BUCKET_TIERS))
+    ap.add_argument("--max-matches", type=int, default=200)
+    ap.add_argument("--per-tier", type=int, default=10, help="players sampled per tier")
+    ap.add_argument("--matches-per-player", type=int, default=5)
+    ap.add_argument("--patch", default=None, help="keep only this patch, e.g. 16.5")
+    ap.add_argument("--out", type=Path, default=Path("data/snapshots.jsonl"))
+    ap.add_argument("--checkpoint", type=Path, default=Path("data/checkpoint.json"))
+    ap.add_argument("--min-interval", type=float, default=1.25)
+    args = ap.parse_args(argv)
+    key = os.environ.get("RIOT_API_KEY", "").strip()
+    if not key:
+        print("RIOT_API_KEY is not set.", file=sys.stderr)
+        return 2
+    args.checkpoint.parent.mkdir(parents=True, exist_ok=True)
+    col = Collector(RiotRateLimitedClient(key, min_interval=args.min_interval), args.platform, args.bucket,
+                    args.out, args.checkpoint, patch=args.patch)
+    try:
+        n = col.collect(args.max_matches, args.per_tier, args.matches_per_player)
+    except FatalApiError as exc:
+        col._save()
+        print(str(exc), file=sys.stderr)
+        return 3
+    print(f"wrote {n} matches this run (total {col.state['written_matches']}, skipped {col.state['skipped']})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
