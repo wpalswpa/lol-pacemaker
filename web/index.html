@@ -1430,8 +1430,8 @@ function detectLang() {
   return "en";  // default is English; a chosen language is remembered (2026-11-26)
 }
 
-// Add language codes here as localized mp4 files (docs/images/intro_demo_<lang>.mp4) are uploaded
-const LOCALIZED_VIDEOS = new Set();
+// All 5 localized intro videos (docs/images/intro_demo_<lang>.mp4)
+const LOCALIZED_VIDEOS = new Set(["en", "ko", "ja", "es", "pt"]);
 function syncIntroVideo(lang) {
   const vid = document.getElementById("intro-video");
   if (!vid) return;
