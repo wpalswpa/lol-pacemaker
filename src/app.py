@@ -25,6 +25,20 @@ TANK_ITEMS = {3068, 3075, 3083, 3143, 3742, 6665, 3084}
 VALID_LANES: set[str] = {"TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"}
 
 
+def _safe_int(val: Any, default: int = 0) -> int:
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_float(val: Any, default: float = 0.0) -> float:
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return default
+
+
 def _has_smite(player: dict[str, Any]) -> bool:
     spells = player.get("summonerSpells") or {}
     for slot in ("summonerSpellOne", "summonerSpellTwo"):
@@ -62,12 +76,16 @@ def parse_liveclient_data(raw: dict[str, Any]) -> LiveSnapshot:
     for p in players:
         is_blue = p.get("team", "ORDER") == "ORDER"
         scores = p.get("scores") or {}
-        kills = int(scores.get("kills") or 0)
-        lvl = int(p.get("level") or 1)
+        kills = _safe_int((scores.get("kills")), 0)
+        lvl = max(1, min(18, _safe_int(p.get("level"), 1)))
         is_dead = bool(p.get("isDead"))
-        respawn = float(p.get("respawnTimer") or 0.0) if is_dead else 0.0
+        respawn = max(0.0, _safe_float(p.get("respawnTimer"), 0.0)) if is_dead else 0.0
         pos = str(p.get("position") or "").upper()
-        item_ids = {int(it.get("itemID", 0)) for it in (p.get("items") or []) if isinstance(it, dict)}
+        item_ids = {
+            _safe_int(it.get("itemID"), 0)
+            for it in (p.get("items") or [])
+            if isinstance(it, dict) and _safe_int(it.get("itemID"), 0) > 0
+        }
 
         if is_blue:
             blue_kills += kills
@@ -183,7 +201,7 @@ OVERLAY_HTML = """<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>LoL Shotcaller Companion</title>
+<title>LoL Pacemaker Companion</title>
 <style>
   body { margin: 0; background: transparent; font-family: system-ui, -apple-system, sans-serif; color: #F8FAFC; }
   .card {
@@ -217,9 +235,20 @@ async function tick() {
     document.getElementById('win').textContent = d.win_pct + '% · ' + d.state;
     document.getElementById('phase').textContent = d.phase;
     document.getElementById('hint').textContent = d.labels.hint_keys;
-    document.getElementById('calls').innerHTML = d.calls.map(c =>
-      `<div class="call"><div class="call-t">${c.title}</div><div class="call-d">${c.detail}</div></div>`
-    ).join('');
+    const box = document.getElementById('calls');
+    box.replaceChildren();
+    for (const c of (d.calls || [])) {
+      const wrap = document.createElement('div');
+      wrap.className = 'call';
+      const t = document.createElement('div');
+      t.className = 'call-t';
+      t.textContent = c.title;
+      const dt = document.createElement('div');
+      dt.className = 'call-d';
+      dt.textContent = c.detail;
+      wrap.append(t, dt);
+      box.appendChild(wrap);
+    }
   } catch (_) {}
 }
 setInterval(tick, 2000);
@@ -230,7 +259,7 @@ tick();
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="LoL Shotcaller zero-server companion")
+    parser = argparse.ArgumentParser(description="LoL Pacemaker zero-server companion")
     parser.add_argument("--lang", default=None, help="Language code (en, ko)")
     parser.add_argument("--port", type=int, default=8787, help="Local HUD port")
     args = parser.parse_args()
@@ -262,18 +291,28 @@ def main() -> None:
     threading.Thread(target=poller, daemon=True).start()
 
     class Handler(BaseHTTPRequestHandler):
+        def _send_security_headers(self) -> None:
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header(
+                "Content-Security-Policy",
+                "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'",
+            )
+
         def do_GET(self) -> None:
             if self.path.startswith("/state"):
                 with state_lock:
                     body = json.dumps(latest_state, ensure_ascii=False).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
+                self._send_security_headers()
                 self.end_headers()
                 self.wfile.write(body)
             else:
                 body = OVERLAY_HTML.encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self._send_security_headers()
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -281,7 +320,7 @@ def main() -> None:
             return
 
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
-    print(f"LoL Shotcaller ({tr.lang}) running locally at http://127.0.0.1:{args.port}/overlay")
+    print(f"LoL Pacemaker ({tr.lang}) running locally at http://127.0.0.1:{args.port}/overlay")
     server.serve_forever()
 
 

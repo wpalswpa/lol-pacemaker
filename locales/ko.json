@@ -1,5 +1,5 @@
 {
-  "app_title": "LoL 페이스메이커 · 샷콜러",
+  "app_title": "LoL 페이스메이커",
   "state_ahead": "우세",
   "state_even": "박빙",
   "state_behind": "열세",
@@ -9,6 +9,9 @@
   "hud_win_rate": "예상 승률",
   "hud_gold_diff": "팀 골드",
   "hud_hint_keys": "F8 클릭 통과 · F9 숨김 · 드래그 이동",
+  "rank_summary": "CS 상위 {cs_pct}% · 레벨 상위 {lvl_pct}%",
+  "briefing_lead": "티어 평균 이상 페이스(CS 상위 {cs_pct}%). 라인 주도권을 강가 시야와 오브젝트 선점으로 연결하세요.",
+  "briefing_lag": "티어 평균 대비 성장 열세(CS 상위 {cs_pct}%). 무리한 1대1 교전을 피하고 사이드 웨이브부터 챙기세요.",
   "pace_early_note": "7분 30초 전 · 초반 표본이라 방향성 참고용",
   "pace_mid_note": "12분 이후 · 10분 모델 구간을 벗어나 실시간 지표 중심",
   "pace_late_note": "20분 이후 · 후반전은 실시간 운영 오더 위주 확인",

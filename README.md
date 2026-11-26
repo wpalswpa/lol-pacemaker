@@ -1,4 +1,4 @@
-# LoL Shotcaller
+# LoL Pacemaker
 
 **Zero-server, ad-free, real-time AI shotcaller & win-rate companion for League of Legends.**
 
@@ -6,7 +6,7 @@ Built to run **alongside** pre/post-game tools like Blitz, Porofessor, or U.GG �
 
 ---
 
-## Why LoL Shotcaller?
+## Why LoL Pacemaker?
 
 Existing League apps excel at **pre-game** (runes, bans, matchups) and **post-game** stats. What's missing is an ultra-light **in-game macro shotcaller** that reads the live board every 2 seconds and tells you what actually matters *right now*:
 
@@ -30,7 +30,7 @@ Existing League apps excel at **pre-game** (runes, bans, matchups) and **post-ga
 ## Project Structure
 
 ```
-lol-shotcaller/
+lol-pacemaker/
 ├── AGENTS.md            # Architecture & design specification
 ├── pyproject.toml       # Minimal dependencies (onnxruntime, numpy, pydantic)
 ├── assets/              # Verified 585B ONNX win-rate model & baseline stats

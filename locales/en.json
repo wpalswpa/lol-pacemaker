@@ -1,5 +1,5 @@
 {
-  "app_title": "LoL Shotcaller",
+  "app_title": "LoL Pacemaker",
   "state_ahead": "Ahead",
   "state_even": "Even",
   "state_behind": "Behind",
@@ -9,6 +9,9 @@
   "hud_win_rate": "Win Prob",
   "hud_gold_diff": "Team Gold",
   "hud_hint_keys": "F8 Click-Through · F9 Hide · Drag to Move",
+  "rank_summary": "CS Top {cs_pct}% · Level Top {lvl_pct}%",
+  "briefing_lead": "Strong pace (CS Top {cs_pct}%). Convert lane prio into river vision and objective setup.",
+  "briefing_lag": "Behind tier curve (CS Top {cs_pct}%). Catch safe side waves and avoid coinflip 1v1s.",
   "pace_early_note": "Pre-7:30 · Early sample, use as directional guide",
   "pace_mid_note": "12:00+ · Pace shifted past 10m model window",
   "pace_late_note": "20:00+ · Late game, focus on live macro calls",

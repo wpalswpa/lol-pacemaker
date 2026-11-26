@@ -10,6 +10,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.i18n import Translator
+from src.percentile import top_percentile
 from src.predictor import LocalOnnxPredictor, ScoreboardState
 
 CallKind = Literal["offense", "defense", "object", "recall", "counter", "macro"]
@@ -249,6 +250,15 @@ def evaluate_snapshot(
     calls.sort(key=lambda c: c.priority, reverse=True)
     pace_key = _pace_note_key(snap.game_time)
 
+    # Normal-distribution Top-X% standing based on baseline diff (cs, avg_level)
+    sb = snap.scoreboard
+    sign = 1.0 if sb.my_side == "blue" else -1.0
+    cs_diff = sign * float(sb.blue_cs - sb.red_cs)
+    lvl_diff = sign * float(sb.blue_avg_level - sb.red_avg_level)
+    cs_pct = top_percentile(cs_diff, mean=0.0, std=25.0)
+    lvl_pct = top_percentile(lvl_diff, mean=0.0, std=0.8)
+    briefing_key = "briefing_lead" if cs_pct <= 35 else "briefing_lag"
+
     return {
         "lang": tr.lang,
         "app_title": tr.t("app_title"),
@@ -258,6 +268,8 @@ def evaluate_snapshot(
         "state": tr.t(state_key),
         "team_gold_diff": int(snap.team_gold_diff),
         "pace_note": tr.t(pace_key) if pace_key else None,
+        "rank_summary": tr.t("rank_summary", cs_pct=cs_pct, lvl_pct=lvl_pct),
+        "smart_briefing": tr.t(briefing_key, cs_pct=cs_pct),
         "calls": [c.render(tr) for c in calls[:max_calls]],
         "labels": {
             "win_rate": tr.t("hud_win_rate"),

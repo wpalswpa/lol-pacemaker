@@ -1,4 +1,4 @@
-# LoL Shotcaller — 설계서 (AGENTS.md)
+# LoL Pacemaker — 설계서 (AGENTS.md)
 
 ## 1. 목적과 최종 목표
 - **목적**: Blitz · Porofessor · U.GG 같은 기존 LoL 보조 앱과 **병행 사용(Companion)**하면서, 게임 도중 2초마다 **지금 당장 해야 할 실시간 운영 전략(Shotcall)과 승률 변화**를 지연 없이 띄워 주는 **서버비 0원·무광고·다국어 AI 코치**를 만든다.
@@ -13,7 +13,7 @@
 LoL Client (127.0.0.1:2999/liveclientdata/allgamedata)
    │  2s polling (read-only official public scoreboard & events)
    ▼
-lol-shotcaller (Local PC App — Server Cost $0)
+lol-pacemaker (Local PC App — Server Cost $0)
    ├── src/predictor.py      : Local ONNX Runtime (<1ms) using assets/model_sklearn.onnx
    ├── src/strategy_core.py  : Real-time priority shotcaller (language-neutral keys + params)
    ├── src/i18n.py           : Locale loader (auto-detect OS/client locale or user override)
@@ -65,3 +65,14 @@ lol-shotcaller (Local PC App — Server Cost $0)
 4. **패턴 기반 모델링 & 서버비 0원 자동 배포**:
    - 로지스틱 회귀 외에 트리 기반 경량 모델(LightGBM/XGBoost)을 비교·검증하고, **피처 기여도(SHAP / 계수)를 추출해 "지금 승률을 깎고 있는 핵심 원인"을 실시간 코칭 패턴으로 연결**한다.
    - 모든 모델은 ONNX로 변환(Parity 오차 ≤ 0.0001)해 GitHub Actions로 주기적 재학습 → GitHub Releases에 배포하고, 사용자 앱은 시작 시 무료로 내려받아 로컬 실행한다.
+
+## 8. 정규분포 기반 상위 % 진단 & 스마트 브리핑
+- **티어·시간대별 정규분포 기준선**: 학습 시 각 티어/시간대별 핵심 지표(`CS/분`, `레벨`, `킬 관여`)의 `mean`·`std`를 함께 저장한다.
+- **실시간 상위 % 계산 (SciPy 없이 `math.erf` 0ms 연산)**: 현재 플레이어 수치를 `z = (x - mean) / std`로 환산해 **"현재 티어 평균 대비 상위 몇 % 플레이 중인지"**를 실시간 출력한다.
+- **스마트 브리핑 결합**: 단순 나열이 아니라 `(상위 % 약점/강점) + (승률 하락 핵심 피처) + (실시간 강타/오브젝트 창)`을 묶어 구체적인 행동 지침을 브리핑한다.
+
+## 9. 글로벌 도메인 웹 랜딩 & 언어 설정 (`web/index.html`)
+- **호스팅**: 서버비 0원 정적 배포(Cloudflare Pages / GitHub Pages) 전용 단일 페이지.
+- **지원 언어 (5개 권역 기본)**: `en` (Global/NA/EUW), `ko` (KR), `ja` (JP), `es` (LAN/LAS/EUW), `pt` (BR).
+- **자동 감지 및 전환**: `?lang=` URL 파라미터 → `localStorage` → `navigator.language` 순으로 자동 선택하고, 상단 언어 선택기에서 새로고침 없이 즉시 전환한다.
+- **보안 원칙**: 모든 번역 텍스트는 `textContent`로만 주입(DOM XSS 차단), 외부 광고·추적 스크립트 0개.
