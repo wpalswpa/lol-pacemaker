@@ -24,25 +24,28 @@ FONTS = ["/System/Library/Fonts/Supplemental/Arial Black.ttf", "C:/Windows/Fonts
 def render(size: int = 1024) -> Image.Image:
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    pad = round(size * 0.04)
+    pad = round(size * 0.02)
     d.rounded_rectangle((pad, pad, size - pad, size - pad), radius=round(size * 0.22), fill=ORANGE)
     font_path = next((f for f in FONTS if Path(f).exists()), None)
     if font_path is None:
         sys.exit("Arial Black not found; set FONTS to a heavy sans font")
-    font = ImageFont.truetype(font_path, round(size * 0.235))
+    stroke = round(size * 0.011)
+    target_w = size * 0.85
+    base_pt = round(size * 0.26)
+    font = ImageFont.truetype(font_path, base_pt)
     lines = ["PACE", "MAKER"]
-    boxes = [d.textbbox((0, 0), t, font=font) for t in lines]
+    boxes = [d.textbbox((0, 0), t, font=font, stroke_width=stroke) for t in lines]
     widest = max(b[2] - b[0] for b in boxes)
-    if widest > size * 0.78:  # shrink to keep a safe margin
-        font = ImageFont.truetype(font_path, round(size * 0.235 * size * 0.78 / widest))
-        boxes = [d.textbbox((0, 0), t, font=font) for t in lines]
+    if widest != target_w:
+        font = ImageFont.truetype(font_path, round(base_pt * target_w / widest))
+        boxes = [d.textbbox((0, 0), t, font=font, stroke_width=stroke) for t in lines]
     heights = [b[3] - b[1] for b in boxes]
-    gap = round(size * 0.04)
+    gap = round(size * 0.045)
     y = (size - (sum(heights) + gap)) / 2
     for t, b, h in zip(lines, boxes, heights):
-        # stroke in the same colour thickens Arial Black further so it stays legible at 64 px
+        # stroke in the same colour thickens Arial Black further so it stays bold & legible at 40-64 px
         d.text(((size - (b[2] - b[0])) / 2 - b[0], y - b[1]), t, font=font, fill=WHITE,
-               stroke_width=round(size * 0.008), stroke_fill=WHITE)
+               stroke_width=stroke, stroke_fill=WHITE)
         y += h + gap
     return img
 
@@ -52,6 +55,9 @@ def main() -> None:
     img = render()
     img.save(OUT / "icon.png")
     img.resize((64, 64), Image.LANCZOS).save(OUT / "hud_bubble.png")  # folded HUD button
+    docs_img = ROOT / "docs" / "images" / "app_hud_folded.png"
+    docs_img.parent.mkdir(parents=True, exist_ok=True)
+    img.resize((256, 256), Image.LANCZOS).save(docs_img)  # crisp web header & feature icon
     img.save(OUT / "icon.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
     if shutil.which("iconutil"):
         with tempfile.TemporaryDirectory() as tmp:
