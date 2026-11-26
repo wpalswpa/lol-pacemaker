@@ -19,6 +19,11 @@ import {
   handleAccount,
   handleReview,
 } from "./review.js";
+import {
+  handleAuthProviders,
+  handleOAuthStart,
+  handleOAuthCallback,
+} from "./oauth.js";
 
 const ALLOWED_ORIGINS = new Set([
   "https://wpalswpa.github.io",
@@ -55,7 +60,12 @@ export default {
     if (path === "/v1/chat") return handleChat(request, env, headers);
     if (path === "/v1/support") return handleSupport(request, env, headers);
 
-    // AGENTS §15: Riot account ownership auth, member account management & self-only AI match review
+    // AGENTS §15: Real OAuth (Google / Discord), Riot account ownership link, member account & self-only AI review
+    if (path === "/v1/auth/providers") return handleAuthProviders(env, headers);
+    if (path === "/v1/auth/oauth/google/start") return handleOAuthStart("google", request, env, headers);
+    if (path === "/v1/auth/oauth/google/callback") return handleOAuthCallback("google", request, env, headers);
+    if (path === "/v1/auth/oauth/discord/start") return handleOAuthStart("discord", request, env, headers);
+    if (path === "/v1/auth/oauth/discord/callback") return handleOAuthCallback("discord", request, env, headers);
     if (path === "/v1/auth/challenge") return handleAuthChallenge(request, env, headers);
     if (path === "/v1/auth/verify") return handleAuthVerify(request, env, headers);
     if (path === "/v1/auth/me") return handleAuthMe(request, env, headers);

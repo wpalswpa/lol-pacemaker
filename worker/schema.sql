@@ -57,3 +57,21 @@ CREATE TABLE IF NOT EXISTS linked_accounts (
   first_linked_day TEXT NOT NULL,
   last_verified_day TEXT NOT NULL
 );
+
+-- AGENTS §15: Real OAuth member accounts (Google / Discord; no passwords, links to 1 Riot PUUID)
+CREATE TABLE IF NOT EXISTS users (
+  user_id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  provider_sub_hash TEXT NOT NULL UNIQUE,
+  display_name TEXT NOT NULL,
+  avatar_url TEXT NOT NULL DEFAULT '',
+  puuid TEXT NOT NULL DEFAULT '',
+  puuid_hash TEXT NOT NULL DEFAULT '',
+  riot_id TEXT NOT NULL DEFAULT '',
+  region TEXT NOT NULL DEFAULT 'kr',
+  profile_icon_id INTEGER NOT NULL DEFAULT 0,
+  consent_version TEXT NOT NULL DEFAULT '1',
+  consented_at TEXT NOT NULL,
+  created_day TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_users_puuid_hash ON users (puuid_hash);

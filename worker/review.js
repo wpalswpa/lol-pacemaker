@@ -49,7 +49,7 @@ const FUN_CHAMPS = [
 ];
 const FUN_SPECIALS = ["머리손질하는라이즈", "이즈리얼이즈페이크", "점멸없는야스오", "강타아끼는리신", "부쉬속가렌"];
 
-function randomChampNickname() {
+export function randomChampNickname() {
   if (Math.random() < 0.25) return FUN_SPECIALS[Math.floor(Math.random() * FUN_SPECIALS.length)];
   const p = FUN_PREFIXES[Math.floor(Math.random() * FUN_PREFIXES.length)];
   const c = FUN_CHAMPS[Math.floor(Math.random() * FUN_CHAMPS.length)];
@@ -66,7 +66,7 @@ function json(body, status, headers) {
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-async function sha256Hex(str) {
+export async function sha256Hex(str) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -95,33 +95,34 @@ async function hmacKey(env) {
   );
 }
 
-async function signToken(payload, env) {
+export async function signToken(payload, env) {
   const key = await hmacKey(env);
   const body = b64uEncode(new TextEncoder().encode(JSON.stringify(payload)));
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
   return `v1.${body}.${b64uEncode(new Uint8Array(sig))}`;
 }
 
-export async function verifyToken(request, env) {
-  const auth = request.headers.get("Authorization") || "";
-  if (!auth.startsWith("Bearer ")) return null;
-  const parts = auth.slice(7).trim().split(".");
+export async function verifyStateToken(raw, env) {
+  const parts = String(raw || "").trim().split(".");
   if (parts.length !== 3 || parts[0] !== "v1") return null;
   try {
     const key = await hmacKey(env);
-    const ok = await crypto.subtle.verify(
-      "HMAC",
-      key,
-      b64uDecode(parts[2]),
-      new TextEncoder().encode(parts[1]),
-    );
+    const ok = await crypto.subtle.verify("HMAC", key, b64uDecode(parts[2]), new TextEncoder().encode(parts[1]));
     if (!ok) return null;
     const payload = JSON.parse(new TextDecoder().decode(b64uDecode(parts[1])));
-    if (!payload.puuid || !payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
+    if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
     return payload;
   } catch {
     return null;
   }
+}
+
+export async function verifyToken(request, env) {
+  const auth = request.headers.get("Authorization") || "";
+  if (!auth.startsWith("Bearer ")) return null;
+  const payload = await verifyStateToken(auth.slice(7).trim(), env);
+  if (!payload || (!payload.user_id && !payload.puuid)) return null;
+  return payload;
 }
 
 export async function handleAuthChallenge(request, env, headers) {
@@ -231,63 +232,110 @@ export async function handleAuthVerify(request, env, headers) {
     "consent_version = excluded.consent_version, consented_at = excluded.consented_at, last_verified_day = excluded.last_verified_day",
   ).bind(row.puuid_hash, row.riot_id, row.region.toUpperCase(), finalDisplayName, nowIso, day, day).run();
 
+  // If caller is already logged in via OAuth (`users`), attach Riot PUUID & profile icon directly to their account
+  const oauthSession = await verifyToken(request, env);
+  if (oauthSession?.user_id) {
+    await env.DB.prepare(
+      "UPDATE users SET puuid = ?, puuid_hash = ?, riot_id = ?, region = ?, profile_icon_id = ? WHERE user_id = ?",
+    ).bind(row.puuid, row.puuid_hash, row.riot_id, row.region, Number(sum.profileIconId || 0), oauthSession.user_id).run();
+    const u = await env.DB.prepare("SELECT * FROM users WHERE user_id = ?").bind(oauthSession.user_id).first();
+    return json({
+      riot_linked: true,
+      riot_id: row.riot_id,
+      region: row.region.toUpperCase(),
+      profile_icon_id: Number(sum.profileIconId || 0),
+      display_name: u?.display_name || finalDisplayName,
+      consented_at: (u?.consented_at || day).slice(0, 10),
+    }, 200, headers);
+  }
+
   const token = await signToken({
     puuid: row.puuid,
     puuid_hash: row.puuid_hash,
     riot_id: row.riot_id,
     region: row.region,
+    profile_icon_id: Number(sum.profileIconId || 0),
     consented_at: day,
     exp: now + TOKEN_TTL_SEC,
   }, env);
 
   return json({
     token,
+    riot_linked: true,
     riot_id: row.riot_id,
     region: row.region.toUpperCase(),
+    profile_icon_id: Number(sum.profileIconId || 0),
     display_name: finalDisplayName,
     consented_at: day,
   }, 200, headers);
 }
 
-async function syncRiotIdByPuuid(session, env, cacheTtl = 300) {
-  if (!env.RIOT_API_KEY) return session.riot_id;
-  const host = REGION_HOST[session.region] || REGION_HOST.kr;
+async function syncRiotIdByPuuid(puuid, region, fallbackRiotId, env, cacheTtl = 300) {
+  if (!env.RIOT_API_KEY || !puuid) return fallbackRiotId;
+  const host = REGION_HOST[String(region || "kr").toLowerCase()] || REGION_HOST.kr;
   try {
     const res = await fetch(
-      `https://${host}/riot/account/v1/accounts/by-puuid/${encodeURIComponent(session.puuid)}`,
+      `https://${host}/riot/account/v1/accounts/by-puuid/${encodeURIComponent(puuid)}`,
       { headers: { "X-Riot-Token": env.RIOT_API_KEY }, cf: { cacheTtl } },
     );
-    if (!res.ok) return session.riot_id;
+    if (!res.ok) return fallbackRiotId;
     const acc = await res.json();
     if (acc.gameName && acc.tagLine) return `${acc.gameName}#${acc.tagLine}`;
   } catch {}
-  return session.riot_id;
+  return fallbackRiotId;
 }
 
 export async function handleAuthMe(request, env, headers) {
   if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405, headers);
   const session = await verifyToken(request, env);
-  if (!session) return json({ linked: false }, 200, headers);
+  if (!session) return json({ linked: false, logged_in: false }, 200, headers);
 
+  // Path 1: Real OAuth member (`users` table)
+  if (session.user_id && env.DB) {
+    const u = await env.DB.prepare("SELECT * FROM users WHERE user_id = ?").bind(session.user_id).first();
+    if (!u) return json({ linked: false, logged_in: false }, 200, headers);
+    let riotId = u.riot_id || "";
+    if (u.puuid) {
+      const latest = await syncRiotIdByPuuid(u.puuid, u.region, riotId, env, 300);
+      if (latest && latest !== riotId) {
+        riotId = latest;
+        await env.DB.prepare("UPDATE users SET riot_id = ? WHERE user_id = ?").bind(riotId, u.user_id).run();
+      }
+    }
+    return json({
+      logged_in: true,
+      linked: Boolean(u.puuid),
+      riot_linked: Boolean(u.puuid),
+      provider: u.provider,
+      display_name: u.display_name,
+      avatar_url: u.avatar_url || "",
+      profile_icon_id: u.profile_icon_id || 0,
+      riot_id: riotId,
+      region: String(u.region || "kr").toUpperCase(),
+      consented_at: (u.consented_at || "").slice(0, 10),
+    }, 200, headers);
+  }
+
+  // Path 2: Legacy direct Riot-verified session
   const puuidHash = session.puuid_hash || await sha256Hex(session.puuid + (env.SUPPORT_SALT || ""));
   const acct = env.DB
     ? await env.DB.prepare("SELECT * FROM linked_accounts WHERE puuid_hash = ?").bind(puuidHash).first()
     : null;
-  if (env.DB && !acct) {
-    // Account was deleted (withdrawn)
-    return json({ linked: false }, 200, headers);
-  }
+  if (env.DB && !acct) return json({ linked: false, logged_in: false }, 200, headers);
 
-  // Auto-sync Riot ID in case the user changed their Riot nickname/tag
-  const latestRiotId = await syncRiotIdByPuuid(session, env, 300);
+  const latestRiotId = await syncRiotIdByPuuid(session.puuid, session.region, acct?.riot_id || session.riot_id, env, 300);
   if (env.DB && acct && latestRiotId && latestRiotId !== acct.riot_id) {
     await env.DB.prepare("UPDATE linked_accounts SET riot_id = ? WHERE puuid_hash = ?").bind(latestRiotId, puuidHash).run();
   }
 
   return json({
+    logged_in: true,
     linked: true,
+    riot_linked: true,
+    provider: "riot_icon",
     riot_id: latestRiotId || acct?.riot_id || session.riot_id,
     region: (acct?.region || session.region || "kr").toUpperCase(),
+    profile_icon_id: session.profile_icon_id || 0,
     display_name: acct?.display_name || randomChampNickname(),
     consented_at: (acct?.consented_at || session.consented_at || "").slice(0, 10),
   }, 200, headers);
@@ -298,8 +346,48 @@ export async function handleAccount(request, env, headers) {
   if (!session) return json({ error: "auth_required" }, 401, headers);
   if (!env.DB) return json({ error: "service_unavailable" }, 503, headers);
 
-  const puuidHash = session.puuid_hash || await sha256Hex(session.puuid + (env.SUPPORT_SALT || ""));
+  if (session.user_id) {
+    const u = await env.DB.prepare("SELECT * FROM users WHERE user_id = ?").bind(session.user_id).first();
+    if (!u) return json({ error: "account_not_found" }, 404, headers);
 
+    if (request.method === "PATCH") {
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "invalid_json" }, 400, headers); }
+      let nextDisplay = u.display_name;
+      if ("display_name" in body) {
+        const cleaned = cleanDisplayName(body.display_name);
+        if (body.display_name && !cleaned) return json({ error: "invalid_display_name" }, 400, headers);
+        nextDisplay = cleaned || randomChampNickname();
+        await env.DB.prepare("UPDATE users SET display_name = ? WHERE user_id = ?").bind(nextDisplay, u.user_id).run();
+      }
+      let nextRiotId = u.riot_id || "";
+      if (body.sync_riot_id && u.puuid) {
+        nextRiotId = await syncRiotIdByPuuid(u.puuid, u.region, nextRiotId, env, 0);
+        if (nextRiotId && nextRiotId !== u.riot_id) {
+          await env.DB.prepare("UPDATE users SET riot_id = ? WHERE user_id = ?").bind(nextRiotId, u.user_id).run();
+        }
+      }
+      return json({
+        riot_id: nextRiotId,
+        region: String(u.region || "kr").toUpperCase(),
+        display_name: nextDisplay,
+        profile_icon_id: u.profile_icon_id || 0,
+        consented_at: (u.consented_at || "").slice(0, 10),
+      }, 200, headers);
+    }
+
+    if (request.method === "DELETE") {
+      await env.DB.prepare("DELETE FROM users WHERE user_id = ?").bind(u.user_id).run();
+      if (u.puuid_hash) {
+        await env.DB.prepare("DELETE FROM linked_accounts WHERE puuid_hash = ?").bind(u.puuid_hash).run();
+        await env.DB.prepare("DELETE FROM auth_challenges WHERE puuid_hash = ?").bind(u.puuid_hash).run();
+      }
+      return json({ deleted: true }, 200, headers);
+    }
+    return json({ error: "method_not_allowed" }, 405, headers);
+  }
+
+  const puuidHash = session.puuid_hash || await sha256Hex(session.puuid + (env.SUPPORT_SALT || ""));
   if (request.method === "PATCH") {
     let body;
     try { body = await request.json(); } catch { return json({ error: "invalid_json" }, 400, headers); }
@@ -316,7 +404,7 @@ export async function handleAccount(request, env, headers) {
 
     let nextRiotId = acct.riot_id;
     if (body.sync_riot_id) {
-      nextRiotId = await syncRiotIdByPuuid(session, env, 0);
+      nextRiotId = await syncRiotIdByPuuid(session.puuid, session.region, acct.riot_id, env, 0);
       if (nextRiotId && nextRiotId !== acct.riot_id) {
         await env.DB.prepare("UPDATE linked_accounts SET riot_id = ? WHERE puuid_hash = ?").bind(nextRiotId, puuidHash).run();
       }
@@ -366,28 +454,57 @@ export async function handleReview(request, env, headers) {
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405, headers);
   if (!env.RIOT_API_KEY) return json({ error: "service_unavailable" }, 503, headers);
 
-  const session = await verifyToken(request, env);
-  if (!session) return json({ error: "auth_required" }, 401, headers);
-
   let body;
   try { body = await request.json(); } catch { return json({ error: "invalid_json" }, 400, headers); }
   const matchId = String(body.match_id || "").trim();
   const lang = String(body.lang || "ko").toLowerCase();
   if (!matchId || matchId.length > 40) return json({ error: "invalid_match_id" }, 400, headers);
 
-  const host = REGION_HOST[session.region] || REGION_HOST.kr;
-  const riotHeaders = { "X-Riot-Token": env.RIOT_API_KEY };
+  let myPuuid = "";
+  let myRegion = String(body.region || "kr").toLowerCase();
+  let myRiotId = String(body.riot_id || "").trim();
 
+  // Mode 1: Direct lookup for the searched summoner in Match History (no login required)
+  const riotHeaders = { "X-Riot-Token": env.RIOT_API_KEY };
+  const host = REGION_HOST[myRegion] || REGION_HOST.kr;
+  if (myRiotId.includes("#")) {
+    const [gn, tl] = myRiotId.split("#", 2).map((s) => s.trim());
+    if (gn && tl) {
+      const accRes = await fetch(
+        `https://${host}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gn)}/${encodeURIComponent(tl)}`,
+        { headers: riotHeaders, cf: { cacheTtl: 60 } },
+      );
+      if (accRes.ok) {
+        const acc = await accRes.json();
+        myPuuid = acc.puuid || "";
+        myRiotId = `${acc.gameName}#${acc.tagLine}`;
+      }
+    }
+  } else {
+    // Mode 2: Fallback to logged-in member's linked Riot account
+    const session = await verifyToken(request, env);
+    if (session?.puuid) {
+      myPuuid = session.puuid;
+      myRegion = session.region || myRegion;
+      myRiotId = session.riot_id || "";
+    } else if (session?.user_id && env.DB) {
+      const u = await env.DB.prepare("SELECT puuid, region, riot_id FROM users WHERE user_id = ?").bind(session.user_id).first();
+      if (u?.puuid) { myPuuid = u.puuid; myRegion = u.region || myRegion; myRiotId = u.riot_id || ""; }
+    }
+  }
+
+  if (!myPuuid) return json({ error: "summoner_not_found" }, 400, headers);
+
+  const matchHost = REGION_HOST[String(myRegion).toLowerCase()] || REGION_HOST.kr;
   const [mRes, tlRes] = await Promise.all([
-    fetch(`https://${host}/lol/match/v5/matches/${encodeURIComponent(matchId)}`, { headers: riotHeaders, cf: { cacheTtl: 300 } }),
-    fetch(`https://${host}/lol/match/v5/matches/${encodeURIComponent(matchId)}/timeline`, { headers: riotHeaders, cf: { cacheTtl: 300 } }),
+    fetch(`https://${matchHost}/lol/match/v5/matches/${encodeURIComponent(matchId)}`, { headers: riotHeaders, cf: { cacheTtl: 300 } }),
+    fetch(`https://${matchHost}/lol/match/v5/matches/${encodeURIComponent(matchId)}/timeline`, { headers: riotHeaders, cf: { cacheTtl: 300 } }),
   ]);
   if (!mRes.ok) return json({ error: "match_not_found" }, mRes.status, headers);
   const match = await mRes.json();
   const participants = match.info?.participants || [];
-  const me = participants.find((p) => p.puuid === session.puuid);
-  // Strict AGENTS §15 anti-abuse: only allow reviewing your own match
-  if (!me) return json({ error: "not_your_match" }, 403, headers);
+  const me = participants.find((p) => p.puuid === myPuuid);
+  if (!me) return json({ error: "player_not_in_match" }, 404, headers);
 
   const myPid = me.participantId;
   const myTeam = me.teamId;
@@ -476,7 +593,7 @@ export async function handleReview(request, env, headers) {
 
   return json({
     match_id: matchId,
-    riot_id: session.riot_id,
+    riot_id: myRiotId,
     champion: me.championName,
     win: Boolean(me.win),
     kda: `${me.kills}/${me.deaths}/${me.assists}`,
