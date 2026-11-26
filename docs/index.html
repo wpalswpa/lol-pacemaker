@@ -255,9 +255,21 @@
   .hero-desc { margin: 14px 0 0; font-size: 16px; line-height: 1.6; color: var(--sub); max-width: 62ch; }
   :lang(ko) .hero-desc, :lang(ko) .benefit-list p, :lang(ko) .guide p { word-break: keep-all; }
   .benefits { margin-top: 28px; }
-  .benefits-head { margin: 0 0 12px; font-size: clamp(19px, 2vw, 23px); font-weight: 900; letter-spacing: -0.02em; }
-  .benefit-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .benefit-list li { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 14px 16px; }
+  .benefits-head { margin: 0 0 14px; font-size: clamp(19px, 2vw, 23px); font-weight: 900; letter-spacing: -0.02em; }
+  .benefit-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .benefit-list li {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .feat-shot-box {
+    background: #0B0D12; border-bottom: 1px solid var(--line); padding: 14px 16px;
+    min-height: 118px; display: grid; place-items: center;
+  }
+  .feat-shot-box img { max-width: 100%; max-height: 132px; width: auto; height: auto; border-radius: 6px; display: block; }
+  .feat-shot-box img.feat-icon { max-height: 76px; }
+  .feat-copy { padding: 14px 18px 18px; border-left: 3px solid var(--accent); flex: 1; }
+  .feat-copy h3 { margin: 0 0 6px; font-size: 16px; font-weight: 800; }
+  .feat-copy p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--sub); }
   .benefit-list h3 { margin: 0 0 6px; font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em; }
   .benefit-list p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--sub); }
   .setup-modes { margin: 0 0 14px; padding: 10px 12px; border-radius: 6px; background: var(--accent-soft); color: var(--text, inherit); font-size: 14px; font-weight: 600; }
@@ -635,10 +647,22 @@
     <div class="benefits">
       <h2 class="benefits-head" data-i18n="b_head">Features</h2>
       <ul class="benefit-list">
-        <li><h3 data-i18n="b1_t">Live win rate</h3><p data-i18n="b1_d">Calculated from team gold, kills and objectives.</p></li>
-        <li><h3 data-i18n="b2_t">Calls</h3><p data-i18n="b2_d">Shows up to 3 things to do now.</p></li>
-        <li><h3 data-i18n="b3_t">Weak-point briefing</h3><p data-i18n="b3_d">Shows stats below your tier's average.</p></li>
-        <li><h3 data-i18n="b4_t">Small overlay</h3><p data-i18n="b4_d">Appears top-left only during a match. Folds into one button.</p></li>
+        <li>
+          <div class="feat-shot-box"><img src="./images/feat_winrate.png" alt="Real-time win rate panel" loading="lazy"></div>
+          <div class="feat-copy"><h3 data-i18n="b1_t">Live win rate</h3><p data-i18n="b1_d">Calculates win probability every 2 seconds from 16 live scoreboard stats (kills, CS, levels, dragons, voidgrubs, towers) locally in under 1ms with zero FPS drop.</p></div>
+        </li>
+        <li>
+          <div class="feat-shot-box"><img src="./images/feat_calls.png" alt="Real-time macro call card" loading="lazy"></div>
+          <div class="feat-copy"><h3 data-i18n="b2_t">Live macro calls</h3><p data-i18n="b2_d">Tracks enemy jungler death (no Smite), 5v3 windows, Dragon Soul/Baron/Grubs timings, recall gold, and anti-heal/penetration counters — showing up to 3 top calls (auto-switches for ARAM).</p></div>
+        </li>
+        <li>
+          <div class="feat-shot-box"><img src="./images/feat_briefing.png" alt="Tier rank and weakness briefing panel" loading="lazy"></div>
+          <div class="feat-copy"><h3 data-i18n="b3_t">Tier rank &amp; weakness briefing</h3><p data-i18n="b3_d">Shows your live CS/min, level, and kill participation percentile against your tier curve and highlights the #1 factor dragging down your win rate (%p).</p></div>
+        </li>
+        <li>
+          <div class="feat-shot-box"><img class="feat-icon" src="./images/app_hud_folded.png" alt="Folded PACE MAKER button" loading="lazy"></div>
+          <div class="feat-copy"><h3 data-i18n="b4_t">Modular, non-intrusive HUD</h3><p data-i18n="b4_d">Stays hidden in lobby/desktop and appears only during a match. Fold or expand with the orange PACE MAKER button or F9, and toggle or drag each panel independently.</p></div>
+        </li>
       </ul>
     </div>
   </section>
@@ -884,15 +908,15 @@ const I18N = {
     nav_overview: "Product", nav_history: "Match History", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download App",
     live_panel_title: "Intro video",
     hist_head: "Global Riot Match Lookup", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
-    b_head: "Features",
+    b_head: "Key Features",
     b1_t: "Live win rate",
-    b1_d: "Calculated from team gold, kills and objectives.",
-    b2_t: "Calls",
-    b2_d: "Shows up to 3 things to do now.",
-    b3_t: "Weak-point briefing",
-    b3_d: "Shows stats below your tier's average.",
-    b4_t: "Small overlay",
-    b4_d: "Appears top-left only during a match. Folds into one button.",
+    b1_d: "Calculates win probability every 2 seconds from 16 live scoreboard stats (kills, CS, levels, dragons, voidgrubs, towers) locally in under 1ms with zero FPS drop.",
+    b2_t: "Live macro calls",
+    b2_d: "Tracks enemy jungler death (no Smite), 5v3 windows, Dragon Soul/Baron/Grubs timings, recall gold, and anti-heal/penetration counters — showing up to 3 top calls (auto-switches for ARAM).",
+    b3_t: "Tier rank & weakness briefing",
+    b3_d: "Shows your live CS/min, level, and kill participation percentile against your tier curve and highlights the #1 factor dragging down your win rate (%p).",
+    b4_t: "Modular, non-intrusive HUD",
+    b4_d: "Stays hidden in lobby/desktop and appears only during a match. Fold or expand with the orange PACE MAKER button or F9, and toggle or drag each panel independently.",
     setup_modes: "Supported modes: Ranked · Normal · ARAM · Practice Tool",
     dl_kicker: "Download",
     dl_title: "LoL Pacemaker for Desktop",
@@ -981,15 +1005,15 @@ const I18N = {
     nav_overview: "제품 소개", nav_history: "전적 검색", nav_setup: "설치 · 적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
     live_panel_title: "소개 영상",
     hist_head: "전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "검색", hist_loading: "불러오는 중...", hist_err: "소환사를 찾을 수 없습니다. (예: Hide on bush#KR1)", hist_win: "승리", hist_loss: "패배",
-    b_head: "기능",
-    b1_t: "실시간 승률",
-    b1_d: "팀 골드·킬·오브젝트 차이로 승률을 계산합니다.",
-    b2_t: "오더",
-    b2_d: "지금 할 일을 최대 3개 보여줍니다.",
-    b3_t: "약점 브리핑",
-    b3_d: "같은 티어 평균보다 낮은 지표를 알려줍니다.",
-    b4_t: "작은 HUD",
-    b4_d: "경기 중에만 왼쪽 위에 뜨고, 버튼 하나로 접힙니다.",
+    b_head: "핵심 기능",
+    b1_t: "실시간 승률 예측",
+    b1_d: "킬·어시·CS·레벨·드래곤·공허 유충·포탑·억제기 등 16개 공식 점수판 지표로 2초마다 실시간 승률을 계산합니다. 내 PC에서 1ms 미만으로 돌아가 프레임 저하가 없습니다.",
+    b2_t: "실시간 운영 오더",
+    b2_d: "상대 정글러 사망(강타 부재), 5대3 수적 우위, 드래곤 영혼·바론·유충 타이밍, 귀환 골드, 치감·관통 카운터까지 지금 당장 해야 할 핵심 행동만 최대 3개로 정리해 줍니다. 칼바람(ARAM) 전용 오더도 자동 전환됩니다.",
+    b3_t: "티어 기준 약점 브리핑",
+    b3_d: "내 티어·시간대 평균 대비 분당 CS·레벨·킬 관여가 상위 몇 %인지 바로 보여주고, 지금 승률을 가장 크게 깎고 있는 원인 피처(%p)를 짚어줍니다.",
+    b4_t: "게임 방해 없는 분리형 HUD",
+    b4_d: "로비·바탕화면에서는 숨어 있다가 경기가 시작될 때만 자동으로 뜹니다. 주황 PACE MAKER 버튼이나 F9로 한 번에 접고 펼 수 있고, 승률·오더·브리핑 패널을 따로 켜고 끄거나 원하는 위치로 옮길 수 있습니다.",
     setup_modes: "지원 모드: 랭크 · 일반 · 칼바람 · 연습",
     dl_kicker: "다운로드",
     dl_title: "LoL 페이스메이커 데스크톱 다운로드",
