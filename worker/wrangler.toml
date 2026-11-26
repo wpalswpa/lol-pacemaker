@@ -1,0 +1,8 @@
+name = "lol-pacemaker-riot-proxy"
+main = "riot-proxy.js"
+compatibility_date = "2026-11-01"
+
+# Deploy (free tier: 100,000 req/day, $0):
+#   cd worker
+#   npx wrangler secret put RIOT_API_KEY
+#   npx wrangler deploy
