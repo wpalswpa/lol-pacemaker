@@ -9,6 +9,8 @@
  * - Challenge expires in 10 minutes; max 5 challenges/hour per account.
  */
 
+import { REVIEW_BASELINE } from "./review_baseline.js";
+
 export const PLATFORM_HOST = {
   kr: "kr.api.riotgames.com",
   jp: "jp1.api.riotgames.com",
@@ -449,6 +451,11 @@ export async function handleAccount(request, env, headers) {
   return json({ error: "method_not_allowed" }, 405, headers);
 }
 
+// ---------------------------------------------------------------------------------------------
+// AGENTS §15·§18·§19: self-review analysis. 100% deterministic statistics, no LLM / Workers AI.
+// `analyzeMatch` is pure (no fetch) so scripts/eval_review.mjs can replay real matches offline.
+// ---------------------------------------------------------------------------------------------
+
 // Classify Summoner's Rift (0..15000) coordinates into human-readable map zone
 function classifyZone(x, y, teamId, lang) {
   const ko = lang === "ko";
@@ -470,6 +477,410 @@ function classifyZone(x, y, teamId, lang) {
 function fmtTime(ms) {
   const s = Math.max(0, Math.floor(ms / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+// Rules (AGENTS §19). Thresholds live here only.
+export const REVIEW_RULES = {
+  remakeSec: 300,          // < 5:00 or gameEndedInEarlySurrender -> no analysis
+  gd15Ms: 15 * 60000,      // 15-minute frame must exist for "15m gold diff"
+  strengthT: 55,           // a strength needs T >= 55 (z >= +0.5)
+  weaknessT: 45,           // a weakness needs T < 45 (z < -0.5)
+  fightGapMs: 20000,       // kills closer than 20 s belong to one fight
+  fightMinKills: 3,
+  gankBeforeMs: 14 * 60000,
+  objVisionMs: 60000,
+  powerPlayMs: 180000,     // baron buff duration
+  swingFrames: 3,          // turning point = largest 3-minute team gold swing
+  maxItems: 3,
+};
+
+const LOWER_IS_BETTER = new Set(["deaths_per10", "gank_deaths", "first_death_fights"]);
+
+export function queueGroup(info) {
+  const map = Number(info?.mapId || 0);
+  const q = Number(info?.queueId || 0);
+  if (map === 12 || q === 450) return "aram";
+  if (map === 11 || q === 420 || q === 440 || q === 400 || q === 430 || q === 490 || q === 480) return q === 420 || q === 440 ? "rift" : "other";
+  return "unsupported";
+}
+
+export function isRemake(info) {
+  const parts = info?.participants || [];
+  return Number(info?.gameDuration || 0) < REVIEW_RULES.remakeSec || parts.some((p) => p.gameEndedInEarlySurrender);
+}
+
+export function durationBucket(durationMin, edges) {
+  if (!edges || edges.length !== 2) return "ALL";
+  return durationMin < edges[0] ? "short" : durationMin < edges[1] ? "mid" : "long";
+}
+
+function normCdf(z) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989422804014327 * Math.exp((-z * z) / 2);
+  const p = d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  return z >= 0 ? 1 - p : p;
+}
+
+/** Baseline cell lookup: queue -> position -> duration bucket, falling back to ALL (n >= min_n only). */
+export function baselineCell(baseline, group, position, bucket, metric) {
+  const g = baseline?.cells?.[group === "other" ? "rift" : group];
+  if (!g) return null;
+  const minN = baseline.min_n || 30;
+  for (const [pos, b] of [[position, bucket], [position, "ALL"], ["ALL", bucket], ["ALL", "ALL"]]) {
+    const c = g?.[pos || "ALL"]?.[b]?.[metric];
+    if (c && c.n >= minN && c.std > 0) return { ...c, position: pos || "ALL", bucket: b };
+  }
+  return null;
+}
+
+function zOf(value, cell, metric) {
+  if (value === null || value === undefined || !cell) return null;
+  const z = (value - cell.mean) / cell.std;
+  return LOWER_IS_BETTER.has(metric) ? -z : z;
+}
+
+function profile(key, label, metric, value, unit, cell) {
+  const zRaw = zOf(value, cell, metric);
+  const z = Math.max(-3, Math.min(3, zRaw ?? 0));
+  const t = Number((50 + 10 * z).toFixed(1));
+  const pct = Number((normCdf(z) * 100).toFixed(1));
+  const grade = t >= 70 ? "elite" : t >= 60 ? "high" : t >= 40 ? "avg" : t >= 30 ? "low" : "risk";
+  return {
+    key, label, metric, raw: value === null ? null : Number(value.toFixed(metric === "lane_gd15" ? 0 : 2)), unit,
+    t_score: t, percentile: pct, grade, radar: Math.round(Math.max(10, Math.min(100, pct))),
+    baseline: cell ? { mean: cell.mean, std: cell.std, n: cell.n, position: cell.position, bucket: cell.bucket } : null,
+  };
+}
+
+const GRADE_LABEL = {
+  ko: { elite: "최상", high: "높음", avg: "보통", low: "낮음", risk: "위험" },
+  en: { elite: "Elite", high: "High", avg: "Avg", low: "Low", risk: "Risk" },
+};
+
+/**
+ * Per-player raw metrics + timeline patterns. Shared by the review and by
+ * scripts/build_review_baseline.mjs, so the baseline and the review use one definition.
+ */
+export function playerMetrics(match, timeline, pid) {
+  const info = match?.info || {};
+  const parts = info.participants || [];
+  const me = parts.find((p) => p.participantId === pid);
+  if (!me) return null;
+  const group = queueGroup(info);
+  const myTeam = me.teamId;
+  const durMin = Math.max(1, Number(info.gameDuration || 60) / 60);
+  const team = parts.filter((p) => p.teamId === myTeam);
+  const enemy = parts.filter((p) => p.teamId !== myTeam);
+  const sum = (arr, k) => arr.reduce((a, p) => a + (p[k] || 0), 0);
+  const teamKills = sum(team, "kills");
+  const position = group === "aram" ? "ALL" : (me.teamPosition || "ALL");
+  const opp = group !== "aram" && me.teamPosition
+    ? enemy.find((p) => p.teamPosition === me.teamPosition) || null
+    : null;
+
+  const m = {
+    group, position, durMin, win: Boolean(me.win), oppPid: opp?.participantId ?? null,
+    cs_per_min: ((me.totalMinionsKilled || 0) + (me.neutralMinionsKilled || 0)) / durMin,
+    gold_per_min: (me.goldEarned || 0) / durMin,
+    kp: teamKills > 0 ? (100 * ((me.kills || 0) + (me.assists || 0))) / teamKills : null,
+    vision_per_min: (me.visionScore || 0) / durMin,
+    deaths_per10: (me.deaths || 0) / (durMin / 10),
+    dmg_share: sum(team, "totalDamageDealtToChampions") > 0
+      ? (100 * (me.totalDamageDealtToChampions || 0)) / sum(team, "totalDamageDealtToChampions") : null,
+    taken_share: sum(team, "totalDamageTaken") > 0
+      ? (100 * ((me.totalDamageTaken || 0) + (me.damageSelfMitigated || 0)))
+        / team.reduce((a, p) => a + (p.totalDamageTaken || 0) + (p.damageSelfMitigated || 0), 0) : null,
+    lane_gd15: null,
+  };
+
+  const frames = timeline?.info?.frames || [];
+  const events = frames.flatMap((f) => f.events || []);
+  const pTeam = Object.fromEntries(parts.map((p) => [p.participantId, p.teamId]));
+  const pat = {};
+  if (frames.length) {
+    const f15 = frames.find((f) => (f.timestamp || 0) >= REVIEW_RULES.gd15Ms - 5000);
+    if (opp && f15 && (f15.timestamp || 0) <= REVIEW_RULES.gd15Ms + 30000) {
+      const a = f15.participantFrames?.[String(pid)]?.totalGold;
+      const b = f15.participantFrames?.[String(opp.participantId)]?.totalGold;
+      if (typeof a === "number" && typeof b === "number") m.lane_gd15 = a - b;
+    }
+    if (group !== "aram") {
+      // Level 6 race vs lane opponent (seconds; + = I got there first)
+      const lvl6 = (id) => events.find((e) => e.type === "LEVEL_UP" && e.participantId === id && e.level === 6)?.timestamp;
+      const mine = lvl6(pid);
+      const theirs = opp ? lvl6(opp.participantId) : undefined;
+      if (typeof mine === "number" && typeof theirs === "number") pat.lvl6_lead_sec = (theirs - mine) / 1000;
+      // First back (first purchase after 1:30). Reported only, not judged.
+      const back = events.find((e) => e.type === "ITEM_PURCHASED" && e.participantId === pid && e.timestamp > 90000);
+      if (back) {
+        const prev = [...frames].reverse().find((f) => f.timestamp <= back.timestamp);
+        pat.first_back_ms = back.timestamp;
+        pat.first_back_gold = prev?.participantFrames?.[String(pid)]?.currentGold ?? null;
+      }
+      // Gank exposure: my early deaths where the enemy jungler took part (laners only)
+      if (me.teamPosition && me.teamPosition !== "JUNGLE") {
+        const ej = enemy.find((p) => p.teamPosition === "JUNGLE")?.participantId;
+        if (ej) {
+          pat.gank_deaths = events.filter((e) => e.type === "CHAMPION_KILL" && e.victimId === pid
+            && e.timestamp < REVIEW_RULES.gankBeforeMs
+            && (e.killerId === ej || (e.assistingParticipantIds || []).includes(ej))).length;
+        }
+      }
+      // Objective prep vision: share of epic monsters with >= 1 of my wards in the prior 60 s
+      const objs = [];
+      for (const e of events) {
+        if (e.type !== "ELITE_MONSTER_KILL") continue;
+        const last = objs[objs.length - 1];
+        if (last && last.type === e.monsterType && e.timestamp - last.t < 60000) continue; // grub waves = one objective
+        objs.push({ type: e.monsterType, t: e.timestamp });
+      }
+      if (objs.length) {
+        const wards = events.filter((e) => e.type === "WARD_PLACED" && e.creatorId === pid).map((e) => e.timestamp);
+        const covered = objs.filter((o) => wards.some((w) => w >= o.t - REVIEW_RULES.objVisionMs && w <= o.t)).length;
+        pat.obj_vision_rate = (100 * covered) / objs.length;
+        pat.obj_count = objs.length;
+      }
+      // Power play: after my team's baron / inhibitor, did my team take a structure within 180 s?
+      const plays = events.filter((e) => (e.type === "ELITE_MONSTER_KILL" && e.monsterType === "BARON_NASHOR" && e.killerTeamId === myTeam)
+        || (e.type === "BUILDING_KILL" && e.buildingType === "INHIBITOR_BUILDING" && e.teamId !== myTeam));
+      if (plays.length) {
+        const conv = plays.filter((pp) => events.some((e) => e.type === "BUILDING_KILL" && e.teamId !== myTeam
+          && e.timestamp > pp.timestamp && e.timestamp <= pp.timestamp + REVIEW_RULES.powerPlayMs)).length;
+        pat.power_play_rate = (100 * conv) / plays.length;
+        pat.power_play_n = plays.length;
+      }
+    }
+    // Fights: kill clusters (gap <= 20 s, >= 3 kills). First-death in a lost fight.
+    const kills = events.filter((e) => e.type === "CHAMPION_KILL").sort((a, b) => a.timestamp - b.timestamp);
+    const fights = [];
+    for (const k of kills) {
+      const f = fights[fights.length - 1];
+      if (f && k.timestamp - f[f.length - 1].timestamp <= REVIEW_RULES.fightGapMs) f.push(k); else fights.push([k]);
+    }
+    let firstDeathLost = 0;
+    let fightsIn = 0;
+    for (const f of fights.filter((x) => x.length >= REVIEW_RULES.fightMinKills)) {
+      const involved = f.some((k) => k.victimId === pid || k.killerId === pid || (k.assistingParticipantIds || []).includes(pid));
+      if (!involved) continue;
+      fightsIn += 1;
+      const allyDeaths = f.filter((k) => pTeam[k.victimId] === myTeam).length;
+      if (f[0].victimId === pid && allyDeaths > f.length - allyDeaths) firstDeathLost += 1;
+    }
+    pat.first_death_fights = firstDeathLost;
+    pat.fights = fightsIn;
+    // Team gold swing per frame (my team - enemy)
+    const gd = frames.map((f) => {
+      let v = 0;
+      for (const [id, pf] of Object.entries(f.participantFrames || {})) v += (pTeam[Number(id)] === myTeam ? 1 : -1) * (pf.totalGold || 0);
+      return { t: f.timestamp || 0, v };
+    });
+    const w = REVIEW_RULES.swingFrames;
+    let drop = null;
+    let rise = null;
+    for (let i = 0; i + w < gd.length; i++) {
+      const d = gd[i + w].v - gd[i].v;
+      if (!drop || d < drop.delta) drop = { from: gd[i].t, to: gd[i + w].t, delta: d, before: gd[i].v };
+      if (!rise || d > rise.delta) rise = { from: gd[i].t, to: gd[i + w].t, delta: d, before: gd[i].v };
+    }
+    pat.max_drop_3m = drop ? -drop.delta : null;
+    pat.max_rise_3m = rise ? rise.delta : null;
+    pat._drop = drop;
+    pat._rise = rise;
+  }
+  return { m, pat, me, opp, events };
+}
+
+function objName(o, ko) {
+  if (o.type === "BUILDING_KILL") return o.buildingType === "INHIBITOR_BUILDING" ? (ko ? "억제기" : "Inhibitor") : (ko ? "포탑" : "Tower");
+  const names = { BARON_NASHOR: ["바론", "Baron"], DRAGON: ["드래곤", "Dragon"], RIFTHERALD: ["전령", "Herald"], HORDE: ["공허 유충", "Voidgrubs"], ATAKHAN: ["아타칸", "Atakhan"] };
+  return (names[o.monsterType] || [o.monsterType || "오브젝트", o.monsterType || "Objective"])[ko ? 0 : 1];
+}
+
+const LABELS = {
+  lane: ["라인전", "Laning"], economy: ["경제", "Economy"], farm: ["파밍", "Farming"], combat: ["교전", "Combat"],
+  vision: ["시야", "Vision"], frontline: ["탱킹", "Frontline"], survival: ["생존", "Survival"], damage: ["딜 기여", "Damage"],
+};
+
+/** Pure analysis. `baseline` = REVIEW_BASELINE (worker/review_baseline.js). */
+export function analyzeMatch(match, timeline, puuid, lang, baseline) {
+  const ko = lang === "ko";
+  const info = match?.info || {};
+  const me0 = (info.participants || []).find((p) => p.puuid === puuid);
+  if (!me0) return { error: "player_not_in_match" };
+  const group = queueGroup(info);
+  const base = {
+    match_id: match?.metadata?.matchId || "", champion: me0.championName, win: Boolean(me0.win),
+    kda: `${me0.kills || 0}/${me0.deaths || 0}/${me0.assists || 0}`, queue_group: group,
+  };
+  if (isRemake(info) || group === "unsupported") {
+    const remake = group !== "unsupported";
+    return {
+      ...base, status: remake ? "remake" : "unsupported", metrics: [], costly_deaths: [], patterns: {}, turning_point: null,
+      coaching: {
+        summary: remake
+          ? (ko ? `다시하기·조기 항복 경기(${fmtTime((info.gameDuration || 0) * 1000)})라 분석에서 제외했습니다.` : `Remake / early surrender (${fmtTime((info.gameDuration || 0) * 1000)}): excluded from analysis.`)
+          : (ko ? "이 모드는 복기 지표를 지원하지 않습니다." : "This mode is not supported by the review metrics."),
+        strengths: [], improvements: [], evidence: [],
+      },
+      findings: [], limitation: "",
+    };
+  }
+
+  const pm = playerMetrics(match, timeline, me0.participantId);
+  const { m, pat, me, opp, events } = pm;
+  const bucket = durationBucket(m.durMin, baseline?.duration_edges?.[group === "other" ? "rift" : group]);
+  const cell = (metric) => baselineCell(baseline, group, m.position, bucket, metric);
+  const L = (k) => LABELS[k][ko ? 0 : 1];
+
+  const laneMetric = group === "aram" || m.lane_gd15 === null ? "gold_per_min" : "lane_gd15";
+  const defs = group === "aram"
+    ? [["economy", "gold_per_min", "G/m"], ["farm", "cs_per_min", "CS/m"], ["combat", "kp", "%"],
+      ["frontline", "taken_share", "%"], ["survival", "deaths_per10", "/10m"], ["damage", "dmg_share", "%"]]
+    : [["lane", laneMetric, laneMetric === "lane_gd15" ? "G" : "G/m"], ["farm", "cs_per_min", "CS/m"], ["combat", "kp", "%"],
+      ["vision", "vision_per_min", "/m"], ["survival", "deaths_per10", "/10m"], ["damage", "dmg_share", "%"]];
+  const metrics = defs.map(([key, metric, unit]) => {
+    const p = profile(key, L(key), metric, m[metric], unit, cell(metric));
+    p.grade_label = GRADE_LABEL[ko ? "ko" : "en"][p.grade];
+    return p;
+  });
+
+  // Costly deaths (existing §15 evidence)
+  const myTeam = me.teamId;
+  const myPid = me.participantId;
+  const myWards = events.filter((e) => e.type === "WARD_PLACED" && e.creatorId === myPid);
+  const enemyObjectives = events.filter((e) => (e.type === "ELITE_MONSTER_KILL" && e.killerTeamId && e.killerTeamId !== myTeam)
+    || (e.type === "BUILDING_KILL" && e.teamId === myTeam));
+  const costly = [];
+  for (const d of events.filter((e) => e.type === "CHAMPION_KILL" && e.victimId === myPid)) {
+    const ts = d.timestamp || 0;
+    const lost = [...new Set(enemyObjectives.filter((o) => o.timestamp >= ts && o.timestamp <= ts + 60000).map((o) => objName(o, ko)))];
+    const wardsPrior3m = myWards.filter((w) => w.timestamp >= ts - 180000 && w.timestamp <= ts).length;
+    const attackers = 1 + (d.assistingParticipantIds?.length || 0);
+    costly.push({
+      time: fmtTime(ts), zone: group === "aram" ? (ko ? "칼바람 다리" : "ARAM bridge") : classifyZone(d.position?.x, d.position?.y, myTeam, lang),
+      attackers, objectives_lost_60s: lost, wards_prior_3m: wardsPrior3m, bounty: d.shutdownBounty || 0,
+      _score: lost.length * 100 + (ts > 900000 ? 30 : 10) + (group !== "aram" && wardsPrior3m === 0 ? 15 : 0) + attackers * 5 + (d.shutdownBounty || 0) / 50,
+    });
+  }
+  costly.sort((a, b) => b._score - a._score);
+  const topDeaths = costly.slice(0, 3).map(({ _score, ...rest }) => rest);
+
+  // Pattern z-scores against the same baseline
+  const patternZ = {};
+  for (const k of ["lvl6_lead_sec", "gank_deaths", "obj_vision_rate", "power_play_rate", "first_death_fights", "max_drop_3m", "max_rise_3m"]) {
+    if (typeof pat[k] !== "number") continue;
+    const z = zOf(pat[k], cell(k), k);
+    if (z !== null) patternZ[k] = Number(z.toFixed(2));
+  }
+
+  // Turning point: the biggest 3-minute team gold swing against (or for) my team, if at least typical size
+  let turning = null;
+  const swing = m.win ? pat._rise : pat._drop;
+  const swingZ = m.win ? patternZ.max_rise_3m : patternZ.max_drop_3m;
+  if (swing && swingZ !== undefined && swingZ >= 0 && group !== "aram") {
+    const inWin = (e) => e.timestamp >= swing.from && e.timestamp <= swing.to;
+    const myDeaths = events.filter((e) => e.type === "CHAMPION_KILL" && e.victimId === myPid && inWin(e));
+    const objs = events.filter((e) => inWin(e) && ((e.type === "ELITE_MONSTER_KILL" && e.killerTeamId)
+      || e.type === "BUILDING_KILL"));
+    const ours = objs.filter((e) => (e.type === "ELITE_MONSTER_KILL" ? e.killerTeamId === myTeam : e.teamId !== myTeam)).map((e) => objName(e, ko));
+    const theirs = objs.filter((e) => (e.type === "ELITE_MONSTER_KILL" ? e.killerTeamId !== myTeam : e.teamId === myTeam)).map((e) => objName(e, ko));
+    turning = {
+      from: fmtTime(swing.from), to: fmtTime(swing.to), team_gold_swing: swing.delta, team_gold_before: swing.before,
+      my_deaths: myDeaths.map((e) => fmtTime(e.timestamp)), objectives_taken: ours, objectives_lost: theirs, favorable: swing.delta > 0,
+    };
+  }
+
+  // Coaching: every line comes from one evidence item whose sign matches the side it is on.
+  const ev = [];
+  for (const p of metrics) {
+    if (p.baseline === null || p.raw === null) continue;
+    const sign = p.unit === "G" && p.raw > 0 ? "+" : "";
+    const ref = `${p.baseline.mean.toFixed(p.metric === "lane_gd15" ? 0 : 2)}`;
+    const valTxt = `${sign}${p.raw}${p.unit}`;
+    if (p.t_score >= REVIEW_RULES.strengthT) {
+      ev.push({ side: "strength", key: p.key, z: (p.t_score - 50) / 10, value: valTxt, text: ko
+        ? `${p.label} ${valTxt} — 같은 포지션 기준 평균 ${ref}${p.unit}보다 좋습니다(T ${p.t_score}, 상위 ${(100 - p.percentile).toFixed(0)}%).`
+        : `${p.label} ${valTxt} beat the same-role average ${ref}${p.unit} (T ${p.t_score}, top ${(100 - p.percentile).toFixed(0)}%).` });
+    } else if (p.t_score < REVIEW_RULES.weaknessT) {
+      ev.push({ side: "improvement", key: p.key, z: (p.t_score - 50) / 10, value: valTxt, text: ko
+        ? `${p.label} ${valTxt} — 같은 포지션 기준 평균 ${ref}${p.unit}에 못 미쳤습니다(T ${p.t_score}, 하위 ${p.percentile.toFixed(0)}%).`
+        : `${p.label} ${valTxt} fell short of the same-role average ${ref}${p.unit} (T ${p.t_score}, bottom ${p.percentile.toFixed(0)}%).` });
+    }
+  }
+  const zs = REVIEW_RULES.strengthT / 10 - 5; // +0.5
+  const zw = REVIEW_RULES.weaknessT / 10 - 5; // -0.5
+  const patText = {
+    lvl6_lead_sec: (v, good) => ko ? `레벨 6을 맞라인 상대보다 ${Math.abs(v).toFixed(0)}초 ${good ? "먼저" : "늦게"} 찍었습니다.` : `Hit level 6 ${Math.abs(v).toFixed(0)}s ${good ? "before" : "after"} your lane opponent.`,
+    gank_deaths: (v) => ko ? `14분 전 상대 정글이 관여한 데스 ${v}회 — 정글 위치를 모를 때 라인 앞쪽에 섰던 시간이 길었습니다.` : `${v} deaths before 14:00 involving the enemy jungler.`,
+    obj_vision_rate: (v, good) => ko ? `오브젝트 처치 60초 전 내 와드 설치율 ${v.toFixed(0)}%${good ? " — 오브젝트 시야 준비가 좋았습니다." : " — 오브젝트 전 시야 준비가 부족했습니다."}` : `Placed a ward in the 60s before ${v.toFixed(0)}% of epic objectives.`,
+    power_play_rate: (v, good) => ko ? `바론·억제기 뒤 3분 안 포탑 전환율 ${v.toFixed(0)}%${good ? "." : " — 이득을 구조물로 바꾸지 못했습니다."}` : `${v.toFixed(0)}% of baron/inhibitor leads became structures within 3 min.`,
+    first_death_fights: (v) => ko ? `진 한타 ${v}회에서 첫 데스였습니다 — 아군보다 먼저 들어가거나 먼저 잡혔습니다.` : `First to die in ${v} lost teamfight(s).`,
+  };
+  for (const [k, z] of Object.entries(patternZ)) {
+    if (!patText[k]) continue;
+    if (z >= zs && !(k === "gank_deaths" || k === "first_death_fights")) ev.push({ side: "strength", key: k, z, value: String(pat[k]), text: patText[k](pat[k], true) });
+    else if (z <= zw && (k !== "gank_deaths" && k !== "first_death_fights" || pat[k] > 0)) ev.push({ side: "improvement", key: k, z, value: String(pat[k]), text: patText[k](pat[k], false) });
+  }
+  if (turning) {
+    const amt = Math.abs(turning.team_gold_swing).toLocaleString("en-US");
+    const deaths = turning.my_deaths.length ? (ko ? ` 이 구간 내 데스 ${turning.my_deaths.join("·")}.` : ` Your deaths: ${turning.my_deaths.join(", ")}.`) : "";
+    const lostTxt = turning.objectives_lost.length ? (ko ? ` 잃은 것: ${turning.objectives_lost.join("·")}.` : ` Lost: ${turning.objectives_lost.join(", ")}.`) : "";
+    const tookTxt = turning.objectives_taken.length ? (ko ? ` 얻은 것: ${turning.objectives_taken.join("·")}.` : ` Took: ${turning.objectives_taken.join(", ")}.`) : "";
+    if (turning.favorable) {
+      ev.push({ side: "strength", key: "turning_point", z: swingZ, value: String(turning.team_gold_swing), text: ko
+        ? `분수령 ${turning.from}~${turning.to}: 팀 골드 차가 3분 동안 +${amt} 벌어졌습니다.${tookTxt}`
+        : `Turning point ${turning.from}-${turning.to}: team gold lead grew by ${amt} in 3 min.${tookTxt}` });
+    } else {
+      ev.push({ side: "improvement", key: "turning_point", z: -swingZ, value: String(turning.team_gold_swing), text: ko
+        ? `분수령 ${turning.from}~${turning.to}: 팀 골드 차가 3분 동안 -${amt} 무너졌습니다.${deaths}${lostTxt}`
+        : `Turning point ${turning.from}-${turning.to}: team gold fell by ${amt} in 3 min.${deaths}${lostTxt}` });
+    }
+  }
+  const strengthsEv = ev.filter((e) => e.side === "strength").sort((a, b) => b.z - a.z).slice(0, REVIEW_RULES.maxItems);
+  // The turning point always leads the improvements (AGENTS §19-6); the rest by z, worst first.
+  const improvEv = ev.filter((e) => e.side === "improvement")
+    .sort((a, b) => (b.key === "turning_point") - (a.key === "turning_point") || a.z - b.z).slice(0, REVIEW_RULES.maxItems);
+  const strengths = strengthsEv.length ? strengthsEv.map((e) => e.text)
+    : [ko ? "기준 분포에서 평균보다 뚜렷하게(T 55 이상) 앞선 지표가 없습니다." : "No metric clearly above the baseline (T >= 55)."];
+  const improvements = improvEv.length ? improvEv.map((e) => e.text)
+    : [ko ? "기준 분포에서 평균보다 뚜렷하게(T 45 미만) 뒤처진 지표가 없습니다." : "No metric clearly below the baseline (T < 45)."];
+
+  const oppName = opp?.championName || (ko ? "맞라인 상대 없음" : "no lane opponent");
+  const durTxt = fmtTime((info.gameDuration || 0) * 1000);
+  const top = strengthsEv[0];
+  const low = improvEv[0];
+  const summary = ko
+    ? `${me.championName}${group === "aram" ? "" : ` vs ${oppName}`} (${me.win ? "승리" : "패배"}, ${durTxt})${top ? ` — 강점: ${LABELS[top.key]?.[0] || "패턴"}` : ""}${low ? ` · 우선 고칠 점: ${low.key === "turning_point" ? `${turning.from}~${turning.to} 분수령` : (LABELS[low.key]?.[0] || "패턴")}` : ""}.`
+    : `${me.championName}${group === "aram" ? "" : ` vs ${oppName}`} (${me.win ? "Win" : "Loss"}, ${durTxt})${top ? ` — strength: ${LABELS[top.key]?.[1] || "pattern"}` : ""}${low ? ` · fix first: ${low.key === "turning_point" ? `${turning.from}-${turning.to} turning point` : (LABELS[low.key]?.[1] || "pattern")}` : ""}.`;
+
+  const findings = [];
+  const csm = m.cs_per_min.toFixed(1);
+  const kpTxt = m.kp === null ? "-" : `${Math.round(m.kp)}%`;
+  findings.push(m.lane_gd15 !== null
+    ? (ko ? `15분 맞라인 골드 차이: ${m.lane_gd15 >= 0 ? "+" : ""}${m.lane_gd15}G (분당 CS ${csm}, 킬관여 ${kpTxt}, 시야 점수 ${me.visionScore || 0}).`
+      : `15m lane gold diff: ${m.lane_gd15 >= 0 ? "+" : ""}${m.lane_gd15}G (${csm} CS/m, ${kpTxt} KP, ${me.visionScore || 0} vision).`)
+    : (ko ? `경기 요약: 분당 CS ${csm}, 킬관여 ${kpTxt}, 시야 점수 ${me.visionScore || 0}.` : `Match summary: ${csm} CS/m, ${kpTxt} KP, ${me.visionScore || 0} vision.`));
+  for (const d of topDeaths) {
+    const objTxt = d.objectives_lost_60s.length ? (ko ? ` → 사망 후 60초 내 ${d.objectives_lost_60s.join("·")} 손실` : ` → lost ${d.objectives_lost_60s.join(", ")} within 60s`) : "";
+    const wardTxt = group === "aram" ? "" : (ko ? ` (직전 3분 와드 ${d.wards_prior_3m}개)` : ` (${d.wards_prior_3m} wards in prior 3m)`);
+    findings.push(ko ? `${d.time} ${d.zone}에서 ${d.attackers}명에게 사망${objTxt}${wardTxt}.` : `${d.time} died in ${d.zone} vs ${d.attackers}${objTxt}${wardTxt}.`);
+  }
+  if (!topDeaths.length) findings.push(ko ? "기록된 사망이 없거나 타임라인 데이터가 없는 경기입니다." : "No deaths recorded or timeline unavailable.");
+
+  const { _drop, _rise, ...patterns } = pat;
+  const sample = metrics.find((p) => p.baseline)?.baseline;
+  return {
+    ...base, status: "ok",
+    cs_per_min: Number(m.cs_per_min.toFixed(1)), vision_score: me.visionScore || 0,
+    kill_participation: m.kp === null ? 0 : Math.round(m.kp), gold_diff_15m: m.lane_gd15,
+    costly_deaths: topDeaths, metrics, patterns, pattern_z: patternZ, turning_point: turning,
+    baseline: { queue: group === "other" ? "rift" : group, position: m.position, duration_bucket: bucket, source: baseline?.source || null },
+    coaching: { summary, strengths, improvements, evidence: [...strengthsEv, ...improvEv].map(({ text, ...rest }) => rest) },
+    findings,
+    limitation: ko
+      ? `근거 범위: Riot 공식 경기·1분 타임라인 수치를 ${group === "aram" ? "칼바람" : "솔로 랭크 협곡"} 실제 경기 분포(포지션·경기 길이별${sample ? `, 표본 ${sample.n}명` : ""})와 비교한 T점수(50+10z)입니다. 티어별 분포가 아니며, 스킬 적중·상대 와드·팀 콜은 데이터에 없어 단정하지 않습니다.`
+      : `Scope: T-scores (50+10z) against real ${group === "aram" ? "ARAM" : "ranked Summoner's Rift"} matches by role and game length${sample ? ` (n=${sample.n})` : ""}. Not tier-specific; skillshots, enemy wards and comms are not in the data.`,
+  };
 }
 
 export async function handleReview(request, env, headers) {
@@ -524,287 +935,8 @@ export async function handleReview(request, env, headers) {
   ]);
   if (!mRes.ok) return json({ error: "match_not_found" }, mRes.status, headers);
   const match = await mRes.json();
-  const participants = match.info?.participants || [];
-  const me = participants.find((p) => p.puuid === myPuuid);
-  if (!me) return json({ error: "player_not_in_match" }, 404, headers);
-
-  const myPid = me.participantId;
-  const myTeam = me.teamId;
-  const durationMin = Math.max(1, (match.info.gameDuration || 60) / 60);
-  const myCs = (me.totalMinionsKilled || 0) + (me.neutralMinionsKilled || 0);
-  const teamKills = Math.max(1, participants.filter((p) => p.teamId === myTeam).reduce((a, p) => a + (p.kills || 0), 0));
-  const kp = Math.round(((me.kills + me.assists) / teamKills) * 100);
-
-  let goldDiff15 = null;
-  const costlyDeaths = [];
-  if (tlRes.ok) {
-    const tl = await tlRes.json();
-    const frames = tl.info?.frames || [];
-    const f15 = frames[Math.min(15, frames.length - 1)];
-    if (f15?.participantFrames?.[String(myPid)]) {
-      const opp = participants.find((p) => p.teamId !== myTeam && p.teamPosition && p.teamPosition === me.teamPosition);
-      const myGold = f15.participantFrames[String(myPid)].totalGold || 0;
-      if (opp && f15.participantFrames[String(opp.participantId)]) {
-        goldDiff15 = myGold - (f15.participantFrames[String(opp.participantId)].totalGold || 0);
-      }
-    }
-
-    const allEvents = frames.flatMap((f) => f.events || []);
-    const myWards = allEvents.filter((e) => e.type === "WARD_PLACED" && e.creatorId === myPid);
-    const enemyObjectives = allEvents.filter((e) => {
-      if (e.type === "ELITE_MONSTER_KILL") return e.killerTeamId && e.killerTeamId !== myTeam;
-      if (e.type === "BUILDING_KILL") return e.teamId === myTeam;
-      return false;
-    });
-
-    const myDeaths = allEvents.filter((e) => e.type === "CHAMPION_KILL" && e.victimId === myPid);
-    for (const d of myDeaths) {
-      const ts = d.timestamp || 0;
-      const lostObjs = enemyObjectives
-        .filter((o) => o.timestamp >= ts && o.timestamp <= ts + 60000)
-        .map((o) => {
-          if (o.type === "BUILDING_KILL") return lang === "ko" ? "포탑" : "Tower";
-          if (o.monsterType === "BARON_NASHOR") return lang === "ko" ? "바론" : "Baron";
-          if (o.monsterType === "DRAGON") return lang === "ko" ? "드래곤" : "Dragon";
-          if (o.monsterType === "RIFTHERALD") return lang === "ko" ? "전령" : "Herald";
-          if (o.monsterType === "HORDE") return lang === "ko" ? "공허 유충" : "Voidgrubs";
-          return o.monsterType || "Objective";
-        });
-      const wardsPrior3m = myWards.filter((w) => w.timestamp >= ts - 180000 && w.timestamp <= ts).length;
-      const attackers = 1 + (d.assistingParticipantIds?.length || 0);
-      const score = lostObjs.length * 100 + (ts > 900000 ? 30 : 10) + (wardsPrior3m === 0 ? 15 : 0) + attackers * 5;
-      costlyDeaths.push({
-        time: fmtTime(ts),
-        zone: classifyZone(d.position?.x, d.position?.y, myTeam, lang),
-        attackers,
-        objectives_lost_60s: [...new Set(lostObjs)],
-        wards_prior_3m: wardsPrior3m,
-        _score: score,
-      });
-    }
-    costlyDeaths.sort((a, b) => b._score - a._score);
-  }
-
-  const topDeaths = costlyDeaths.slice(0, 3).map(({ _score, ...rest }) => rest);
-  const findings = [];
-  const ko = lang === "ko";
-  if (goldDiff15 !== null) {
-    const sign = goldDiff15 >= 0 ? "+" : "";
-    findings.push(ko
-      ? `15분 맞라인 골드 차이: ${sign}${goldDiff15}G (분당 CS ${(myCs / durationMin).toFixed(1)}, 킬관여 ${kp}%, 시야 점수 ${me.visionScore}).`
-      : `15m lane gold diff: ${sign}${goldDiff15}G (${(myCs / durationMin).toFixed(1)} CS/m, ${kp}% KP, ${me.visionScore} vision).`);
-  } else {
-    findings.push(ko
-      ? `경기 요약: 분당 CS ${(myCs / durationMin).toFixed(1)}, 킬관여 ${kp}%, 시야 점수 ${me.visionScore}.`
-      : `Match summary: ${(myCs / durationMin).toFixed(1)} CS/m, ${kp}% KP, ${me.visionScore} vision.`);
-  }
-  for (const d of topDeaths) {
-    const objTxt = d.objectives_lost_60s.length
-      ? (ko ? ` → 사망 후 60초 내 ${d.objectives_lost_60s.join("·")} 손실` : ` → lost ${d.objectives_lost_60s.join(", ")} within 60s`)
-      : "";
-    const wardTxt = d.wards_prior_3m === 0
-      ? (ko ? " (직전 3분 와드 0개)" : " (0 wards in prior 3m)")
-      : (ko ? ` (직전 3분 와드 ${d.wards_prior_3m}개)` : ` (${d.wards_prior_3m} wards in prior 3m)`);
-    findings.push(ko
-      ? `${d.time} ${d.zone}에서 ${d.attackers}명에게 사망${objTxt}${wardTxt}.`
-      : `${d.time} died in ${d.zone} vs ${d.attackers}${objTxt}${wardTxt}.`);
-  }
-  if (!topDeaths.length) {
-    findings.push(ko ? "기록된 사망이 없거나 타임라인 데이터가 없는 경기입니다." : "No deaths recorded or timeline unavailable.");
-  }
-
-function normCdf(z) {
-  const t = 1 / (1 + 0.2316419 * Math.abs(z));
-  const d = 0.3989422804014327 * Math.exp((-z * z) / 2);
-  const p = d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
-  return z >= 0 ? 1 - p : p;
-}
-
-function buildMetricProfile(key, labelKo, labelEn, rawVal, mean, sd, unit, ko) {
-  const z = Math.max(-3.0, Math.min(3.0, (rawVal - mean) / Math.max(0.01, sd)));
-  const tScore = Number(Math.max(15, Math.min(85, 50 + 10 * z)).toFixed(1));
-  const pct = Number((normCdf(z) * 100).toFixed(1));
-  const grade = tScore >= 70 ? (ko ? "최상" : "Elite")
-    : tScore >= 60 ? (ko ? "높음" : "High")
-    : tScore >= 40 ? (ko ? "보통" : "Avg")
-    : tScore >= 30 ? (ko ? "낮음" : "Low")
-    : (ko ? "위험" : "Risk");
-  const radar = Math.round(Math.max(10, Math.min(100, pct)));
-  return { key, label: ko ? labelKo : labelEn, raw: rawVal, unit, t_score: tScore, percentile: pct, grade, radar };
-}
-
-function generateCoachFeedback({ me, opp, ko, metrics, topDeaths, goldDiff15, kp, csPerMin, dmgShare, durationMin }) {
-  const sorted = [...metrics].sort((a, b) => b.t_score - a.t_score);
-  const best = sorted[0];
-  const worst = sorted[sorted.length - 1];
-  const secondWorst = sorted[sorted.length - 2];
-  const oppName = opp?.championName || (ko ? "맞라인 상대" : "lane opponent");
-  const myDmg = me.totalDamageDealtToChampions || 0;
-  const oppDmg = opp?.totalDamageDealtToChampions || 0;
-  const dmgDiff = opp ? (myDmg - oppDmg) : null;
-  const zeroWardDeaths = topDeaths.filter((d) => d.wards_prior_3m === 0).length;
-  const totalObjLost = topDeaths.reduce((a, d) => a + d.objectives_lost_60s.length, 0);
-
-  const summary = ko
-    ? `${me.championName} vs ${oppName} (${me.win ? "승리" : "패배"}, ${Math.round(durationMin)}분) — '${best.label}'(${best.grade}, T=${best.t_score})은 강점, '${worst.label}'(${worst.grade}, T=${worst.t_score})은 최우선 개선 지표입니다.`
-    : `${me.championName} vs ${oppName} (${me.win ? "Win" : "Loss"}, ${Math.round(durationMin)}m) — '${best.label}' (${best.grade}) led; '${worst.label}' (${worst.grade}) needs focus.`;
-
-  const strengths = [
-    ko
-      ? `${best.label}이(가) T점수 ${best.t_score}(상위 ${(100 - best.percentile).toFixed(0)}%)로 동티어 평균을 웃돌았습니다.`
-      : `${best.label} hit T=${best.t_score} (top ${(100 - best.percentile).toFixed(0)}%), beating tier average.`,
-    dmgDiff !== null && dmgDiff > 0
-      ? (ko
-        ? `맞라인 상대 ${oppName}보다 챔피언 딜량을 +${dmgDiff.toLocaleString()} 더 넣었습니다 (팀 내 딜 비중 ${dmgShare.toFixed(0)}%).`
-        : `Out-damaged lane opponent ${oppName} by +${dmgDiff.toLocaleString()} (${dmgShare.toFixed(0)}% team share).`)
-      : (ko
-        ? `팀 내 딜 비중 ${dmgShare.toFixed(0)}%, 킬관여 ${kp}%, 분당 CS ${csPerMin.toFixed(1)}개를 기록했습니다.`
-        : `Logged ${dmgShare.toFixed(0)}% team damage share, ${kp}% KP, and ${csPerMin.toFixed(1)} CS/m.`),
-  ];
-
-  const improvements = [
-    ko
-      ? `핵심 약점은 '${worst.label}'(${worst.grade}) · '${secondWorst.label}'(${secondWorst.grade})입니다.${goldDiff15 !== null ? ` 15분 ${oppName} 대비 골드차 ${goldDiff15 >= 0 ? "+" : ""}${goldDiff15}G.` : ""}`
-      : `Weakest areas: '${worst.label}' (${worst.grade}) & '${secondWorst.label}' (${secondWorst.grade}).${goldDiff15 !== null ? ` 15m GD vs ${oppName}: ${goldDiff15 >= 0 ? "+" : ""}${goldDiff15}G.` : ""}`,
-    topDeaths.length
-      ? (ko
-        ? `치명 데스 ${topDeaths.length}건 중 직전 3분 와드 0개 데스가 ${zeroWardDeaths}건, 데스 직후 오브젝트 손실이 ${totalObjLost}건입니다. ${topDeaths[0].time} ${topDeaths[0].zone}처럼 시야 없이 전진한 타이밍을 줄이세요.`
-        : `${zeroWardDeaths}/${topDeaths.length} key deaths had 0 prior wards, costing ${totalObjLost} objective(s). Avoid pushing without vision like ${topDeaths[0].time} (${topDeaths[0].zone}).`)
-      : (ko
-        ? `시야 점수 ${me.visionScore || 0}점(분당 ${( (me.visionScore || 0) / durationMin).toFixed(2)}) — 오브젝트 1분 전 제어 와드·장신구 교대 빈도를 높이세요.`
-        : `Vision score ${me.visionScore || 0} (${((me.visionScore || 0) / durationMin).toFixed(2)}/m) — drop wards 60s before objectives.`),
-  ];
-
-  return { summary, strengths, improvements };
-}
-
-  const teamDmg = Math.max(1, participants.filter((p) => p.teamId === myTeam).reduce((a, p) => a + (p.totalDamageDealtToChampions || 0), 0));
-  const dmgShare = ((me.totalDamageDealtToChampions || 0) / teamDmg) * 100;
-  const csPerMin = myCs / durationMin;
-  const visPerMin = (me.visionScore || 0) / durationMin;
-  const deathsPer10 = (me.deaths || 0) / (durationMin / 10);
-  const objLossPenalty = topDeaths.reduce((acc, d) => acc + d.objectives_lost_60s.length * 0.45, 0);
-  const survRaw = Math.max(0, 6.0 - deathsPer10 - objLossPenalty);
-  const isSup = me.teamPosition === "UTILITY";
-
-  const metrics = [
-    buildMetricProfile("lane", "라인전", "Laning", goldDiff15 !== null ? goldDiff15 : ((me.goldEarned || 0) / durationMin - 380) * 15, 0, 1200, "G", ko),
-    buildMetricProfile("farm", "파밍", "Farming", isSup ? visPerMin * 3.8 : csPerMin, isSup ? 6.0 : 6.2, 1.5, isSup ? "/m" : "CS/m", ko),
-    buildMetricProfile("combat", "교전", "Combat", kp, 50, 16, "%", ko),
-    buildMetricProfile("vision", "시야", "Vision", visPerMin, isSup ? 1.8 : 0.85, isSup ? 0.55 : 0.35, "/m", ko),
-    buildMetricProfile("survival", "생존", "Survival", survRaw, 3.6, 1.35, "pt", ko),
-    buildMetricProfile("damage", "딜 기여", "Damage", dmgShare, isSup ? 10 : 22, isSup ? 5 : 7, "%", ko),
-  ];
-
-  const opp = participants.find((p) => p.teamId !== myTeam && p.teamPosition && p.teamPosition === me.teamPosition) || null;
-  const coaching = generateCoachFeedback(
-    { me, opp, ko, metrics, topDeaths, goldDiff15, kp, csPerMin, dmgShare, durationMin },
-  );
-
-function normCdf(z) {
-  const t = 1 / (1 + 0.2316419 * Math.abs(z));
-  const d = 0.3989422804014327 * Math.exp((-z * z) / 2);
-  const p = d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
-  return z >= 0 ? 1 - p : p;
-}
-
-function buildMetricProfile(key, labelKo, labelEn, rawVal, mean, sd, unit, ko) {
-  const z = Math.max(-3.0, Math.min(3.0, (rawVal - mean) / Math.max(0.01, sd)));
-  const tScore = Number(Math.max(15, Math.min(85, 50 + 10 * z)).toFixed(1));
-  const pct = Number((normCdf(z) * 100).toFixed(1));
-  const grade = tScore >= 70 ? (ko ? "최상" : "Elite")
-    : tScore >= 60 ? (ko ? "높음" : "High")
-    : tScore >= 40 ? (ko ? "보통" : "Avg")
-    : tScore >= 30 ? (ko ? "낮음" : "Low")
-    : (ko ? "위험" : "Risk");
-  const radar = Math.round(Math.max(10, Math.min(100, pct)));
-  return { key, label: ko ? labelKo : labelEn, raw: rawVal, unit, t_score: tScore, percentile: pct, grade, radar };
-}
-
-function generateCoachFeedback({ me, opp, ko, metrics, topDeaths, goldDiff15, kp, csPerMin, dmgShare, durationMin }) {
-  const sorted = [...metrics].sort((a, b) => b.t_score - a.t_score);
-  const best = sorted[0];
-  const worst = sorted[sorted.length - 1];
-  const secondWorst = sorted[sorted.length - 2];
-  const oppName = opp?.championName || (ko ? "맞라인 상대" : "lane opponent");
-  const myDmg = me.totalDamageDealtToChampions || 0;
-  const oppDmg = opp?.totalDamageDealtToChampions || 0;
-  const dmgDiff = opp ? (myDmg - oppDmg) : null;
-  const zeroWardDeaths = topDeaths.filter((d) => d.wards_prior_3m === 0).length;
-  const totalObjLost = topDeaths.reduce((a, d) => a + d.objectives_lost_60s.length, 0);
-
-  const summary = ko
-    ? `${me.championName} vs ${oppName} (${me.win ? "승리" : "패배"}, ${Math.round(durationMin)}분) — '${best.label}'(${best.grade}, T=${best.t_score})은 강점, '${worst.label}'(${worst.grade}, T=${worst.t_score})은 최우선 개선 지표입니다.`
-    : `${me.championName} vs ${oppName} (${me.win ? "Win" : "Loss"}, ${Math.round(durationMin)}m) — '${best.label}' (${best.grade}) led; '${worst.label}' (${worst.grade}) needs focus.`;
-
-  const strengths = [
-    ko
-      ? `${best.label}이(가) T점수 ${best.t_score}(상위 ${(100 - best.percentile).toFixed(0)}%)로 동티어 평균을 웃돌았습니다.`
-      : `${best.label} hit T=${best.t_score} (top ${(100 - best.percentile).toFixed(0)}%), beating tier average.`,
-    dmgDiff !== null && dmgDiff > 0
-      ? (ko
-        ? `맞라인 상대 ${oppName}보다 챔피언 딜량을 +${dmgDiff.toLocaleString()} 더 넣었습니다 (팀 내 딜 비중 ${dmgShare.toFixed(0)}%).`
-        : `Out-damaged lane opponent ${oppName} by +${dmgDiff.toLocaleString()} (${dmgShare.toFixed(0)}% team share).`)
-      : (ko
-        ? `팀 내 딜 비중 ${dmgShare.toFixed(0)}%, 킬관여 ${kp}%, 분당 CS ${csPerMin.toFixed(1)}개를 기록했습니다.`
-        : `Logged ${dmgShare.toFixed(0)}% team damage share, ${kp}% KP, and ${csPerMin.toFixed(1)} CS/m.`),
-  ];
-
-  const improvements = [
-    ko
-      ? `핵심 약점은 '${worst.label}'(${worst.grade}) · '${secondWorst.label}'(${secondWorst.grade})입니다.${goldDiff15 !== null ? ` 15분 ${oppName} 대비 골드차 ${goldDiff15 >= 0 ? "+" : ""}${goldDiff15}G.` : ""}`
-      : `Weakest areas: '${worst.label}' (${worst.grade}) & '${secondWorst.label}' (${secondWorst.grade}).${goldDiff15 !== null ? ` 15m GD vs ${oppName}: ${goldDiff15 >= 0 ? "+" : ""}${goldDiff15}G.` : ""}`,
-    topDeaths.length
-      ? (ko
-        ? `치명 데스 ${topDeaths.length}건 중 직전 3분 와드 0개 데스가 ${zeroWardDeaths}건, 데스 직후 오브젝트 손실이 ${totalObjLost}건입니다. ${topDeaths[0].time} ${topDeaths[0].zone}처럼 시야 없이 전진한 타이밍을 줄이세요.`
-        : `${zeroWardDeaths}/${topDeaths.length} key deaths had 0 prior wards, costing ${totalObjLost} objective(s). Avoid pushing without vision like ${topDeaths[0].time} (${topDeaths[0].zone}).`)
-      : (ko
-        ? `시야 점수 ${me.visionScore || 0}점(분당 ${( (me.visionScore || 0) / durationMin).toFixed(2)}) — 오브젝트 1분 전 제어 와드·장신구 교대 빈도를 높이세요.`
-        : `Vision score ${me.visionScore || 0} (${((me.visionScore || 0) / durationMin).toFixed(2)}/m) — drop wards 60s before objectives.`),
-  ];
-
-  return { summary, strengths, improvements };
-}
-
-  const teamDmg = Math.max(1, participants.filter((p) => p.teamId === myTeam).reduce((a, p) => a + (p.totalDamageDealtToChampions || 0), 0));
-  const dmgShare = ((me.totalDamageDealtToChampions || 0) / teamDmg) * 100;
-  const csPerMin = myCs / durationMin;
-  const visPerMin = (me.visionScore || 0) / durationMin;
-  const deathsPer10 = (me.deaths || 0) / (durationMin / 10);
-  const objLossPenalty = topDeaths.reduce((acc, d) => acc + d.objectives_lost_60s.length * 0.45, 0);
-  const survRaw = Math.max(0, 6.0 - deathsPer10 - objLossPenalty);
-  const isSup = me.teamPosition === "UTILITY";
-
-  const metrics = [
-    buildMetricProfile("lane", "라인전", "Laning", goldDiff15 !== null ? goldDiff15 : ((me.goldEarned || 0) / durationMin - 380) * 15, 0, 1200, "G", ko),
-    buildMetricProfile("farm", "파밍", "Farming", isSup ? visPerMin * 3.8 : csPerMin, isSup ? 6.0 : 6.2, 1.5, isSup ? "/m" : "CS/m", ko),
-    buildMetricProfile("combat", "교전", "Combat", kp, 50, 16, "%", ko),
-    buildMetricProfile("vision", "시야", "Vision", visPerMin, isSup ? 1.8 : 0.85, isSup ? 0.55 : 0.35, "/m", ko),
-    buildMetricProfile("survival", "생존", "Survival", survRaw, 3.6, 1.35, "pt", ko),
-    buildMetricProfile("damage", "딜 기여", "Damage", dmgShare, isSup ? 10 : 22, isSup ? 5 : 7, "%", ko),
-  ];
-
-  const opp = participants.find((p) => p.teamId !== myTeam && p.teamPosition && p.teamPosition === me.teamPosition) || null;
-  const coaching = generateCoachFeedback(
-    { me, opp, ko, metrics, topDeaths, goldDiff15, kp, csPerMin, dmgShare, durationMin },
-  );
-
-  return json({
-    match_id: matchId,
-    riot_id: myRiotId,
-    champion: me.championName,
-    win: Boolean(me.win),
-    kda: `${me.kills}/${me.deaths}/${me.assists}`,
-    cs_per_min: Number(csPerMin.toFixed(1)),
-    vision_score: me.visionScore || 0,
-    kill_participation: kp,
-    gold_diff_15m: goldDiff15,
-    costly_deaths: topDeaths,
-    metrics,
-    coaching,
-    findings,
-    limitation: ko
-      ? "근거 범위: Riot 공식 경기·1분 타임라인 수치 기반 표준 정규분포(T점수=50+10z)로 산출합니다. 스킬 적중·상대 와드·팀 콜은 단정하지 않습니다."
-      : "Scope: Computed via normal distribution (T=50+10z) from Riot match & 1-min timeline data. Skillshots and comms are not assumed.",
-  }, 200, headers);
+  const timeline = tlRes.ok ? await tlRes.json() : null;
+  const out = analyzeMatch(match, timeline, myPuuid, lang, REVIEW_BASELINE);
+  if (out.error) return json({ error: out.error }, 404, headers);
+  return json({ ...out, match_id: matchId, riot_id: myRiotId }, 200, headers);
 }

@@ -2199,63 +2199,64 @@ function svgEl(tag, attrs) {
   return n;
 }
 
-function buildNormalDistSvg(metrics, ko) {
-  const W = 460, padL = 74, padR = 14, plotW = W - padL - padR;
-  const barH = 16, barGap = 5, curveTop = 10, curveH = 54, axisY = curveTop + curveH;
-  const barsTop = axisY + 28, H = barsTop + metrics.length * (barH + barGap) + 6;
+function buildNormalDistSvg(overall, ko) {
+  const W = 460, padL = 22, padR = 22, plotW = W - padL - padR;
+  const curveTop = 30, curveH = 124, axisY = curveTop + curveH, H = axisY + 42;
   const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", style: "display:block;max-width:100%;" });
-  const xOf = t => padL + ((Math.max(10, Math.min(90, t)) - 10) / 80) * plotW;
+  const xOf = t => padL + ((Math.max(15, Math.min(85, t)) - 15) / 70) * plotW;
+  const yOf = t => {
+    const z = (t - 50) / 10;
+    return axisY - Math.exp(-0.5 * z * z) * (curveH - 10);
+  };
 
-  // Shaded zone bands (Low/Avg/High)
+  // Zone background bands
   const bands = [
-    [10, 30, "rgba(232,64,87,0.06)"], [30, 40, "rgba(232,64,87,0.10)"],
-    [40, 60, "rgba(148,163,184,0.10)"], [60, 70, "rgba(52,211,153,0.10)"], [70, 90, "rgba(52,211,153,0.06)"],
+    [15, 30, "rgba(232,64,87,0.08)"], [30, 40, "rgba(232,64,87,0.12)"],
+    [40, 60, "rgba(148,163,184,0.10)"], [60, 70, "rgba(52,211,153,0.12)"], [70, 85, "rgba(52,211,153,0.08)"],
   ];
   bands.forEach(([a, b, fill]) => {
-    svg.appendChild(svgEl("rect", { x: xOf(a), y: curveTop, width: xOf(b) - xOf(a), height: H - curveTop - 4, fill }));
+    svg.appendChild(svgEl("rect", { x: xOf(a), y: curveTop, width: xOf(b) - xOf(a), height: curveH, fill }));
   });
 
-  // Bell curve path (mu=50, sigma=10)
-  const pts = [];
-  for (let t = 10; t <= 90; t += 1.5) {
-    const z = (t - 50) / 10;
-    const y = axisY - Math.exp(-0.5 * z * z) * (curveH - 4);
-    pts.push(`${xOf(t).toFixed(1)},${y.toFixed(1)}`);
-  }
-  svg.appendChild(svgEl("polyline", { points: pts.join(" "), fill: "none", stroke: "var(--accent)", "stroke-width": 2 }));
-  svg.appendChild(svgEl("line", { x1: padL, y1: axisY, x2: W - padR, y2: axisY, stroke: "var(--line-strong)", "stroke-width": 1 }));
+  // Shaded area under bell curve up to player's overall T-score
+  const myT = overall.t_score || 50;
+  const areaPts = [`${xOf(15).toFixed(1)},${axisY}`];
+  for (let t = 15; t <= myT; t += 1) areaPts.push(`${xOf(t).toFixed(1)},${yOf(t).toFixed(1)}`);
+  areaPts.push(`${xOf(myT).toFixed(1)},${yOf(myT).toFixed(1)}`, `${xOf(myT).toFixed(1)},${axisY}`);
+  svg.appendChild(svgEl("polygon", { points: areaPts.join(" "), fill: "rgba(255,90,31,0.26)" }));
 
-  // T-score ticks & band labels
+  // Full bell curve line
+  const pts = [];
+  for (let t = 15; t <= 85; t += 1) pts.push(`${xOf(t).toFixed(1)},${yOf(t).toFixed(1)}`);
+  svg.appendChild(svgEl("polyline", { points: pts.join(" "), fill: "none", stroke: "var(--accent)", "stroke-width": 2.4 }));
+  svg.appendChild(svgEl("line", { x1: padL, y1: axisY, x2: W - padR, y2: axisY, stroke: "var(--line-strong)", "stroke-width": 1.2 }));
+
+  // T-score ticks & tier-zone labels
   [20, 30, 40, 50, 60, 70, 80].forEach(t => {
     const x = xOf(t);
-    svg.appendChild(svgEl("line", { x1: x, y1: axisY, x2: x, y2: H - 4, stroke: "var(--line)", "stroke-dasharray": "2,2" }));
-    const lbl = svgEl("text", { x, y: axisY + 11, "text-anchor": "middle", fill: "var(--dim)", "font-size": 9 });
+    svg.appendChild(svgEl("line", { x1: x, y1: axisY, x2: x, y2: axisY + 4, stroke: "var(--line-strong)", "stroke-width": 1 }));
+    const lbl = svgEl("text", { x, y: axisY + 15, "text-anchor": "middle", fill: "var(--dim)", "font-size": 9.5 });
     lbl.textContent = "T" + t;
     svg.appendChild(lbl);
   });
   const zoneLabels = ko
-    ? [[20, "최하"], [35, "낮음"], [50, "보통"], [65, "높음"], [80, "최상"]]
-    : [[20, "Risk"], [35, "Low"], [50, "Avg"], [65, "High"], [80, "Elite"]];
+    ? [[22.5, "최하"], [35, "낮음"], [50, "보통 (평균)"], [65, "높음"], [77.5, "최상"]]
+    : [[22.5, "Risk"], [35, "Low"], [50, "Average"], [65, "High"], [77.5, "Elite"]];
   zoneLabels.forEach(([t, txt]) => {
-    const lbl = svgEl("text", { x: xOf(t), y: axisY + 22, "text-anchor": "middle", fill: "var(--sub)", "font-size": 9, "font-weight": 700 });
+    const lbl = svgEl("text", { x: xOf(t), y: axisY + 30, "text-anchor": "middle", fill: "var(--sub)", "font-size": 9.5, "font-weight": 800 });
     lbl.textContent = txt;
     svg.appendChild(lbl);
   });
 
-  // Horizontal score bars
-  metrics.forEach((m, i) => {
-    const y = barsTop + i * (barH + barGap);
-    const lbl = svgEl("text", { x: padL - 6, y: y + 12, "text-anchor": "end", fill: "var(--text)", "font-size": 10.5, "font-weight": 700 });
-    lbl.textContent = m.label;
-    svg.appendChild(lbl);
-    svg.appendChild(svgEl("rect", { x: padL, y, width: plotW, height: barH, rx: 3, fill: "var(--panel-alt)" }));
-    const bw = Math.max(4, xOf(m.t_score) - padL);
-    const barColor = m.t_score >= 60 ? "var(--safe)" : m.t_score < 40 ? "var(--loss)" : "var(--accent)";
-    svg.appendChild(svgEl("rect", { x: padL, y, width: bw, height: barH, rx: 3, fill: barColor }));
-    const val = svgEl("text", { x: Math.min(W - padR - 2, padL + bw + 4), y: y + 12, fill: "var(--text)", "font-size": 9.5, "font-weight": 800 });
-    val.textContent = m.t_score + " (" + m.percentile + "%)";
-    svg.appendChild(val);
-  });
+  // Player position pin on curve
+  const mx = xOf(myT), my = yOf(myT);
+  svg.appendChild(svgEl("line", { x1: mx, y1: 18, x2: mx, y2: axisY, stroke: "var(--text)", "stroke-width": 1.8, "stroke-dasharray": "3,2" }));
+  svg.appendChild(svgEl("circle", { cx: mx, cy: my, r: 5, fill: "var(--accent)", stroke: "#fff", "stroke-width": 2 }));
+  const tagTxt = ko ? `내 경기력 · 상위 ${overall.top_pct}% (T=${myT})` : `You · Top ${overall.top_pct}% (T=${myT})`;
+  const tagX = Math.max(85, Math.min(W - 85, mx));
+  const tag = svgEl("text", { x: tagX, y: 14, "text-anchor": "middle", fill: "var(--accent)", "font-size": 11, "font-weight": 900 });
+  tag.textContent = tagTxt;
+  svg.appendChild(tag);
   return svg;
 }
 
@@ -2301,28 +2302,33 @@ function buildHexRadarSvg(metrics) {
     if (Array.isArray(d.metrics) && d.metrics.length === 6) {
       const grid = el("div", "rev-grid");
 
-      // 01. Normal distribution profile card
+      // 01. Normal distribution profile card (Overall Tier Position)
       const c1 = el("div", "rev-card");
-      c1.appendChild(el("div", "rev-sec-title", ko ? "01 정규분포 역량 프로파일 (T점수 · 백분위)" : "01 Normal Distribution Profile (T-Score · Percentile)"));
-      c1.appendChild(buildNormalDistSvg(d.metrics, ko));
+      c1.appendChild(el("div", "rev-sec-title", ko ? "01 동티어 대비 경기력 정규분포" : "01 Tier Performance Bell Curve"));
+      const ov = d.overall_perf || { t_score: 50, percentile: 50, top_pct: 50, grade: ko ? "보통" : "Avg" };
+      c1.appendChild(buildNormalDistSvg(ov, ko));
       const tbl = el("table", "rev-table");
-      const thr = el("tr"); thr.appendChild(el("th", "", ko ? "구분" : "Metric"));
-      d.metrics.forEach(m => thr.appendChild(el("th", "", m.label)));
-      const trT = el("tr"); trT.appendChild(el("td", "", "T-Score"));
-      d.metrics.forEach(m => trT.appendChild(el("td", "", String(m.t_score))));
-      const trP = el("tr"); trP.appendChild(el("td", "", ko ? "백분위" : "%ile"));
-      d.metrics.forEach(m => trP.appendChild(el("td", "", m.percentile + "%")));
-      tbl.append(thr, trT, trP);
+      const thr = el("tr");
+      [ko ? "종합 T점수" : "T-Score", ko ? "동티어 백분위" : "Percentile", ko ? "상위 비율" : "Top Rank", ko ? "종합 등급" : "Grade"].forEach(h => thr.appendChild(el("th", "", h)));
+      const trV = el("tr");
+      trV.appendChild(el("td", "", String(ov.t_score)));
+      trV.appendChild(el("td", "", ov.percentile + "%"));
+      trV.appendChild(el("td", "", (ko ? "상위 " : "Top ") + ov.top_pct + "%"));
+      const gCell = el("td");
+      gCell.appendChild(el("span", "rev-grade " + (ov.t_score >= 60 ? "hi" : ov.t_score < 40 ? "lo" : "mid"), ov.grade));
+      trV.appendChild(gCell);
+      tbl.append(thr, trV);
       c1.appendChild(tbl);
 
-      // 02. Hexagon radar profile card
+      // 02. Hexagon radar profile card (What was good vs weak)
       const c2 = el("div", "rev-card");
-      c2.appendChild(el("div", "rev-sec-title", ko ? "02 6각형 영역별 역량 프로파일" : "02 Hexagonal Skill Profile"));
+      c2.appendChild(el("div", "rev-sec-title", ko ? "02 6각형 영역별 강점 · 약점" : "02 Hexagonal Strengths & Weaknesses"));
       c2.appendChild(buildHexRadarSvg(d.metrics));
       const gtbl = el("table", "rev-table");
       d.metrics.forEach(m => {
         const r = el("tr");
         r.appendChild(el("td", "", m.label));
+        r.appendChild(el("td", "", "T " + m.t_score));
         const gtd = el("td");
         const gCls = m.t_score >= 60 ? "hi" : m.t_score < 40 ? "lo" : "mid";
         gtd.appendChild(el("span", "rev-grade " + gCls, m.grade));
