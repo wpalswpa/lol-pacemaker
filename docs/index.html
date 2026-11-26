@@ -90,48 +90,15 @@
   }
   .meta-row strong { color: #fff; font-weight: 700; margin-left: 6px; }
 
-  .preview-grid {
-    display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; align-items: stretch;
-  }
-  @media (max-width: 860px) { .preview-grid { grid-template-columns: 1fr; } }
   .preview-box {
     background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
     overflow: hidden; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
-    display: flex; flex-direction: column;
   }
-  .preview-box img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .preview-box img { display: block; width: 100%; height: auto; }
   .preview-cap {
-    padding: 10px 16px; font-size: 12.5px; color: var(--sub);
+    padding: 12px 18px; font-size: 13px; color: var(--sub);
     background: var(--surface2); border-top: 1px solid var(--line);
   }
-  .live-hud {
-    background: var(--surface); border: 1.5px solid rgba(255, 90, 31, 0.48);
-    border-radius: 18px; padding: 20px; display: flex; flex-direction: column;
-    justify-content: space-between; gap: 10px; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
-  }
-  .hud-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .hud-win { font-size: 24px; font-weight: 900; color: #ff7a45; letter-spacing: -0.02em; }
-  .hud-chips { display: flex; gap: 6px; }
-  .hud-chip {
-    font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
-    background: var(--surface2); border: 1px solid var(--line); color: var(--text);
-  }
-  .hud-chip.lang { color: #ff8a5c; border-color: rgba(255, 90, 31, 0.45); }
-  .hud-rank {
-    font-size: 12px; font-weight: 700; color: var(--good);
-    background: rgba(52, 211, 153, 0.10); border: 1px solid rgba(52, 211, 153, 0.28);
-    border-radius: 9px; padding: 7px 11px;
-  }
-  .hud-brief { font-size: 12.5px; color: #d1d5db; line-height: 1.45; }
-  .hud-call {
-    background: var(--surface2); border-left: 3px solid var(--accent);
-    border-radius: 8px; padding: 9px 11px;
-  }
-  .hud-call.top { border-left-color: var(--good); background: rgba(52, 211, 153, 0.08); }
-  .hud-call-t { font-size: 13px; font-weight: 800; color: #fff; }
-  .hud-call.top .hud-call-t { color: var(--good); }
-  .hud-call-d { font-size: 11.5px; color: var(--sub); margin-top: 2px; line-height: 1.38; }
-  .hud-hint { font-size: 11px; color: var(--dim); text-align: center; padding-top: 4px; }
 
   h2.sec-head { font-size: 24px; font-weight: 900; letter-spacing: -0.02em; margin: 0 0 18px; }
 
@@ -250,35 +217,9 @@
       <span><span data-i18n="m3_k">Languages</span><strong>EN · KO · JA · ES · PT</strong></span>
       <span><span data-i18n="m4_k">Cost &amp; Ads</span><strong data-i18n="m4_v">100% Free · Zero Ads</strong></span>
     </div>
-    <div class="preview-grid">
-      <div class="preview-box">
-        <img src="./images/ingame_demo.jpg" alt="PACE MAKER Desktop Live In-Game Overlay Screenshot">
-        <div class="preview-cap" data-i18n="ingame_cap">Actual in-game overlay running over a live 5v5 match (zero FPS drop)</div>
-      </div>
-      <div class="live-hud" aria-label="Interactive Multi-Language HUD Preview">
-        <div class="hud-head">
-          <span class="hud-win" data-i18n="hud_win">74.2% · Ahead</span>
-          <div class="hud-chips">
-            <span class="hud-chip" data-i18n="hud_phase">Mid Macro</span>
-            <span class="hud-chip lang" data-i18n="hud_lang_code">EN</span>
-          </div>
-        </div>
-        <div class="hud-rank" data-i18n="hud_rank">CS Top 14% · Level Top 18% (Tier Normal Approx.)</div>
-        <div class="hud-brief" data-i18n="hud_brief">Strong pace (CS Top 14%). Convert lane prio into river vision and objective setup.</div>
-        <div class="hud-call top">
-          <div class="hud-call-t" data-i18n="hud_c1_t">Free Baron — Enemy JG Dead (32s)</div>
-          <div class="hud-call-d" data-i18n="hud_c1_d">Enemy jungler down for 32s (no enemy Smite). Pull Baron now.</div>
-        </div>
-        <div class="hud-call">
-          <div class="hud-call-t" data-i18n="hud_c2_t">Force Objective (5v3 · 32s window)</div>
-          <div class="hud-call-d" data-i18n="hud_c2_d">Enemy down (2 dead). Push towers or take Baron before respawn.</div>
-        </div>
-        <div class="hud-call">
-          <div class="hud-call-t" data-i18n="hud_c3_t">Recall Timing (1650G)</div>
-          <div class="hud-call-d" data-i18n="hud_c3_d">Enough gold for a spike. Shove wave and reset before next objective.</div>
-        </div>
-        <div class="hud-hint" data-i18n="hud_hint">F8 Click-Through · F9 Hide · Drag to Move · [ ] Opacity</div>
-      </div>
+    <div class="preview-box">
+      <img src="./images/ingame_demo.jpg" alt="PACE MAKER Desktop Live In-Game Overlay Screenshot">
+      <div class="preview-cap" data-i18n="ingame_cap">Actual in-game overlay running over a live 5v5 match (zero FPS drop)</div>
     </div>
   </section>
 
