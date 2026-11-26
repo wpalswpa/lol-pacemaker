@@ -55,12 +55,14 @@ def test_valid_release_installs_and_predictor_uses_it(model_files):
 
 @pytest.mark.parametrize("victim", ["model_extended.onnx", "distribution_stats.json"])
 def test_tampered_file_is_rejected_and_builtin_model_is_used(model_files, victim):
+    from src.predictor import DEFAULT_ASSETS_DIR
+
     res = updater.check_for_update(FakeRelease(model_files, tamper=victim).fetch)
     print("tamper", victim, "->", res)  # shown with -s / -rA
     assert res.status == "rejected" and "SHA-256 mismatch" in res.reason
     assert updater.current_model_dir() is None
     pred = LocalOnnxPredictor()
-    assert pred.mode == "legacy8"  # built-in fallback keeps working
+    assert pred.source is not None and pred.source.parent == DEFAULT_ASSETS_DIR  # built-in fallback keeps working
     assert 0.0 <= pred.predict_win_prob(ScoreboardState()) <= 1.0
 
 
@@ -105,10 +107,12 @@ def test_network_error_and_bad_tag_do_not_raise(model_files):
 
 
 def test_corrupt_installed_model_falls_back_to_builtin(model_files):
+    from src.predictor import DEFAULT_ASSETS_DIR
+
     updater.check_for_update(FakeRelease(model_files).fetch)
     (updater.current_model_dir() / "model_extended.onnx").write_bytes(b"corrupted after install")
     pred = LocalOnnxPredictor()
-    assert pred.mode == "legacy8" and pred.load_errors
+    assert pred.source is not None and pred.source.parent == DEFAULT_ASSETS_DIR and pred.load_errors
 
 
 def test_https_only_transport():

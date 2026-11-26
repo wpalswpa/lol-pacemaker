@@ -58,8 +58,12 @@ def test_languages_are_actually_translated_not_english_fallback(trained_dir):
     assert re.search(r"[가-힣]", out["ko"]["smart_briefing"]) and re.search(r"[ぁ-んァ-ン一-龥]", out["ja"]["smart_briefing"])
 
 
-def test_legacy_model_still_renders_all_languages_without_stats():
-    pred = LocalOnnxPredictor()  # tests run with an empty user home -> bundled 8-feature model
+def test_legacy_model_still_renders_all_languages_without_stats(tmp_path):
+    import shutil
+    from src.predictor import DEFAULT_ASSETS_DIR
+
+    shutil.copy(DEFAULT_ASSETS_DIR / "model_sklearn.onnx", tmp_path / "model_sklearn.onnx")
+    pred = LocalOnnxPredictor(assets_dir=tmp_path, model_dirs=[])
     assert pred.mode == "legacy8" and pred.stats is None
     for lang in LANGS:
         res = evaluate_snapshot(_behind_snapshot(), pred, Translator(lang))

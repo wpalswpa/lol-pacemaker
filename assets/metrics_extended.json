@@ -1,0 +1,51 @@
+{
+  "selected": "logistic",
+  "n_train": 256,
+  "n_eval": 57,
+  "n_matches": 90,
+  "brier": 0.1312,
+  "log_loss": 0.3969,
+  "auc": 0.9275,
+  "onnx_max_diff": 1.1920928955078125e-07,
+  "candidates": [
+    {
+      "model": "logistic",
+      "log_loss": 0.3969,
+      "brier": 0.1312,
+      "auc": 0.9275,
+      "onnx_max_diff": 1.1920928955078125e-07,
+      "parity_ok": true
+    },
+    {
+      "model": "gboost",
+      "log_loss": 0.4953,
+      "brier": 0.1715,
+      "auc": 0.8525,
+      "onnx_max_diff": 7.85714290296724e-08,
+      "parity_ok": true
+    }
+  ],
+  "top_patterns": [
+    {
+      "feature": "cs_diff",
+      "importance": 0.17575
+    },
+    {
+      "feature": "first_blood",
+      "importance": 0.11543
+    },
+    {
+      "feature": "avg_level_diff",
+      "importance": 0.04681
+    },
+    {
+      "feature": "towers_diff",
+      "importance": 0.04646
+    },
+    {
+      "feature": "assists_diff",
+      "importance": 0.04124
+    }
+  ],
+  "stats_cells": 72
+}
