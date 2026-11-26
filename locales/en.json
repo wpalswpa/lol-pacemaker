@@ -8,7 +8,7 @@
   "phase_late": "Late Teamfight",
   "hud_win_rate": "Win Prob",
   "hud_gold_diff": "Team Gold",
-  "hud_hint_keys": "F8 Click-Through · F9 Hide · [ ] Opacity · Drag to Move",
+  "hud_hint_keys": "F8 Click-Through · F9 Hide/Show panels · Drag to Move",
   "rank_summary": "CS Top {cs_pct}% · Level Top {lvl_pct}%",
   "briefing_lead": "Strong pace (CS Top {cs_pct}%). Convert lane prio into river vision and objective setup.",
   "briefing_lag": "Behind tier curve (CS Top {cs_pct}%). Catch safe side waves and avoid coinflip 1v1s.",
@@ -100,5 +100,14 @@
   "consent_ok": "Start",
   "consent_ready": "PACE MAKER is waiting in the background. The HUD will appear when your match starts.",
   "hud_data_on": "DATA ON · anonymous match numbers are shared after each game.",
-  "hud_data_off": "DATA OFF · nothing leaves this PC."
+  "hud_data_off": "DATA OFF · nothing leaves this PC.",
+  "hud_panel_win": "Win chance",
+  "hud_panel_calls": "Calls",
+  "hud_panel_brief": "Briefing",
+  "hud_panel_rank": "Tier check",
+  "hud_menu_title": "Show on screen",
+  "hud_menu_opacity": "Opacity",
+  "hud_menu_lang": "Language",
+  "hud_menu_auto": "Start with computer",
+  "hud_menu_data": "Share anonymous stats"
 }

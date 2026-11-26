@@ -8,7 +8,7 @@
   "phase_late": "후반 한타",
   "hud_win_rate": "예상 승률",
   "hud_gold_diff": "팀 골드",
-  "hud_hint_keys": "F8 클릭 통과 · F9 숨김 · [ ] 투명도 · 드래그 이동",
+  "hud_hint_keys": "F8 클릭 통과 · F9 패널 숨기기/보이기 · 드래그 이동",
   "rank_summary": "CS 상위 {cs_pct}% · 레벨 상위 {lvl_pct}%",
   "briefing_lead": "티어 평균 이상 페이스(CS 상위 {cs_pct}%). 라인 주도권을 강가 시야와 오브젝트 선점으로 연결하세요.",
   "briefing_lag": "티어 평균 대비 성장 열세(CS 상위 {cs_pct}%). 무리한 1대1 교전을 피하고 사이드 웨이브부터 챙기세요.",
@@ -100,5 +100,14 @@
   "consent_ok": "시작",
   "consent_ready": "PACE MAKER가 백그라운드에서 대기 중입니다. 경기가 시작되면 HUD가 나타납니다.",
   "hud_data_on": "DATA 켜짐 · 경기마다 익명 수치를 제공합니다.",
-  "hud_data_off": "DATA 꺼짐 · 어떤 정보도 PC 밖으로 나가지 않습니다."
+  "hud_data_off": "DATA 꺼짐 · 어떤 정보도 PC 밖으로 나가지 않습니다.",
+  "hud_panel_win": "승률",
+  "hud_panel_calls": "오더",
+  "hud_panel_brief": "브리핑",
+  "hud_panel_rank": "티어 진단",
+  "hud_menu_title": "화면에 표시",
+  "hud_menu_opacity": "투명도",
+  "hud_menu_lang": "언어",
+  "hud_menu_auto": "컴퓨터 켤 때 자동 실행",
+  "hud_menu_data": "익명 수치 제공"
 }

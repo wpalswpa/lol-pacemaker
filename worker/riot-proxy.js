@@ -9,6 +9,8 @@
  */
 
 import { handleGames } from "./games.js";
+import { handleSupport } from "./support.js";
+import { handleChat } from "./chat.js";
 
 const ALLOWED_ORIGINS = new Set([
   "https://wpalswpa.github.io",
@@ -47,6 +49,20 @@ export default {
     // AGENTS §14: desktop-app contribution route (no browser CORS needed)
     if (new URL(request.url).pathname === "/v1/games") {
       return handleGames(request, env);
+    }
+
+    // AGENTS §16: support chatbot (browser, CORS-restricted)
+    if (new URL(request.url).pathname === "/v1/chat") {
+      const h = { ...headers, "Access-Control-Allow-Methods": "POST, OPTIONS" };
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: h });
+      return handleChat(request, env, h);
+    }
+
+    // AGENTS §16: in-site contact form (browser, CORS-restricted like the lookup)
+    if (new URL(request.url).pathname === "/v1/support") {
+      const h = { ...headers, "Access-Control-Allow-Methods": "GET, POST, OPTIONS" };
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: h });
+      return handleSupport(request, env, h);
     }
 
     if (request.method === "OPTIONS") {

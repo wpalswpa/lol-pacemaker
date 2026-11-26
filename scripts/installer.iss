@@ -21,6 +21,8 @@ OutputBaseFilename=LoLPacemaker-Setup
 Compression=lzma2/normal
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\assets\branding\icon.ico
+UninstallDisplayIcon={app}\LoLPacemaker.exe
 DisableProgramGroupPage=yes
 
 [Languages]

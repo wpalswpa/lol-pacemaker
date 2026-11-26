@@ -44,3 +44,16 @@ def test_corrupt_or_hostile_settings_are_repaired(tmp_path):
         assert 0 <= s.x <= 1860 and 0 <= s.y <= 1020
         assert OPACITY_MIN <= s.opacity <= OPACITY_MAX and s.lang in (None, *LANGS) and s.tier in ("low", "mid", "high")
     assert load_settings(tmp_path / "missing.json").opacity == 0.9
+
+
+def test_panels_default_toggle_position_and_sanitize():
+    """AGENTS §17-1: separate panels; briefing and tier check start off; positions are clamped."""
+    from src.hud_state import PANELS, HudSettings
+
+    s = HudSettings()
+    assert s.panels_on == {"win": True, "calls": True, "brief": False, "rank": False}
+    s = s.with_panel_toggled("brief").with_panel_pos("calls", 120, 300).toggled_collapsed()
+    assert s.panels_on["brief"] is True and s.panels_pos["calls"] == [120, 300] and s.collapsed
+    bad = HudSettings(panels_on={"win": "yes", "evil": True}, panels_pos={"win": [99999, -9], "evil": [1, 1], "rank": "x"}).sanitized()
+    assert set(bad.panels_on) == set(PANELS) and "evil" not in bad.panels_pos and "rank" not in bad.panels_pos
+    assert bad.panels_pos["win"][1] == 0 and bad.panels_pos["win"][0] < 99999

@@ -331,6 +331,40 @@
 
   /* ── 4-Step Visual Setup Grid ── */
   .steps-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  [hidden] { display: none !important; }  /* author display rules must not un-hide views/tabs */
+  /* per-OS setup guide (AGENTS §13/§17) */
+  .os-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .os-tab { padding: 8px 16px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--sub); font-weight: 800; cursor: pointer; }
+  .os-tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  ol.guide { list-style: none; counter-reset: g; margin: 0; padding: 0; display: grid; gap: 12px; }
+  ol.guide > li { counter-increment: g; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 4px 14px; align-items: start;
+    padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+  ol.guide > li::before { content: counter(g); grid-row: span 2; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--accent); color: #fff; font-weight: 900; }
+  ol.guide h3 { margin: 2px 0 4px; font-size: 15.5px; }
+  ol.guide p { margin: 0; color: var(--sub); font-size: 14px; line-height: 1.6; max-width: 70ch; }
+  .guide-shot { grid-column: 2; max-width: min(100%, 460px); height: auto; border-radius: 8px; border: 1px solid var(--line); margin-top: 10px; }
+  .guide-shot-sm { max-width: 72px; margin-left: 10px; border: 0; vertical-align: top; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .chat { display: grid; gap: 8px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); margin-bottom: 12px; }
+  .chat h3 { margin: 0; font-size: 15.5px; }
+  .chat-log { display: grid; gap: 8px; max-height: 320px; overflow-y: auto; }
+  .chat-msg { padding: 9px 12px; border-radius: 8px; font-size: 14px; line-height: 1.55; max-width: 90%; }
+  .chat-msg.me { justify-self: end; background: var(--accent); color: #fff; }
+  .chat-msg.bot { justify-self: start; background: var(--bg); border: 1px solid var(--line); }
+  .chat-handoff { justify-self: start; padding: 6px 12px; border: 1px solid var(--accent); border-radius: 6px; background: transparent; color: var(--accent); font-weight: 700; cursor: pointer; }
+  .chat-form { display: flex; gap: 6px; }
+  .chat-form input { flex: 1; min-width: 0; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 9px 11px; }
+  .chat-form button { padding: 9px 18px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font-weight: 800; cursor: pointer; }
+  .chat-form button:disabled { opacity: .6; }
+  form.contact { display: grid; gap: 6px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+  form.contact h3 { margin: 0; font-size: 15.5px; }
+  .contact-d { margin: 0 0 6px; color: var(--sub); font-size: 13.5px; }
+  form.contact label { font-size: 13px; font-weight: 700; margin-top: 4px; }
+  form.contact select, form.contact textarea, form.contact input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 9px 11px; }
+  form.contact button { margin-top: 8px; justify-self: start; padding: 10px 22px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font-weight: 800; cursor: pointer; }
+  form.contact button:disabled { opacity: .6; cursor: default; }
+  .contact-status { margin: 4px 0 0; font-size: 13.5px; color: var(--sub); min-height: 1.2em; }
   .step-card {
     background: var(--panel-alt); border: 1px solid var(--line); border-radius: 6px;
     overflow: hidden; display: flex; flex-direction: column;
@@ -405,7 +439,7 @@
   <div class="topbar">
     <div class="topbar-inner">
       <div class="brand-group">
-        <a class="brand" href="#overview">
+        <a class="brand" href="#home">
           <span class="brand-mark">P</span>
           <span>PACE MAKER</span>
         </a>
@@ -426,11 +460,9 @@
   <div class="subbar">
     <div class="subbar-inner">
       <nav class="nav-links" aria-label="Primary">
-        <a href="#overview" aria-current="true" data-i18n="nav_overview">Overview</a>
-        <a href="#history" data-i18n="nav_history">Match History</a>
-        <a href="#setup" data-i18n="nav_setup">How to Use</a>
-        <a href="#faq" data-i18n="nav_faq">Troubleshooting</a>
-        <a href="#support" data-i18n="nav_support">Support</a>
+        <a href="#home" data-view-link="home" aria-current="true" data-i18n="nav_overview">Product</a>
+        <a href="#history" data-view-link="history" data-i18n="nav_history">Match History</a>
+        <a href="#support" data-view-link="support" data-i18n="nav_support">Support</a>
       </nav>
       <form class="hdr-search" id="hdr-search-form">
         <select id="hdr-region" aria-label="Region">
@@ -452,7 +484,7 @@
 
 <main>
   <!-- ── Overview & Action Rail (Above the fold, zero hero fluff) ── -->
-  <section class="block" id="overview">
+  <section class="block" id="overview" data-view="home">
     <div class="page-header">
       <div>
         <h1><span data-i18n="hero_title_a">Your next winning move,</span> <span class="h1-accent" data-i18n="hero_title_b">on screen every 2 seconds.</span></h1>
@@ -518,7 +550,7 @@
   </section>
 
   <!-- ── Global Riot Match Lookup (OP.GG Region Pills + Tabular Match Rows) ── -->
-  <section class="block" id="history">
+  <section class="block" id="history" data-view="history">
     <div class="panel">
       <div class="panel-head">
         <h2 class="panel-title" data-i18n="hist_head">Global Riot Match Lookup</h2>
@@ -556,53 +588,38 @@
   </section>
 
   <!-- ── 4-Step Visual Setup Guide ── -->
-  <section class="block" id="setup">
+  <section class="block" id="setup" data-view="home">
     <div class="panel">
       <div class="panel-head">
         <h2 class="panel-title" data-i18n="setup_head">How to Apply (4 Simple Steps)</h2>
-        <span class="panel-sub">Windows · macOS</span>
+        
       </div>
       <div class="panel-body">
-        <div class="steps-grid">
-          <div class="step-card">
-            <img class="step-shot" src="./images/guide_step1.png" alt="Step 1 Install and Auto-Start">
-            <div class="step-body">
-              <span class="step-tag">STEP 01</span>
-              <h3 data-i18n="s1_t">1-Click Install &amp; Auto-Start</h3>
-              <p data-i18n="s1_d">Run LoLPacemaker-Setup.exe once (or click AUTO on the HUD). It waits silently and pops up automatically when a LoL match starts.</p>
-            </div>
-          </div>
-          <div class="step-card">
-            <img class="step-shot" src="./images/guide_step2.png" alt="Step 2 Set Borderless Window">
-            <div class="step-body">
-              <span class="step-tag">STEP 02</span>
-              <h3 data-i18n="s2_t">Borderless Window</h3>
-              <p data-i18n="s2_d">In League Video Settings, set Window Mode to Borderless so the transparent HUD floats cleanly over the game.</p>
-            </div>
-          </div>
-          <div class="step-card">
-            <img class="step-shot" src="./images/guide_step3.png" alt="Step 3 Auto-Connect All Modes">
-            <div class="step-body">
-              <span class="step-tag">STEP 03</span>
-              <h3 data-i18n="s3_t">Auto-Connect (All Modes)</h3>
-              <p data-i18n="s3_d">Start Ranked, Normal, ARAM, or Practice Tool. The HUD detects your mode automatically and updates every 2 seconds.</p>
-            </div>
-          </div>
-          <div class="step-card">
-            <img class="step-shot" src="./images/guide_step4.png" alt="Step 4 Companion Hotkeys">
-            <div class="step-body">
-              <span class="step-tag">STEP 04</span>
-              <h3 data-i18n="s4_t">Companion Controls</h3>
-              <p data-i18n="s4_d">Drag anywhere to avoid Blitz/Porofessor. F8 click-through, F9 hide/show, [ / ] opacity, and 1-click 5-language switch.</p>
-            </div>
-          </div>
+        <div class="os-tabs" role="tablist">
+          <button type="button" class="os-tab" data-os="win" role="tab" aria-selected="true">Windows</button>
+          <button type="button" class="os-tab" data-os="mac" role="tab" aria-selected="false">macOS</button>
         </div>
+        <ol class="guide" data-os-panel="win">
+            <li><div><h3 data-i18n="gw1_t"></h3><p data-i18n="gw1_d"></p></div></li>
+            <li><div><h3 data-i18n="gw2_t"></h3><p data-i18n="gw2_d"></p></div></li>
+            <li><div><h3 data-i18n="gc_t"></h3><p data-i18n="gc_d"></p></div><img class="guide-shot" src="./images/app_consent.png" alt="First-run window: optional anonymous stats and auto-start" loading="lazy"></li>
+            <li><div><h3 data-i18n="gb_t"></h3><p data-i18n="gb_d"></p></div></li>
+            <li><div><h3 data-i18n="gh_t"></h3><p data-i18n="gh_d"></p></div><img class="guide-shot" src="./images/app_hud.png" alt="PACE MAKER HUD during a match" loading="lazy"><img class="guide-shot guide-shot-sm" src="./images/app_hud_folded.png" alt="Folded PACE MAKER button" loading="lazy"></li>
+        </ol>
+        <ol class="guide" data-os-panel="mac" hidden>
+            <li><div><h3 data-i18n="gm1_t"></h3><p data-i18n="gm1_d"></p></div></li>
+            <li><div><h3 data-i18n="gm2_t"></h3><p data-i18n="gm2_d"></p></div></li>
+            <li><div><h3 data-i18n="gm3_t"></h3><p data-i18n="gm3_d"></p></div></li>
+            <li><div><h3 data-i18n="gc_t"></h3><p data-i18n="gc_d"></p></div><img class="guide-shot" src="./images/app_consent.png" alt="First-run window: optional anonymous stats and auto-start" loading="lazy"></li>
+            <li><div><h3 data-i18n="gb_t"></h3><p data-i18n="gb_d"></p></div></li>
+            <li><div><h3 data-i18n="gh_t"></h3><p data-i18n="gh_d"></p></div><img class="guide-shot" src="./images/app_hud.png" alt="PACE MAKER HUD during a match" loading="lazy"><img class="guide-shot guide-shot-sm" src="./images/app_hud_folded.png" alt="Folded PACE MAKER button" loading="lazy"></li>
+        </ol>
       </div>
     </div>
   </section>
 
   <!-- ── Troubleshooting & Support Split ── -->
-  <section class="block" id="faq">
+  <section class="block" id="faq" data-view="support">
     <div class="bottom-grid">
       <div class="panel">
         <div class="panel-head">
@@ -626,14 +643,34 @@
         </details>
       </div>
 
-      <div class="support-stack" id="support">
-        <div class="sup-row">
-          <div>
-            <h3 data-i18n="sup_bug_t">Bug Reports &amp; Feature Requests</h3>
-            <p data-i18n="sup_bug_d">Found a bug or want a new language/call? Open an issue directly on GitHub.</p>
-          </div>
-          <a class="btn-sm" href="https://github.com/wpalswpa/lol-pacemaker/issues" rel="noopener noreferrer" data-i18n="sup_bug_btn">GitHub Issue</a>
+      <div class="support-stack" id="contact">
+        <div class="chat" id="chat">
+          <h3 data-i18n="chat_t">Ask the assistant</h3>
+          <p class="contact-d" data-i18n="chat_d"></p>
+          <div class="chat-log" id="chat-log" aria-live="polite"></div>
+          <form class="chat-form" id="chat-form">
+            <label class="sr-only" for="chat-input" data-i18n="chat_ph">Type your question</label>
+            <input id="chat-input" type="text" maxlength="500" autocomplete="off">
+            <button type="submit" data-i18n="chat_send">Ask</button>
+          </form>
         </div>
+        <form class="contact" id="contact-form" novalidate>
+          <h3 data-i18n="ct_t">Contact the operator</h3>
+          <p class="contact-d" data-i18n="ct_d"></p>
+          <label for="ct-cat" data-i18n="ct_cat">Topic</label>
+          <select id="ct-cat">
+            <option value="install" data-i18n="ct_c_install">Install / launch</option>
+            <option value="error" data-i18n="ct_c_error">Error</option>
+            <option value="idea" data-i18n="ct_c_idea">Suggestion</option>
+            <option value="delete" data-i18n="ct_c_delete">Delete my data</option>
+          </select>
+          <label for="ct-msg" data-i18n="ct_msg">Message</label>
+          <textarea id="ct-msg" maxlength="2000" rows="5"></textarea>
+          <label for="ct-contact" data-i18n="ct_contact">Email or Discord (optional)</label>
+          <input id="ct-contact" type="text" maxlength="120" autocomplete="email">
+          <button type="submit" data-i18n="ct_send">Send</button>
+          <p class="contact-status" id="ct-status" role="status"></p>
+        </form>
         <div class="sup-row">
           <div>
             <h3 data-i18n="sup_com_t">Community &amp; Updates</h3>
@@ -666,7 +703,7 @@
 const I18N = {
   en: {
     game_lol: "League of Legends",
-    nav_overview: "Overview", nav_history: "Match History", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download App",
+    nav_overview: "Product", nav_history: "Match History", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download App",
     live_panel_title: "In-game screen",
     hist_head: "Global Riot Match Lookup", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
     hero_title_a: "Your next winning move,", hero_title_b: "on screen every 2 seconds.",
@@ -679,7 +716,7 @@ const I18N = {
     dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon (M1 or later)",
     dl_sha_t: "SHA-256 Integrity Checksums", dl_sha_d: "Use this to check that the file you downloaded is the original.",
     dl_sha_btn: "Verify →",
-    setup_head: "How to Apply (4 Simple Steps)",
+    setup_head: "How to set it up",
     s1_t: "1-Click Install & Auto-Start", s1_d: "Run LoLPacemaker-Setup.exe once (or click AUTO on the HUD). It waits silently and pops up automatically when a LoL match starts.",
     s2_t: "Borderless Window", s2_d: "In League Video Settings, set Window Mode to Borderless so the transparent HUD floats cleanly over the game.",
     s3_t: "Auto-Connect (All Modes)", s3_d: "Start Ranked, Normal, ARAM, or Practice Tool. The HUD detects your mode automatically and updates every 2 seconds.",
@@ -694,11 +731,46 @@ const I18N = {
     sec_title: "Riot Policy Safe & Security Guaranteed",
     sec_desc: "Reads only Riot's official local game API (127.0.0.1:2999). No memory reading or screen capture. Match numbers leave your PC only if you opt in, and only anonymously.",
     privacy: "Privacy Policy",
+    gw1_t: "Run the installer",
+    gw1_d: "Open LoLPacemaker-Setup.exe. If a blue \"Windows protected your PC\" box appears, click \"More info\" and then \"Run anyway\". It shows up because this free app has no paid signing certificate.",
+    gw2_t: "Keep auto-start on",
+    gw2_d: "Leave \"Start automatically with Windows\" checked and click Next, Install, Finish. You never have to look for the app again.",
+    gc_t: "Choose once, then start",
+    gc_d: "The first time, a short window asks whether to share anonymous match numbers (off by default). Click Start. After that the app waits quietly in the background.",
+    gb_t: "Set LoL to Borderless",
+    gb_d: "In the game: Settings, Video, Window Mode: Borderless. In full screen nothing can be shown on top of the game.",
+    gh_t: "It appears when the match starts",
+    gh_d: "The HUD shows only during a match, not in the client lobby. Click the orange PACE MAKER button or press F9 to open or fold it, and drag it anywhere.",
+    gm1_t: "Unzip and move to Applications",
+    gm1_d: "Double-click LoLPacemaker-macos.zip, then drag LoLPacemaker into the Applications folder. Works on Apple Silicon Macs (M1 or later).",
+    gm2_t: "Allow it to open",
+    gm2_d: "If macOS says it cannot verify the developer, open System Settings, Privacy & Security, scroll down and click \"Open Anyway\" next to LoLPacemaker.",
+    gm3_t: "Allow the F8 / F9 keys",
+    gm3_d: "To use F8 / F9 while the game has focus, allow LoLPacemaker in System Settings, Privacy & Security, Accessibility. Clicking the HUD works without it.",
+    ct_t: "Contact the operator",
+    ct_d: "Questions, bugs and data deletion requests go straight to the operator. Leave a contact if you want a reply.",
+    ct_cat: "Topic",
+    ct_c_install: "Install / launch",
+    ct_c_error: "Error",
+    ct_c_idea: "Suggestion",
+    ct_c_delete: "Delete my data",
+    ct_msg: "Message",
+    ct_contact: "Email or Discord (optional)",
+    ct_send: "Send",
+    ct_ok: "Sent. Thank you.",
+    ct_err: "Could not send. Please try again in a moment.",
+    ct_empty: "Please write a message.",
+    chat_t: "Ask the assistant",
+    chat_d: "Quick answers about installing and using PACE MAKER. It cannot answer anything else.",
+    chat_ph: "Type your question",
+    chat_send: "Ask",
+    chat_handoff: "Send this to the operator",
+    chat_err: "The assistant is not available right now. Please use the contact form.",
     footer: "LoL Pacemaker isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games."
   },
   ko: {
     game_lol: "리그 오브 레전드",
-    nav_overview: "개요 · 인게임 HUD", nav_history: "전적 검색", nav_setup: "적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
+    nav_overview: "제품 소개", nav_history: "전적 검색", nav_setup: "적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
     live_panel_title: "인게임 화면",
     hist_head: "글로벌 Riot 전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "검색", hist_loading: "전적을 불러오는 중...", hist_err: "소환사를 찾을 수 없거나 형식이 잘못되었습니다 (예: Hide on bush#KR1).", hist_win: "승리", hist_loss: "패배",
     hero_title_a: "이 판을 뒤집을 다음 한 수,", hero_title_b: "2초마다 화면 위에.",
@@ -711,7 +783,7 @@ const I18N = {
     dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon (M1 이후) 맥",
     dl_sha_t: "SHA-256 무결성 검증", dl_sha_d: "내려받은 파일이 원본과 같은지 확인할 때 씁니다.",
     dl_sha_btn: "체크섬 →",
-    setup_head: "적용 방법 (4단계)",
+    setup_head: "적용 방법",
     s1_t: "원클릭 설치 & 자동 실행", s1_d: "LoLPacemaker-Setup.exe를 한 번 설치(또는 HUD 상단 AUTO 클릭)해 두면 다음부터 실행기를 찾지 않아도 롤 경기 시작 시 HUD가 자동으로 뜹니다.",
     s2_t: "테두리 없는 창모드", s2_d: "롤 인게임 [설정 → 화면 → 창 모드]를 '테두리 없음(Borderless)'으로 맞춰야 투명 HUD가 게임 위에 뜹니다.",
     s3_t: "전 모드 자동 연결", s3_d: "랭크, 일반, 칼바람(증바람), 연습모드 경기가 시작되면 2999 공식 API에 자동 연결되어 2초마다 오더를 갱신합니다.",
@@ -726,11 +798,46 @@ const I18N = {
     sec_title: "Riot 운영방침 준수 및 보안 보증",
     sec_desc: "Riot 공식 로컬 게임 API(127.0.0.1:2999)만 읽습니다. 메모리 조작·화면 캡처는 하지 않습니다. 경기 수치는 동의한 경우에만, 익명으로만 PC 밖으로 나갑니다.",
     privacy: "개인정보 처리방침",
+    gw1_t: "설치 파일 실행",
+    gw1_d: "내려받은 LoLPacemaker-Setup.exe를 여세요. 파란 'Windows의 PC 보호' 창이 뜨면 '추가 정보'를 누른 뒤 '실행'을 누르면 됩니다. 유료 서명 인증서가 없는 무료 앱이라 뜨는 안내입니다.",
+    gw2_t: "자동 실행을 켠 채로 설치",
+    gw2_d: "설치 창의 'Start automatically with Windows'(Windows 시작 시 자동 실행)를 체크한 채로 다음 → 설치 → 마침을 누르세요. 다음부터 앱을 찾아 켤 필요가 없습니다.",
+    gc_t: "처음 한 번 고르고 시작",
+    gc_d: "처음 한 번 익명 경기 수치를 제공할지 묻는 창이 뜹니다(기본은 꺼짐). '시작'을 누르면 앱은 백그라운드에서 조용히 기다립니다.",
+    gb_t: "롤 화면을 '테두리 없음'으로",
+    gb_d: "롤 게임 안에서 설정 → 화면 → 창 모드를 '테두리 없음'으로 바꾸세요. 전체 화면에서는 어떤 프로그램도 게임 위에 보일 수 없습니다.",
+    gh_t: "경기가 시작되면 나타납니다",
+    gh_d: "HUD는 롤 클라이언트(로비)가 아니라 경기 중에만 뜹니다. 주황색 PACE MAKER 버튼을 누르거나 F9를 눌러 펼치고 접을 수 있고, 끌어서 원하는 곳에 둘 수 있습니다.",
+    gm1_t: "압축을 풀고 응용 프로그램으로",
+    gm1_d: "LoLPacemaker-macos.zip을 두 번 눌러 풀고, LoLPacemaker를 응용 프로그램 폴더로 끌어 넣으세요. Apple Silicon(M1 이후) 맥에서 동작합니다.",
+    gm2_t: "처음 열 때 허용",
+    gm2_d: "'개발자를 확인할 수 없다'는 창이 뜨면 시스템 설정 → 개인정보 보호 및 보안으로 가서 아래쪽 LoLPacemaker 옆 '그래도 열기'를 누르세요.",
+    gm3_t: "F8·F9 단축키 허용",
+    gm3_d: "게임 중에 F8·F9를 쓰려면 시스템 설정 → 개인정보 보호 및 보안 → 손쉬운 사용에서 LoLPacemaker를 허용하세요. HUD를 마우스로 누르는 것은 허용 없이도 됩니다.",
+    ct_t: "운영자에게 문의",
+    ct_d: "질문, 오류, 데이터 삭제 요청은 운영자에게 바로 전달됩니다. 답장이 필요하면 연락처를 남겨 주세요.",
+    ct_cat: "분류",
+    ct_c_install: "설치·실행",
+    ct_c_error: "오류",
+    ct_c_idea: "제안",
+    ct_c_delete: "내 데이터 삭제",
+    ct_msg: "내용",
+    ct_contact: "이메일 또는 디스코드 (선택)",
+    ct_send: "보내기",
+    ct_ok: "보냈습니다. 고맙습니다.",
+    ct_err: "보내지 못했습니다. 잠시 뒤 다시 시도해 주세요.",
+    ct_empty: "내용을 적어 주세요.",
+    chat_t: "도우미에게 물어보기",
+    chat_d: "PACE MAKER 설치와 사용 방법을 바로 알려 드려요. 그 밖의 질문에는 답하지 않아요.",
+    chat_ph: "질문을 적어 주세요",
+    chat_send: "묻기",
+    chat_handoff: "이 질문을 운영자에게 보내기",
+    chat_err: "지금은 도우미를 쓸 수 없어요. 아래 문의 칸을 이용해 주세요.",
     footer: "LoL Pacemaker는 Riot Games의 공식 승인을 받은 서비스가 아니며 Riot Games의 입장을 대변하지 않습니다."
   },
   ja: {
     game_lol: "リーグ・オブ・レジェンド",
-    nav_overview: "概要・HUD", nav_history: "戦績検索", nav_setup: "導入手順", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
+    nav_overview: "製品紹介", nav_history: "戦績検索", nav_setup: "導入手順", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
     live_panel_title: "ゲーム画面",
     hist_head: "グローバル Riot 戦績検索", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "検索", hist_loading: "戦績を取得中...", hist_err: "サモナーが見つかりません（GameName#Tag形式で入力してください）。", hist_win: "勝利", hist_loss: "敗北",
     hero_title_a: "この試合を勝ちに導く次の一手を、", hero_title_b: "2秒ごとに画面に。",
@@ -743,7 +850,7 @@ const I18N = {
     dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon（M1以降）",
     dl_sha_t: "SHA-256 チェックサム", dl_sha_d: "ダウンロードしたファイルが元のファイルと同じか確認するときに使います。",
     dl_sha_btn: "確認 →",
-    setup_head: "導入手順（4ステップ）",
+    setup_head: "導入方法",
     s1_t: "ワンクリック導入・自動起動", s1_d: "LoLPacemaker-Setup.exeを一度入れる（またはHUDのAUTOを押す）だけで、次回からは試合開始時に自動でHUDが表示されます。",
     s2_t: "ボーダレス設定", s2_d: "LoLのビデオ設定でウィンドウモードを「ボーダレス」にすると透過HUDがゲーム上に表示されます。",
     s3_t: "全モード自動接続", s3_d: "ランク・ノーマル・ARAM開始後に公式2999 APIへ自動接続し、モード別のコールを2秒ごとに更新します。",
@@ -758,11 +865,46 @@ const I18N = {
     sec_title: "Riotポリシー準拠・セキュリティ保証",
     sec_desc: "Riot公式のローカルゲームAPI（127.0.0.1:2999）だけを読み取ります。メモリ操作や画面キャプチャはしません。試合の数値は同意した場合のみ、匿名でPCの外に送られます。",
     privacy: "プライバシーポリシー",
+    gw1_t: "インストーラーを実行",
+    gw1_d: "ダウンロードしたLoLPacemaker-Setup.exeを開きます。青い「WindowsによってPCが保護されました」が出たら「詳細情報」→「実行」を押してください。有料の署名証明書がない無料アプリのため表示されます。",
+    gw2_t: "自動起動をオンのままインストール",
+    gw2_d: "「Start automatically with Windows」（Windows起動時に自動実行）にチェックを入れたまま、次へ→インストール→完了。次回からアプリを探して起動する必要はありません。",
+    gc_t: "最初に一度だけ選んで開始",
+    gc_d: "初回だけ、匿名の試合数値を提供するか尋ねる画面が出ます（初期はオフ）。「開始」を押すと、アプリはバックグラウンドで待機します。",
+    gb_t: "LoLをボーダーレスに",
+    gb_d: "ゲーム内の設定→ビデオ→ウィンドウモードを「ボーダーレス」にします。フルスクリーンではゲームの上に何も表示できません。",
+    gh_t: "試合が始まると表示",
+    gh_d: "HUDはロビーではなく試合中だけ表示されます。オレンジのPACE MAKERボタンかF9で開閉でき、ドラッグで好きな場所に置けます。",
+    gm1_t: "解凍してアプリケーションへ",
+    gm1_d: "LoLPacemaker-macos.zipをダブルクリックして解凍し、LoLPacemakerをアプリケーションフォルダへドラッグします。Apple Silicon（M1以降）のMacで動作します。",
+    gm2_t: "初回の起動を許可",
+    gm2_d: "「開発元を確認できません」と表示されたら、システム設定→プライバシーとセキュリティを開き、下のLoLPacemakerの横にある「このまま開く」を押します。",
+    gm3_t: "F8・F9キーを許可",
+    gm3_d: "ゲーム中にF8・F9を使うには、システム設定→プライバシーとセキュリティ→アクセシビリティでLoLPacemakerを許可してください。HUDのクリック操作は許可なしで使えます。",
+    ct_t: "運営者に問い合わせ",
+    ct_d: "質問・不具合・データ削除の依頼は運営者に直接届きます。返信が必要なら連絡先を残してください。",
+    ct_cat: "種類",
+    ct_c_install: "インストール・起動",
+    ct_c_error: "不具合",
+    ct_c_idea: "提案",
+    ct_c_delete: "データ削除",
+    ct_msg: "内容",
+    ct_contact: "メールまたはDiscord（任意）",
+    ct_send: "送信",
+    ct_ok: "送信しました。ありがとうございます。",
+    ct_err: "送信できませんでした。少し待ってから再度お試しください。",
+    ct_empty: "内容を入力してください。",
+    chat_t: "アシスタントに質問",
+    chat_d: "PACE MAKERのインストールと使い方にすぐ答えます。それ以外の質問には答えません。",
+    chat_ph: "質問を入力してください",
+    chat_send: "質問",
+    chat_handoff: "この質問を運営者に送る",
+    chat_err: "現在アシスタントを利用できません。下の問い合わせ欄をご利用ください。",
     footer: "LoL PacemakerはRiot Gamesの承認を受けたものではなく、Riot Gamesの見解を反映するものではありません。"
   },
   es: {
     game_lol: "League of Legends",
-    nav_overview: "Resumen", nav_history: "Historial", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
+    nav_overview: "Producto", nav_history: "Historial", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
     live_panel_title: "Pantalla de juego",
     hist_head: "Búsqueda Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Cargando partidas...", hist_err: "Invocador no encontrado (usa el formato Nombre#Tag).", hist_win: "VICTORIA", hist_loss: "DERROTA",
     hero_title_a: "Tu próxima jugada ganadora,", hero_title_b: "en pantalla cada 2 segundos.",
@@ -775,7 +917,7 @@ const I18N = {
     dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon (M1 o posterior)",
     dl_sha_t: "Checksums SHA-256", dl_sha_d: "Sirve para comprobar que el archivo descargado es el original.",
     dl_sha_btn: "Verificar →",
-    setup_head: "Cómo Aplicarlo (4 Pasos)",
+    setup_head: "Cómo instalarlo",
     s1_t: "Instalación 1-Clic y Auto-Inicio", s1_d: "Instala LoLPacemaker-Setup.exe una vez (o activa AUTO en el HUD) para que aparezca automáticamente al empezar cualquier partida.",
     s2_t: "Modo Sin Bordes", s2_d: "En los ajustes de video de LoL, cambia el modo de ventana a Sin Bordes (Borderless) para ver el HUD sobre el juego.",
     s3_t: "Conexión Automática", s3_d: "Inicia Ranked, Normal o ARAM. El HUD detecta el modo automáticamente y actualiza calls cada 2 segundos.",
@@ -790,11 +932,46 @@ const I18N = {
     sec_title: "Seguro bajo Políticas de Riot",
     sec_desc: "Solo lee la API local oficial de Riot (127.0.0.1:2999). Sin lectura de memoria ni captura de pantalla. Los números de la partida salen de tu PC solo si das tu consentimiento, y de forma anónima.",
     privacy: "Política de privacidad",
+    gw1_t: "Ejecuta el instalador",
+    gw1_d: "Abre LoLPacemaker-Setup.exe. Si aparece el aviso azul \"Windows protegió tu PC\", pulsa \"Más información\" y luego \"Ejecutar de todas formas\". Sale porque esta app gratuita no tiene un certificado de firma de pago.",
+    gw2_t: "Deja activado el inicio automático",
+    gw2_d: "Deja marcado \"Start automatically with Windows\" (iniciar con Windows) y pulsa Siguiente, Instalar y Finalizar. No tendrás que buscar la app nunca más.",
+    gc_t: "Elige una vez y empieza",
+    gc_d: "La primera vez, una ventana pregunta si quieres compartir números anónimos de partidas (desactivado por defecto). Pulsa Empezar y la app esperará en segundo plano.",
+    gb_t: "Pon LoL en Sin bordes",
+    gb_d: "En el juego: Configuración, Video, Modo de ventana: Sin bordes. En pantalla completa no se puede mostrar nada encima del juego.",
+    gh_t: "Aparece al empezar la partida",
+    gh_d: "El HUD solo aparece durante la partida, no en el lobby. Pulsa el botón naranja PACE MAKER o F9 para abrirlo o plegarlo, y arrástralo donde quieras.",
+    gm1_t: "Descomprime y mueve a Aplicaciones",
+    gm1_d: "Haz doble clic en LoLPacemaker-macos.zip y arrastra LoLPacemaker a la carpeta Aplicaciones. Funciona en Mac con Apple Silicon (M1 o posterior).",
+    gm2_t: "Permite abrirla",
+    gm2_d: "Si macOS dice que no puede verificar al desarrollador, abre Ajustes del Sistema, Privacidad y seguridad, baja y pulsa \"Abrir igualmente\" junto a LoLPacemaker.",
+    gm3_t: "Permite las teclas F8 / F9",
+    gm3_d: "Para usar F8 / F9 mientras juegas, permite LoLPacemaker en Ajustes del Sistema, Privacidad y seguridad, Accesibilidad. Hacer clic en el HUD funciona sin permiso.",
+    ct_t: "Escribe al equipo",
+    ct_d: "Preguntas, errores o solicitudes de borrado llegan directo al equipo. Deja un contacto si quieres respuesta.",
+    ct_cat: "Tema",
+    ct_c_install: "Instalación / inicio",
+    ct_c_error: "Error",
+    ct_c_idea: "Sugerencia",
+    ct_c_delete: "Borrar mis datos",
+    ct_msg: "Mensaje",
+    ct_contact: "Email o Discord (opcional)",
+    ct_send: "Enviar",
+    ct_ok: "Enviado. Gracias.",
+    ct_err: "No se pudo enviar. Inténtalo de nuevo en un momento.",
+    ct_empty: "Escribe un mensaje.",
+    chat_t: "Pregunta al asistente",
+    chat_d: "Respuestas rápidas sobre cómo instalar y usar PACE MAKER. No responde otros temas.",
+    chat_ph: "Escribe tu pregunta",
+    chat_send: "Preguntar",
+    chat_handoff: "Enviar esto al equipo",
+    chat_err: "El asistente no está disponible ahora. Usa el formulario de contacto.",
     footer: "LoL Pacemaker no está avalado por Riot Games y no refleja las opiniones ni puntos de vista de Riot Games."
   },
   pt: {
     game_lol: "League of Legends",
-    nav_overview: "Visão Geral", nav_history: "Histórico", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar App",
+    nav_overview: "Produto", nav_history: "Histórico", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar App",
     live_panel_title: "Tela do jogo",
     hist_head: "Busca Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Carregando partidas...", hist_err: "Invocador não encontrado (use o formato Nome#Tag).", hist_win: "VITÓRIA", hist_loss: "DERROTA",
     hero_title_a: "Sua próxima jogada vencedora,", hero_title_b: "na tela a cada 2 segundos.",
@@ -807,7 +984,7 @@ const I18N = {
     dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon (M1 ou posterior)",
     dl_sha_t: "Checksums SHA-256", dl_sha_d: "Use para conferir se o arquivo baixado é o original.",
     dl_sha_btn: "Verificar →",
-    setup_head: "Como Usar (4 Passos)",
+    setup_head: "Como instalar",
     s1_t: "Instalação 1-Clique e Auto-Início", s1_d: "Instale LoLPacemaker-Setup.exe uma vez (ou clique em AUTO no HUD) para abrir automaticamente sempre que uma partida começar.",
     s2_t: "Modo Sem Moldura", s2_d: "Nas configurações de vídeo do LoL, mude o modo de janela para Sem Moldura (Borderless) para o HUD aparecer sobre o jogo.",
     s3_t: "Conexão Automática", s3_d: "Entre em Ranqueada, Normal ou ARAM. O HUD detecta o modo automaticamente e atualiza calls a cada 2 segundos.",
@@ -822,6 +999,41 @@ const I18N = {
     sec_title: "Seguro nas Políticas da Riot",
     sec_desc: "Lê apenas a API local oficial da Riot (127.0.0.1:2999). Sem leitura de memória nem captura de tela. Os números da partida só saem do seu PC se você consentir, e de forma anônima.",
     privacy: "Política de privacidade",
+    gw1_t: "Execute o instalador",
+    gw1_d: "Abra o LoLPacemaker-Setup.exe. Se aparecer o aviso azul \"O Windows protegeu o computador\", clique em \"Mais informações\" e depois em \"Executar assim mesmo\". Ele aparece porque este app gratuito não tem certificado de assinatura pago.",
+    gw2_t: "Deixe o início automático ligado",
+    gw2_d: "Deixe marcado \"Start automatically with Windows\" (iniciar com o Windows) e clique em Avançar, Instalar e Concluir. Você não precisa mais procurar o app.",
+    gc_t: "Escolha uma vez e comece",
+    gc_d: "Na primeira vez, uma janela pergunta se você quer compartilhar números anônimos de partidas (desligado por padrão). Clique em Começar e o app fica aguardando em segundo plano.",
+    gb_t: "Deixe o LoL em Sem bordas",
+    gb_d: "No jogo: Configurações, Vídeo, Modo de janela: Sem bordas. Em tela cheia nada pode aparecer por cima do jogo.",
+    gh_t: "Aparece quando a partida começa",
+    gh_d: "O HUD só aparece durante a partida, não no lobby. Clique no botão laranja PACE MAKER ou em F9 para abrir ou recolher, e arraste para onde quiser.",
+    gm1_t: "Descompacte e mova para Aplicativos",
+    gm1_d: "Clique duas vezes em LoLPacemaker-macos.zip e arraste o LoLPacemaker para a pasta Aplicativos. Funciona em Mac com Apple Silicon (M1 ou posterior).",
+    gm2_t: "Permita abrir",
+    gm2_d: "Se o macOS disser que não pode verificar o desenvolvedor, abra Ajustes do Sistema, Privacidade e Segurança, role para baixo e clique em \"Abrir Mesmo Assim\" ao lado do LoLPacemaker.",
+    gm3_t: "Permita as teclas F8 / F9",
+    gm3_d: "Para usar F8 / F9 durante o jogo, permita o LoLPacemaker em Ajustes do Sistema, Privacidade e Segurança, Acessibilidade. Clicar no HUD funciona sem isso.",
+    ct_t: "Fale com a equipe",
+    ct_d: "Dúvidas, erros ou pedidos de exclusão vão direto para a equipe. Deixe um contato se quiser resposta.",
+    ct_cat: "Assunto",
+    ct_c_install: "Instalação / abertura",
+    ct_c_error: "Erro",
+    ct_c_idea: "Sugestão",
+    ct_c_delete: "Apagar meus dados",
+    ct_msg: "Mensagem",
+    ct_contact: "E-mail ou Discord (opcional)",
+    ct_send: "Enviar",
+    ct_ok: "Enviado. Obrigado.",
+    ct_err: "Não foi possível enviar. Tente de novo em instantes.",
+    ct_empty: "Escreva uma mensagem.",
+    chat_t: "Pergunte ao assistente",
+    chat_d: "Respostas rápidas sobre como instalar e usar o PACE MAKER. Não responde outros assuntos.",
+    chat_ph: "Digite sua pergunta",
+    chat_send: "Perguntar",
+    chat_handoff: "Enviar isto para a equipe",
+    chat_err: "O assistente não está disponível agora. Use o formulário de contato.",
     footer: "LoL Pacemaker não é endossado pela Riot Games e não reflete as visões ou opiniões da Riot Games."
   }
 };
@@ -862,8 +1074,7 @@ function detectLang() {
     const saved = localStorage.getItem("pacemaker_lang");
     if (saved && I18N[saved]) return saved;
   } catch (_) {}
-  const nav = (navigator.language || "en").slice(0, 2).toLowerCase();
-  return I18N[nav] ? nav : "en";
+  return "en";  // default is English; a chosen language is remembered (2026-11-26)
 }
 
 function applyLang(lang) {
@@ -881,17 +1092,91 @@ function applyLang(lang) {
 document.getElementById("lang-select").addEventListener("change", e => applyLang(e.target.value));
 applyLang(detectLang());
 
-/* Scrollspy for subbar tabs */
-const navAnchors = [...document.querySelectorAll(".nav-links a[href^='#']")];
-const spyTargets = navAnchors.map(a => document.querySelector(a.getAttribute("href"))).filter(Boolean);
-if ("IntersectionObserver" in window && spyTargets.length) {
-  const io = new IntersectionObserver(entries => {
-    const top = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-    if (!top) return;
-    navAnchors.forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + top.target.id ? "true" : "false"));
-  }, { rootMargin: "-20% 0px -65% 0px" });
-  spyTargets.forEach(s => io.observe(s));
+const WORKER_URL = "https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev";
+
+/* Three menus (AGENTS §17): show one group at a time; old anchors still land in the right group */
+const VIEW_OF = { "": "home", "#home": "home", "#overview": "home", "#downloads": "home", "#setup": "home",
+  "#history": "history", "#support": "support", "#faq": "support", "#contact": "support" };
+function showView() {
+  const view = VIEW_OF[location.hash] || "home";
+  document.querySelectorAll("section[data-view]").forEach(sec => { sec.hidden = sec.getAttribute("data-view") !== view; });
+  document.querySelectorAll(".nav-links a[data-view-link]").forEach(a =>
+    a.setAttribute("aria-current", a.getAttribute("data-view-link") === view ? "true" : "false"));
+  const target = location.hash && document.querySelector(location.hash);
+  if (target && !["#home", "#history", "#support"].includes(location.hash)) target.scrollIntoView();
+  else window.scrollTo(0, 0);
 }
+window.addEventListener("hashchange", showView);
+showView();
+
+/* Setup guide: Windows / macOS tabs, pre-selected from the visitor's OS */
+function pickOs(os) {
+  document.querySelectorAll(".os-tab").forEach(b => b.setAttribute("aria-selected", String(b.getAttribute("data-os") === os)));
+  document.querySelectorAll("[data-os-panel]").forEach(p => { p.hidden = p.getAttribute("data-os-panel") !== os; });
+}
+document.querySelectorAll(".os-tab").forEach(b => b.addEventListener("click", () => pickOs(b.getAttribute("data-os"))));
+pickOs(/Mac/i.test(navigator.userAgent) ? "mac" : "win");
+
+/* Support assistant (AGENTS §16): answers only how to use the app; the Worker filters before and after the model */
+function chatBubble(cls, text) {
+  const d = document.createElement("div");
+  d.className = "chat-msg " + cls;
+  d.textContent = text;
+  document.getElementById("chat-log").appendChild(d);
+  d.scrollIntoView({ block: "nearest" });
+  return d;
+}
+document.getElementById("chat-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const dict = I18N[document.documentElement.lang] || I18N.en;
+  const input = document.getElementById("chat-input");
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = "";
+  chatBubble("me", q);
+  const btn = e.target.querySelector("button");
+  btn.disabled = true;
+  try {
+    const res = await fetch(WORKER_URL + "/v1/chat", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: q, lang: document.documentElement.lang }) });
+    const data = await res.json();
+    chatBubble("bot", res.ok && data.reply ? data.reply : dict.chat_err);
+    if (!res.ok || data.handoff) {
+      const h = document.createElement("button");
+      h.type = "button"; h.className = "chat-handoff"; h.textContent = dict.chat_handoff;
+      h.addEventListener("click", () => { const m = document.getElementById("ct-msg"); m.value = q; m.focus(); });
+      document.getElementById("chat-log").appendChild(h);
+    }
+  } catch (_) {
+    chatBubble("bot", dict.chat_err);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* In-site contact (AGENTS §16): goes to the operator through our Worker, never GitHub */
+document.getElementById("contact-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const dict = I18N[document.documentElement.lang] || I18N.en;
+  const status = document.getElementById("ct-status");
+  const msg = document.getElementById("ct-msg").value.trim();
+  if (!msg) { status.textContent = dict.ct_empty; return; }
+  const btn = e.target.querySelector("button");
+  btn.disabled = true;
+  try {
+    const res = await fetch(WORKER_URL + "/v1/support", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: document.getElementById("ct-cat").value, message: msg,
+        contact: document.getElementById("ct-contact").value.trim(), lang: document.documentElement.lang }),
+    });
+    status.textContent = res.ok ? dict.ct_ok : dict.ct_err;
+    if (res.ok) { document.getElementById("ct-msg").value = ""; document.getElementById("ct-contact").value = ""; }
+  } catch (_) {
+    status.textContent = dict.ct_err;
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 /* Sync region across header select, form select, and OP.GG-style region pills */
 function setRegion(reg) {
@@ -907,8 +1192,7 @@ document.querySelectorAll(".region-btn").forEach(btn => {
 document.getElementById("riot-region").addEventListener("change", e => setRegion(e.target.value));
 document.getElementById("hdr-region").addEventListener("change", e => setRegion(e.target.value));
 
-/* Global Riot Match Lookup via $0 Cloudflare Worker */
-const WORKER_URL = "https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev";
+/* Riot match lookup through our Cloudflare Worker proxy */
 async function runMatchLookup(region, rawInput) {
   const statusEl = document.getElementById("match-status");
   const listEl = document.getElementById("match-list");
@@ -925,16 +1209,16 @@ async function runMatchLookup(region, rawInput) {
   statusEl.textContent = dict.hist_loading;
   listEl.replaceChildren();
   try {
-    const url = WORKER_URL + "/api/matches?region=" + encodeURIComponent(region)
-      + "&gameName=" + encodeURIComponent(gameName)
-      + "&tagLine=" + encodeURIComponent(tagLine);
+    // Worker contract (worker/riot-proxy.js): GET /?riot_id=Name#Tag&region=kr
+    const url = WORKER_URL + "/?riot_id=" + encodeURIComponent(gameName + "#" + tagLine)
+      + "&region=" + encodeURIComponent(String(region).toLowerCase());
     const res = await fetch(url);
     const data = await res.json();
     if (!res.ok || !Array.isArray(data.matches)) {
-      statusEl.textContent = data.error || dict.hist_err;
+      statusEl.textContent = dict.hist_err;  // never show raw error codes to players
       return;
     }
-    statusEl.textContent = data.riotId + " (" + String(data.region || region).toUpperCase() + ")";
+    statusEl.textContent = data.riot_id + " (" + String(data.region || region).toUpperCase() + ")";
     data.matches.forEach(m => {
       const row = document.createElement("div");
       row.className = "match-row " + (m.win ? "win" : "loss");
@@ -958,7 +1242,7 @@ async function runMatchLookup(region, rawInput) {
 
       const dur = document.createElement("span");
       dur.className = "match-dur";
-      dur.textContent = Math.floor(m.durationSec / 60) + "m " + String(m.durationSec % 60).padStart(2, "0") + "s";
+      dur.textContent = m.durationMin + "m";
 
       row.append(badge, champ, kda, cs, dur);
       listEl.appendChild(row);

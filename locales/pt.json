@@ -8,7 +8,7 @@
   "phase_late": "Late Game",
   "hud_win_rate": "Prob. Vitória",
   "hud_gold_diff": "Ouro da Equipe",
-  "hud_hint_keys": "F8 Clique através · F9 Ocultar · [ ] Opacidade · Arraste para mover",
+  "hud_hint_keys": "F8 Clique através · F9 Ocultar/mostrar painéis · Arraste para mover",
   "rank_summary": "CS Top {cs_pct}% · Nível Top {lvl_pct}%",
   "briefing_lead": "Ótimo ritmo (CS Top {cs_pct}%). Converta pressão de rota em visão e objetivos.",
   "briefing_lag": "Abaixo da média do elo (CS Top {cs_pct}%). Farme seguro nas sides e evite 1v1.",
@@ -100,5 +100,14 @@
   "consent_ok": "Começar",
   "consent_ready": "O PACE MAKER está aguardando em segundo plano. O HUD aparece quando sua partida começar.",
   "hud_data_on": "DATA ligado · números anônimos são compartilhados após cada partida.",
-  "hud_data_off": "DATA desligado · nada sai deste PC."
+  "hud_data_off": "DATA desligado · nada sai deste PC.",
+  "hud_panel_win": "Chance de vitória",
+  "hud_panel_calls": "Ordens",
+  "hud_panel_brief": "Resumo",
+  "hud_panel_rank": "Nível do elo",
+  "hud_menu_title": "Mostrar na tela",
+  "hud_menu_opacity": "Opacidade",
+  "hud_menu_lang": "Idioma",
+  "hud_menu_auto": "Iniciar com o computador",
+  "hud_menu_data": "Compartilhar dados anônimos"
 }

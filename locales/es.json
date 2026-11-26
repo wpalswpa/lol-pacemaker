@@ -8,7 +8,7 @@
   "phase_late": "Juego Tardío",
   "hud_win_rate": "Prob. Victoria",
   "hud_gold_diff": "Oro de Equipo",
-  "hud_hint_keys": "F8 Clic a través · F9 Ocultar · [ ] Opacidad · Arrastrar para mover",
+  "hud_hint_keys": "F8 Clic a través · F9 Ocultar/mostrar paneles · Arrastrar para mover",
   "rank_summary": "CS Top {cs_pct}% · Nivel Top {lvl_pct}%",
   "briefing_lead": "Gran ritmo (CS Top {cs_pct}%). Convierte tu prioridad en visión de río y objetivos.",
   "briefing_lag": "Detrás de tu tier (CS Top {cs_pct}%). Farmea oleadas seguras y evita 1v1 arriesgados.",
@@ -100,5 +100,14 @@
   "consent_ok": "Empezar",
   "consent_ready": "PACE MAKER espera en segundo plano. El HUD aparecerá cuando empiece tu partida.",
   "hud_data_on": "DATA activado · se comparten números anónimos tras cada partida.",
-  "hud_data_off": "DATA desactivado · nada sale de este PC."
+  "hud_data_off": "DATA desactivado · nada sale de este PC.",
+  "hud_panel_win": "Prob. de victoria",
+  "hud_panel_calls": "Órdenes",
+  "hud_panel_brief": "Resumen",
+  "hud_panel_rank": "Nivel de división",
+  "hud_menu_title": "Mostrar en pantalla",
+  "hud_menu_opacity": "Opacidad",
+  "hud_menu_lang": "Idioma",
+  "hud_menu_auto": "Iniciar con el ordenador",
+  "hud_menu_data": "Compartir datos anónimos"
 }

@@ -32,6 +32,8 @@ def build() -> Path:
         "--exclude-module", "sklearn", "--exclude-module", "skl2onnx", "--exclude-module", "scipy",
         "--exclude-module", "pandas", "--exclude-module", "matplotlib",
     ]
+    # App icon: rounded orange "PACE / MAKER" (scripts/make_icon.py, AGENTS §17)
+    args += ["--icon", str(ROOT / "assets" / "branding" / ("icon.ico" if sys.platform == "win32" else "icon.icns"))]
     if sys.platform == "win32":
         args.append("--onefile")
     args.append(str(ROOT / "pacemaker.py"))

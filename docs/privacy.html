@@ -98,8 +98,7 @@ function pick() {
   const q = (new URLSearchParams(location.search).get("lang") || "").toLowerCase();
   if (P[q]) return q;
   try { const s = (localStorage.getItem("pacemaker_lang") || "").toLowerCase(); if (P[s]) return s; } catch (_) {}
-  const n = (navigator.language || "en").slice(0, 2).toLowerCase();
-  return P[n] ? n : "en";
+  return "en";
 }
 function render(lang) {
   const d = P[lang] || P.en;

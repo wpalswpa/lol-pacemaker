@@ -8,7 +8,7 @@
   "phase_late": "終盤集団戦",
   "hud_win_rate": "予想勝率",
   "hud_gold_diff": "チームゴールド",
-  "hud_hint_keys": "F8 クリック透過 · F9 非表示 · [ ] 透明度 · ドラッグで移動",
+  "hud_hint_keys": "F8 クリック透過 · F9 パネル表示切替 · ドラッグで移動",
   "rank_summary": "CS 上位 {cs_pct}% · レベル 上位 {lvl_pct}%",
   "briefing_lead": "ティア平均以上のペース (CS 上位 {cs_pct}%)。レーン主導権を川視界とオブジェクトに繋げよう。",
   "briefing_lag": "ティア平均より遅れ (CS 上位 {cs_pct}%)。無理な1v1を避け安全にサイドウェーブを回収しよう。",
@@ -100,5 +100,14 @@
   "consent_ok": "開始",
   "consent_ready": "PACE MAKERはバックグラウンドで待機中です。試合が始まるとHUDが表示されます。",
   "hud_data_on": "DATA オン · 試合ごとに匿名の数値を提供します。",
-  "hud_data_off": "DATA オフ · 情報はPCの外に出ません。"
+  "hud_data_off": "DATA オフ · 情報はPCの外に出ません。",
+  "hud_panel_win": "勝率",
+  "hud_panel_calls": "指示",
+  "hud_panel_brief": "ブリーフィング",
+  "hud_panel_rank": "ティア診断",
+  "hud_menu_title": "画面に表示",
+  "hud_menu_opacity": "透明度",
+  "hud_menu_lang": "言語",
+  "hud_menu_auto": "PC起動時に自動実行",
+  "hud_menu_data": "匿名数値の提供"
 }

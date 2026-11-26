@@ -14,12 +14,12 @@ from src.updater import check_for_update
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="LoL Pacemaker — free, zero-server LoL companion")
-    ap.add_argument("--lang", default=None, help="en | ko | ja | es | pt (default: saved choice, else OS locale)")
+    ap.add_argument("--lang", default=None, help="en | ko | ja | es | pt (default: saved choice, else English)")
     ap.add_argument("--tier", default=None, choices=TIERS, help="your tier bucket for baselines: low=Iron-Gold, mid=Plat-Emerald, high=Diamond+")
     ap.add_argument("--web", action="store_true", help="serve the browser HUD instead of the overlay window")
     ap.add_argument("--port", type=int, default=8787)
     ap.add_argument("--no-update", action="store_true", help="skip the model update check")
-    ap.add_argument("--background", action="store_true", help="start hidden and auto-show only while a LoL match is active")
+    ap.add_argument("--background", action="store_true", help="silent start (login/installer): no 3-second waiting notice")
     args = ap.parse_args(argv)
 
     settings = load_settings()
@@ -39,7 +39,7 @@ def main(argv: list[str] | None = None) -> int:
         tier=lambda: engine.tier,
     )
     engine = Engine(
-        LocalOnnxPredictor(), Translator(lang=settings.lang), tier=settings.tier,
+        LocalOnnxPredictor(), Translator(lang=settings.lang or "en"), tier=settings.tier,
         on_poll=lambda raw, snap: recorder.observe(raw, snap.game_time, snap.game_mode, snap.scoreboard.to_feature_dict()),
     )
     if args.web:
@@ -51,7 +51,9 @@ def main(argv: list[str] | None = None) -> int:
     save_settings(settings)
     from src.overlay import Overlay  # imports tkinter only when the GUI is requested
 
-    overlay = Overlay(engine, settings, background_mode=args.background)
+    # AGENTS §17: the HUD only shows during a match, however it was launched.
+    # A manual launch (no --background) shows a 3-second "waiting" notice first.
+    overlay = Overlay(engine, settings, background_mode=True, announce=not args.background)
     current["settings"] = lambda: overlay.settings
     overlay.run()
     return 0
