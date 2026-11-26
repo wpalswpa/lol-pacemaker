@@ -4,284 +4,423 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self' https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev;">
-<title>PACE MAKER Desktop — Real-Time LoL AI Coach</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%2338bdf8'/%3E%3C/svg%3E">
+<title>PACE MAKER — Real-Time LoL AI Coach &amp; Match Lookup</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23ff5a1f'/%3E%3Cpath d='M4 11V5h3.5a2 2 0 0 1 0 4H6v2H4z' fill='%23fff'/%3E%3C/svg%3E">
 <script>
 (function () {
-  try { var t = localStorage.getItem("pacemaker_theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (_) {}
+  try {
+    var t = localStorage.getItem("pacemaker_theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  } catch (_) {}
 })();
 </script>
 <style>
+  /* Theme tokens: DAK.GG-inspired crisp light + Blitz/OP.GG-inspired deep charcoal dark */
   :root {
     color-scheme: light;
-    --bg: #f3f5f9; --surface: #ffffff; --surface2: #e9edf4; --line: #d3d9e5;
-    --text: #0a1020; --sub: #3f4b63; --dim: #66728a;
-    --accent: #0369a1; --accent-hover: #075985; --on-accent: #ffffff;
-    --amber: #b45309; --win: #0f766e; --loss: #be123c;
-    --hdr: rgba(243, 245, 249, 0.88); --shadow: #cfd7e6;
+    --topbar-bg: #181B24;
+    --topbar-border: #262B38;
+    --topbar-text: #F1F5F9;
+    --topbar-muted: #9CA3AF;
+    --subbar-bg: #FFFFFF;
+    --bg: #F2F4F7;
+    --panel: #FFFFFF;
+    --panel-alt: #F7F9FC;
+    --panel-hover: #EEF2F7;
+    --line: #E1E6EF;
+    --line-strong: #CBD3E1;
+    --text: #111827;
+    --sub: #4B5563;
+    --dim: #6B7280;
+    --accent: #EA4C14;
+    --accent-hover: #D23F0C;
+    --accent-soft: rgba(234, 76, 20, 0.10);
+    --on-accent: #FFFFFF;
+    --win: #2563EB;
+    --win-bg: #ECF2FF;
+    --loss: #DC2626;
+    --loss-bg: #FFF1F3;
+    --safe: #059669;
+    --safe-bg: #ECFDF5;
     --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --bg: #070b14; --surface: #0d1424; --surface2: #131c32; --line: #1f2c49;
-      --text: #e8eefc; --sub: #a3b3d1; --dim: #7083a6;
-      --accent: #38bdf8; --accent-hover: #7dd3fc; --on-accent: #04101f;
-      --amber: #fbbf24; --win: #2dd4bf; --loss: #fb7185;
-      --hdr: rgba(7, 11, 20, 0.88); --shadow: #0f1a31;
+      --topbar-bg: #0B0D12;
+      --topbar-border: #1C202C;
+      --topbar-text: #F8FAFC;
+      --topbar-muted: #94A3B8;
+      --subbar-bg: #141720;
+      --bg: #0E1015;
+      --panel: #161922;
+      --panel-alt: #1C202C;
+      --panel-hover: #222736;
+      --line: #252A38;
+      --line-strong: #32394C;
+      --text: #F1F5F9;
+      --sub: #9CA3AF;
+      --dim: #6B7280;
+      --accent: #FF5A1F;
+      --accent-hover: #FF713D;
+      --accent-soft: rgba(255, 90, 31, 0.14);
+      --on-accent: #FFFFFF;
+      --win: #5383E8;
+      --win-bg: rgba(83, 131, 232, 0.13);
+      --loss: #E84057;
+      --loss-bg: rgba(232, 64, 87, 0.13);
+      --safe: #34D399;
+      --safe-bg: rgba(52, 211, 153, 0.10);
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --bg: #070b14; --surface: #0d1424; --surface2: #131c32; --line: #1f2c49;
-    --text: #e8eefc; --sub: #a3b3d1; --dim: #7083a6;
-    --accent: #38bdf8; --accent-hover: #7dd3fc; --on-accent: #04101f;
-    --amber: #fbbf24; --win: #2dd4bf; --loss: #fb7185;
-    --hdr: rgba(7, 11, 20, 0.88); --shadow: #0f1a31;
+    --topbar-bg: #0B0D12;
+    --topbar-border: #1C202C;
+    --topbar-text: #F8FAFC;
+    --topbar-muted: #94A3B8;
+    --subbar-bg: #141720;
+    --bg: #0E1015;
+    --panel: #161922;
+    --panel-alt: #1C202C;
+    --panel-hover: #222736;
+    --line: #252A38;
+    --line-strong: #32394C;
+    --text: #F1F5F9;
+    --sub: #9CA3AF;
+    --dim: #6B7280;
+    --accent: #FF5A1F;
+    --accent-hover: #FF713D;
+    --accent-soft: rgba(255, 90, 31, 0.14);
+    --on-accent: #FFFFFF;
+    --win: #5383E8;
+    --win-bg: rgba(83, 131, 232, 0.13);
+    --loss: #E84057;
+    --loss-bg: rgba(232, 64, 87, 0.13);
+    --safe: #34D399;
+    --safe-bg: rgba(52, 211, 153, 0.10);
   }
+
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   html, body {
     margin: 0; padding: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.6 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans JP", "Segoe UI", sans-serif;
+    font: 14px/1.55 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans JP", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
   a { color: inherit; text-decoration: none; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-  header {
-    border-bottom: 1px solid var(--line); background: var(--hdr);
-    position: sticky; top: 0; z-index: 20; backdrop-filter: blur(10px);
+  /* ── 2-Tier Pro App Shell Header (OP.GG + Blitz.gg + DAK.GG) ── */
+  header.app-header { position: sticky; top: 0; z-index: 30; }
+
+  .topbar {
+    background: var(--topbar-bg); color: var(--topbar-text);
+    border-bottom: 1px solid var(--topbar-border);
   }
-  .nav {
-    max-width: 1120px; margin: 0 auto; padding: 0 24px; min-height: 58px;
-    display: flex; align-items: stretch; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  .topbar-inner {
+    max-width: 1240px; margin: 0 auto; padding: 0 20px; height: 46px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
   }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; letter-spacing: -0.01em; }
-  .brand-badge {
-    display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 2px;
-    background: var(--accent); color: var(--on-accent);
-    font: 800 11px/1.4 var(--mono); letter-spacing: .08em;
+  .brand-group { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .brand {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-weight: 900; font-size: 14px; letter-spacing: 0.04em; color: #FFFFFF; white-space: nowrap;
   }
-  .nav-links { display: flex; align-items: stretch; gap: 4px; font-size: 14px; font-weight: 600; flex-wrap: wrap; }
-  .nav-links a {
-    display: flex; align-items: center; padding: 0 12px; color: var(--sub);
-    border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
+  .brand-mark {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 5px;
+    background: var(--accent); color: #FFFFFF; font: 900 13px/1 var(--mono);
   }
-  .nav-links a:hover { color: var(--text); }
-  .nav-links a[aria-current="true"] { color: var(--text); border-bottom-color: var(--accent); }
-  .nav-right { display: flex; align-items: center; gap: 8px; }
+  .game-tab {
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
+    border-radius: 5px; background: rgba(255,255,255,0.08);
+    font-size: 12.5px; font-weight: 700; color: #FFFFFF; white-space: nowrap;
+  }
+  .game-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--safe); }
+  .ver-pill {
+    font: 600 11.5px/1 var(--mono); color: var(--topbar-muted);
+    padding: 4px 8px; border-radius: 4px; border: 1px solid var(--topbar-border); white-space: nowrap;
+  }
+
+  .topbar-actions { display: flex; align-items: center; gap: 8px; }
   select#lang-select, .icon-btn {
-    background: var(--surface); color: var(--text); border: 1px solid var(--line);
-    border-radius: 4px; padding: 7px 10px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+    background: rgba(255,255,255,0.06); color: #F1F5F9; border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 5px; height: 30px; padding: 0 9px; font-size: 12px; font-weight: 700; cursor: pointer;
   }
+  select#lang-select option { background: #181B24; color: #F1F5F9; }
   select#lang-select:hover, .icon-btn:hover { border-color: var(--accent); }
-  .icon-btn { width: 34px; height: 34px; padding: 0; font-size: 16px; line-height: 1; }
+  .icon-btn { width: 30px; padding: 0; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
   .nav-cta {
-    display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 4px;
-    background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 800;
-    transition: background .15s;
+    display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 13px;
+    border-radius: 5px; background: var(--accent); color: var(--on-accent);
+    font-size: 12.5px; font-weight: 800; white-space: nowrap; transition: background .15s;
   }
   .nav-cta:hover { background: var(--accent-hover); }
 
-  main { max-width: 1120px; margin: 0 auto; padding: 56px 24px 80px; counter-reset: sec; }
-  section.block { margin-top: 72px; scroll-margin-top: 80px; }
+  .subbar {
+    background: var(--subbar-bg); border-bottom: 1px solid var(--line);
+  }
+  .subbar-inner {
+    max-width: 1240px; margin: 0 auto; padding: 0 20px; min-height: 50px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+  .nav-links { display: flex; align-items: stretch; gap: 2px; height: 50px; }
+  .nav-links a {
+    display: flex; align-items: center; padding: 0 13px; font-size: 13.5px; font-weight: 700;
+    color: var(--sub); border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; white-space: nowrap;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .nav-links a[aria-current="true"] { color: var(--text); border-bottom-color: var(--accent); }
 
-  .eyebrow {
-    display: block; border-left: 3px solid var(--amber); padding-left: 10px; margin-bottom: 18px;
-    font: 700 12px/1.5 var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--sub);
+  /* Inline Header Search (OP.GG / Blitz / DAK.GG signature) */
+  .hdr-search {
+    display: flex; align-items: center; background: var(--panel-alt);
+    border: 1px solid var(--line); border-radius: 6px; overflow: hidden; height: 34px; width: 340px; max-width: 100%;
   }
-  h1 { font-size: clamp(32px, 5.2vw, 54px); font-weight: 900; letter-spacing: -0.035em; margin: 0 0 16px; line-height: 1.1; max-width: 860px; }
-  .hero-desc { color: var(--sub); font-size: 16px; max-width: 680px; margin: 0 0 26px; }
-  .cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
-  .btn-primary, .btn-ghost {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 12px 22px; border-radius: 4px; font-size: 14.5px; font-weight: 800;
-    transition: background .15s, border-color .15s, transform .15s;
+  .hdr-search:focus-within { border-color: var(--accent); }
+  .hdr-search select {
+    background: transparent; color: var(--text); border: 0; border-right: 1px solid var(--line);
+    height: 100%; padding: 0 8px; font: 800 12px/1 var(--mono); cursor: pointer;
   }
-  .btn-primary { background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent); }
-  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-  .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 700; }
-  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .hdr-search input {
+    flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text);
+    padding: 0 10px; font-size: 13px; font-weight: 600; outline: none;
+  }
+  .hdr-search button {
+    border: 0; background: var(--accent); color: #FFFFFF; height: 100%; padding: 0 12px;
+    font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap;
+  }
+  .hdr-search button:hover { background: var(--accent-hover); }
 
-  .meta-row {
-    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0;
-    border: 1px solid var(--line); background: var(--surface); margin-bottom: 28px;
+  /* ── Main Portal Workspace ── */
+  main { max-width: 1240px; margin: 0 auto; padding: 20px 20px 64px; }
+  section.block { margin-top: 22px; scroll-margin-top: 110px; }
+  section.block:first-child { margin-top: 0; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
   }
-  .meta-row > span {
-    display: block; padding: 14px 18px; font: 600 11.5px/1.4 var(--mono); letter-spacing: .04em;
-    text-transform: uppercase; color: var(--dim); border-right: 1px solid var(--line);
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel-alt);
   }
-  .meta-row > span:last-child { border-right: 0; }
-  .meta-row strong {
-    display: block; margin-top: 4px; font: 800 16px/1.3 var(--mono); letter-spacing: -0.01em;
-    text-transform: none; color: var(--text); font-variant-numeric: tabular-nums;
+  .panel-title {
+    margin: 0; font-size: 14.5px; font-weight: 800; letter-spacing: -0.01em;
+    display: flex; align-items: center; gap: 8px;
   }
-  @media (max-width: 760px) {
-    .meta-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .meta-row > span:nth-child(2) { border-right: 0; }
-    .meta-row > span:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
-    .nav-links { display: none; }
+  .panel-sub { font-size: 12.5px; color: var(--sub); font-weight: 600; }
+  .panel-body { padding: 16px; }
+
+  /* Above-the-fold 2-column workspace (Blitz / DAK.GG density) */
+  .workspace-grid {
+    display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start;
+  }
+  .page-header {
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .crumb { font: 700 11.5px/1.3 var(--mono); color: var(--accent); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+  h1 { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.25; }
+  .hero-desc { margin: 4px 0 0; font-size: 13.5px; color: var(--sub); max-width: 720px; }
+
+  .mode-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 4px;
+    font: 700 11.5px/1.2 var(--mono); background: var(--panel); border: 1px solid var(--line); color: var(--sub);
+  }
+  .pill.hot { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+  .pill.safe { background: var(--safe-bg); border-color: transparent; color: var(--safe); }
+
+  .preview-frame { background: #090B10; }
+  .preview-frame img { display: block; width: 100%; height: auto; }
+  .preview-cap {
+    padding: 10px 16px; font-size: 12.5px; color: var(--sub); font-weight: 600;
+    border-top: 1px solid var(--line); background: var(--panel-alt);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
   }
 
-  .preview-box { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; box-shadow: 10px 10px 0 var(--shadow); }
-  .preview-box img { display: block; width: 100%; height: auto; }
-  .preview-cap { padding: 10px 16px; font: 600 12px/1.5 var(--mono); color: var(--sub); background: var(--surface2); border-top: 1px solid var(--line); }
-
-  h2.sec-head {
-    font-size: 26px; font-weight: 900; letter-spacing: -0.025em; margin: 0 0 22px;
-    padding-top: 18px; border-top: 1px solid var(--line);
+  /* Right Action Rail (Downloads + Specs + Trust) */
+  .dl-rail { display: flex; flex-direction: column; gap: 12px; }
+  .dl-btn-main {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 13px 15px; border-radius: 6px; background: var(--accent); color: var(--on-accent);
+    font-weight: 800; font-size: 14px; transition: background .15s;
   }
-  h2.sec-head::before {
-    counter-increment: sec; content: "0" counter(sec) " /"; display: block; margin-bottom: 6px;
-    font: 700 12px/1 var(--mono); letter-spacing: .1em; color: var(--accent);
+  .dl-btn-main:hover { background: var(--accent-hover); }
+  .dl-btn-main small { display: block; font: 600 11px/1.3 var(--mono); opacity: 0.9; margin-top: 2px; }
+  .dl-btn-sec {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 14px; border-radius: 6px; background: var(--panel-alt); color: var(--text);
+    border: 1px solid var(--line); font-weight: 700; font-size: 13px; transition: border-color .15s, background .15s;
   }
+  .dl-btn-sec:hover { border-color: var(--accent); background: var(--panel-hover); }
+  .dl-btn-sec small { font: 600 11px/1 var(--mono); color: var(--sub); }
 
-  .os-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
-  .grid-4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-  @media (max-width: 760px) { .grid-4, .os-grid { grid-template-columns: 1fr; } }
-  .step-shot { width: 100%; height: auto; display: block; border-radius: 2px; border: 1px solid var(--line); margin-bottom: 14px; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .spec-table tr { border-top: 1px solid var(--line); }
+  .spec-table tr:first-child { border-top: 0; }
+  .spec-table th { text-align: left; padding: 8px 0; color: var(--sub); font-weight: 600; }
+  .spec-table td { text-align: right; padding: 8px 0; color: var(--text); font: 700 12.5px/1.3 var(--mono); font-variant-numeric: tabular-nums; }
 
-  .os-card, .card {
-    background: var(--surface); border: 1px solid var(--line); border-radius: 4px;
-    padding: 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;
-    transition: border-color .15s, transform .15s;
+  .trust-strip {
+    padding: 12px 14px; border-radius: 6px; background: var(--safe-bg);
+    border: 1px solid color-mix(in srgb, var(--safe) 28%, transparent);
   }
-  .os-card:hover, .grid-2 .card:hover { border-color: var(--accent); transform: translateY(-2px); }
-  .os-card h3, .card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 800; }
-  .os-card p, .card p { margin: 0; font-size: 14px; color: var(--sub); }
-  .step-tag { display: inline-block; font: 800 12px/1 var(--mono); color: var(--accent); letter-spacing: .1em; margin-bottom: 8px; }
-  .sha-bar {
-    background: var(--surface2); border: 1px solid var(--line); border-left: 3px solid var(--amber); border-radius: 4px;
-    padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  .trust-strip strong { display: block; font-size: 12.5px; color: var(--safe); margin-bottom: 3px; }
+  .trust-strip p { margin: 0; font-size: 12px; color: var(--sub); line-height: 1.45; }
+
+  /* ── Region Filter Bar & Match Lookup (OP.GG style) ── */
+  .region-bar {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel);
   }
-  .sha-bar p { margin: 4px 0 0; font-size: 13.5px; color: var(--sub); }
-
-  details.faq { border-bottom: 1px solid var(--line); padding: 16px 4px; }
-  details.faq:first-of-type { border-top: 1px solid var(--line); }
-  details.faq summary {
-    cursor: pointer; font-weight: 700; font-size: 15px; list-style: none;
-    display: flex; justify-content: space-between; gap: 16px; align-items: baseline;
+  .region-btn {
+    border: 1px solid var(--line); background: var(--panel-alt); color: var(--sub);
+    border-radius: 5px; padding: 5px 11px; font: 700 12px/1.2 var(--mono); cursor: pointer;
+    transition: all .12s;
   }
-  details.faq summary::-webkit-details-marker { display: none; }
-  details.faq summary::after { content: "+"; font: 700 18px/1 var(--mono); color: var(--accent); }
-  details.faq[open] summary::after { content: "−"; }
-  details.faq p { margin: 10px 0 0; font-size: 14px; color: var(--sub); max-width: 760px; }
+  .region-btn:hover { border-color: var(--line-strong); color: var(--text); }
+  .region-btn.active { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
 
-  .trust { margin-top: 20px; border: 1px solid var(--line); border-left: 3px solid var(--win); background: var(--surface); border-radius: 4px; padding: 18px 20px; }
-  .trust h3 { margin: 0 0 6px; font-size: 15px; color: var(--win); }
-  .trust p { margin: 0; font-size: 14px; color: var(--sub); }
-
-  .search-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .search-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   .search-form select, .search-form input {
-    background: var(--bg); color: var(--text); border: 1px solid var(--line);
-    border-radius: 4px; padding: 11px 14px; font-size: 14px; font-weight: 600;
+    background: var(--panel-alt); color: var(--text); border: 1px solid var(--line);
+    border-radius: 6px; padding: 9px 12px; font-size: 13.5px; font-weight: 600;
   }
   .search-form input { flex: 1; min-width: 220px; }
+  .search-form input:focus, .search-form select:focus { outline: none; border-color: var(--accent); }
   .search-form button {
-    padding: 11px 22px; border-radius: 4px; border: 0; background: var(--accent);
-    color: var(--on-accent); font-size: 14px; font-weight: 800; cursor: pointer;
+    padding: 9px 18px; border-radius: 6px; border: 0; background: var(--accent);
+    color: var(--on-accent); font-size: 13.5px; font-weight: 800; cursor: pointer;
   }
   .search-form button:hover { background: var(--accent-hover); }
+
+  .match-status { font-size: 13px; color: var(--sub); padding: 4px 2px 8px; }
   .match-list { display: grid; gap: 6px; }
   .match-row {
-    display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
-    border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 3px;
-    padding: 10px 16px; font-size: 13.5px; font-variant-numeric: tabular-nums;
+    display: grid; grid-template-columns: 74px minmax(110px, 1.2fr) minmax(90px, 1fr) minmax(80px, 0.8fr) 72px;
+    align-items: center; gap: 10px;
+    border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: 5px;
+    padding: 10px 14px; font-size: 13px; font-variant-numeric: tabular-nums;
   }
-  .match-row.win { border-left-color: var(--win); background: color-mix(in srgb, var(--win) 9%, var(--surface)); }
-  .match-row.loss { border-left-color: var(--loss); background: color-mix(in srgb, var(--loss) 9%, var(--surface)); }
-  .match-res { font: 900 13px/1 var(--mono); min-width: 54px; letter-spacing: .06em; }
+  .match-row.win { border-left-color: var(--win); background: var(--win-bg); }
+  .match-row.loss { border-left-color: var(--loss); background: var(--loss-bg); }
+  .match-res { font: 900 12.5px/1 var(--mono); letter-spacing: .04em; }
   .match-row.win .match-res { color: var(--win); }
   .match-row.loss .match-res { color: var(--loss); }
-  .match-status { font-size: 13.5px; color: var(--sub); padding: 6px 2px; }
+  .match-champ { font-weight: 800; color: var(--text); }
+  .match-kda { font: 700 13px/1.2 var(--mono); color: var(--text); }
+  .match-cs { font: 600 12.5px/1.2 var(--mono); color: var(--sub); }
+  .match-dur { font: 600 12px/1.2 var(--mono); color: var(--dim); text-align: right; }
 
-  footer { border-top: 1px solid var(--line); margin-top: 72px; padding-top: 24px; text-align: center; font-size: 12.5px; color: var(--dim); }
+  /* ── 4-Step Visual Setup Grid ── */
+  .steps-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .step-card {
+    background: var(--panel-alt); border: 1px solid var(--line); border-radius: 6px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .step-shot { width: 100%; height: auto; display: block; border-bottom: 1px solid var(--line); }
+  .step-body { padding: 12px 14px 14px; }
+  .step-tag { display: inline-block; font: 800 11px/1 var(--mono); color: var(--accent); letter-spacing: .06em; margin-bottom: 5px; }
+  .step-body h3 { margin: 0 0 6px; font-size: 14px; font-weight: 800; }
+  .step-body p { margin: 0; font-size: 12.5px; color: var(--sub); line-height: 1.5; }
+
+  /* ── Bottom Split: FAQ + Support ── */
+  .bottom-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.85fr); gap: 18px; align-items: start; }
+  details.faq { border-bottom: 1px solid var(--line); padding: 13px 16px; }
+  details.faq:last-of-type { border-bottom: 0; }
+  details.faq summary {
+    cursor: pointer; font-weight: 700; font-size: 13.5px; list-style: none;
+    display: flex; justify-content: space-between; gap: 12px; align-items: center;
+  }
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq summary::after { content: "+"; font: 800 16px/1 var(--mono); color: var(--accent); }
+  details.faq[open] summary::after { content: "−"; }
+  details.faq p { margin: 8px 0 0; font-size: 13px; color: var(--sub); line-height: 1.55; }
+
+  .support-stack { display: flex; flex-direction: column; gap: 12px; }
+  .sup-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .sup-row h3 { margin: 0 0 3px; font-size: 14px; font-weight: 800; }
+  .sup-row p { margin: 0; font-size: 12.5px; color: var(--sub); }
+  .btn-sm {
+    display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 5px;
+    border: 1px solid var(--line-strong); background: var(--panel-alt); color: var(--text);
+    font-size: 12px; font-weight: 700; white-space: nowrap; transition: border-color .15s;
+  }
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+  footer {
+    max-width: 1240px; margin: 28px auto 0; padding: 18px 20px 32px;
+    border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center;
+    gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--dim);
+  }
+  .foot-links { display: flex; gap: 14px; font-weight: 600; }
+  .foot-links a:hover { color: var(--accent); }
+
+  @media (max-width: 1020px) {
+    .workspace-grid { grid-template-columns: 1fr; }
+    .steps-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .bottom-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 720px) {
+    .ver-pill, .game-tab { display: none; }
+    .topbar-inner { padding: 0 12px; gap: 6px; }
+    .brand { font-size: 13px; gap: 6px; }
+    .topbar-actions { gap: 5px; flex-shrink: 0; }
+    select#lang-select { max-width: 88px; padding: 0 5px; font-size: 11px; }
+    .nav-cta { padding: 0 9px; font-size: 11.5px; }
+    .subbar-inner { padding: 8px 12px; gap: 8px; }
+    .nav-links { height: auto; overflow-x: auto; width: 100%; }
+    .nav-links a { padding: 8px 10px; }
+    .hdr-search { width: 100%; }
+    .steps-grid { grid-template-columns: 1fr; }
+    .match-row { grid-template-columns: 64px 1fr auto; }
+    .match-cs, .match-dur { display: none; }
+  }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
-<header>
-  <div class="nav">
-    <a class="brand" href="#">
-      <span class="brand-badge">PACE MAKER</span>
-      <span>Desktop</span>
-    </a>
-    <nav class="nav-links">
-      <a href="#downloads" data-i18n="nav_downloads">Downloads</a>
-      <a href="#history" data-i18n="nav_history">Match History</a>
-      <a href="#setup" data-i18n="nav_setup">How to Use</a>
-      <a href="#faq" data-i18n="nav_faq">Troubleshooting</a>
-      <a href="#support" data-i18n="nav_support">Support</a>
-    </nav>
-    <div class="nav-right">
-      <select id="lang-select" aria-label="Language">
-        <option value="en">English (Global)</option>
-        <option value="ko">한국어 (KR)</option>
-        <option value="ja">日本語 (JP)</option>
-        <option value="es">Español</option>
-        <option value="pt">Português (BR)</option>
-      </select>
-      <button class="icon-btn" id="theme-toggle" type="button"><span id="theme-icon" aria-hidden="true"></span></button>
-      <a class="nav-cta" href="#downloads" data-i18n="nav_cta">Download</a>
+
+<header class="app-header">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-group">
+        <a class="brand" href="#overview">
+          <span class="brand-mark">P</span>
+          <span>PACE MAKER</span>
+        </a>
+        <span class="game-tab"><span class="game-dot"></span><span data-i18n="game_lol">League of Legends</span></span>
+        <span class="ver-pill">v0.2.1 · All Modes</span>
+      </div>
+      <div class="topbar-actions">
+        <select id="lang-select" aria-label="Language">
+          <option value="en">EN · Global</option>
+          <option value="ko">KO · 한국어</option>
+          <option value="ja">JA · 日本語</option>
+          <option value="es">ES · Español</option>
+          <option value="pt">PT · Português</option>
+        </select>
+        <button class="icon-btn" id="theme-toggle" type="button"><span id="theme-icon" aria-hidden="true"></span></button>
+        <a class="nav-cta" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer" data-i18n="nav_cta">Download App</a>
+      </div>
     </div>
   </div>
-</header>
-
-<main>
-  <section class="hero">
-    <div class="eyebrow" data-i18n="badge">Ranked · Normal · ARAM · 100% Local · $0 Server · No Ads</div>
-    <h1 data-i18n="hero_title">Real-Time AI Coach That Changes Your In-Game Decisions</h1>
-    <p class="hero-desc" data-i18n="hero_sub">Works across Ranked, Normal, ARAM, and Practice Tool. Runs locally on CPU via ONNX (&lt;1ms) alongside Blitz or Porofessor — zero ads, zero FPS drops, 100% Riot policy compliant.</p>
-    <div class="cta-row">
-      <a class="btn-primary" href="#downloads" data-i18n="btn_download">Download Desktop App</a>
-      <a class="btn-ghost" href="https://github.com/wpalswpa/lol-pacemaker" rel="noopener noreferrer" data-i18n="btn_source">View Open Source</a>
-    </div>
-    <div class="meta-row">
-      <span><span data-i18n="m1_k">Inference</span><strong data-i18n="m1_v">Local ONNX &lt;1ms</strong></span>
-      <span><span data-i18n="m2_k">Modes</span><strong data-i18n="m2_v">Ranked · Normal · ARAM</strong></span>
-      <span><span data-i18n="m3_k">Languages</span><strong>EN · KO · JA · ES · PT</strong></span>
-      <span><span data-i18n="m4_k">Cost &amp; Ads</span><strong data-i18n="m4_v">100% Free · Zero Ads</strong></span>
-    </div>
-    <div class="preview-box">
-      <img src="./images/ingame_demo.jpg" alt="PACE MAKER Desktop Live In-Game Overlay Screenshot">
-      <div class="preview-cap" data-i18n="ingame_cap">Actual in-game overlay running over a live 5v5 match (zero FPS drop)</div>
-    </div>
-  </section>
-
-  <section class="block" id="downloads">
-    <h2 class="sec-head" data-i18n="dl_head">Download Center</h2>
-    <div class="os-grid">
-      <div class="os-card">
-        <div>
-          <h3 data-i18n="dl_win_t">Windows 10 / 11 (1-Click Setup .exe)</h3>
-          <p data-i18n="dl_win_d">One-click installer (LoLPacemaker-Setup.exe) with desktop shortcut &amp; auto-popup when LoL starts. Portable .zip also included.</p>
-        </div>
-        <a class="btn-primary" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer" data-i18n="dl_btn">Download Latest Release</a>
-      </div>
-      <div class="os-card">
-        <div>
-          <h3 data-i18n="dl_mac_t">macOS (.app.zip)</h3>
-          <p data-i18n="dl_mac_d">Native macOS app bundle with local ONNX runtime, click-through overlay, and automatic locale detection.</p>
-        </div>
-        <a class="btn-primary" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer" data-i18n="dl_btn">Download Latest Release</a>
-      </div>
-    </div>
-    <div class="sha-bar">
-      <div>
-        <strong data-i18n="dl_sha_t">SHA-256 Integrity Checksums</strong>
-        <p data-i18n="dl_sha_d">Every release is built in clean GitHub Actions runners and ships with checksums.sha256 so you can verify file integrity.</p>
-      </div>
-      <a class="btn-ghost" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer" data-i18n="dl_sha_btn">Verify Checksums</a>
-    </div>
-  </section>
-
-  <section class="block" id="history">
-    <h2 class="sec-head" data-i18n="hist_head">Global Riot Match Lookup</h2>
-    <div class="card">
-      <p style="margin-bottom:14px;" data-i18n="hist_desc">Search recent matches across KR, NA, EUW, JP, BR, and LAN — powered by a $0 serverless Cloudflare Worker proxy.</p>
-      <form class="search-form" id="riot-search-form">
-        <select id="riot-region" aria-label="Region">
+  <div class="subbar">
+    <div class="subbar-inner">
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#overview" aria-current="true" data-i18n="nav_overview">Overview</a>
+        <a href="#history" data-i18n="nav_history">Match History</a>
+        <a href="#setup" data-i18n="nav_setup">How to Use</a>
+        <a href="#faq" data-i18n="nav_faq">Troubleshooting</a>
+        <a href="#support" data-i18n="nav_support">Support</a>
+      </nav>
+      <form class="hdr-search" id="hdr-search-form">
+        <select id="hdr-region" aria-label="Region">
           <option value="kr">KR</option>
           <option value="na">NA</option>
           <option value="euw">EUW</option>
@@ -291,200 +430,311 @@
           <option value="las">LAS</option>
           <option value="sea">SEA</option>
         </select>
-        <input id="riot-id-input" type="text" value="Hide on bush#KR1" placeholder="GameName#Tag" required>
+        <input id="hdr-riot-input" type="text" placeholder="GameName#KR1" aria-label="Riot ID">
         <button type="submit" data-i18n="hist_btn">Search</button>
       </form>
-      <div class="match-status" id="match-status"></div>
-      <div class="match-list" id="match-list"></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ── Overview & Action Rail (Above the fold, zero hero fluff) ── -->
+  <section class="block" id="overview">
+    <div class="page-header">
+      <div>
+        <div class="crumb" data-i18n="badge">League of Legends · Companion Overlay · 100% Local · $0 Server</div>
+        <h1 data-i18n="hero_title">Real-Time AI Coach That Changes Your In-Game Decisions</h1>
+        <p class="hero-desc" data-i18n="hero_sub">Works across Ranked, Normal, ARAM, and Practice Tool. Runs locally on CPU via ONNX (&lt;1ms) alongside Blitz or Porofessor — zero ads, zero FPS drops, 100% Riot policy compliant.</p>
+      </div>
+    </div>
+
+    <div class="workspace-grid">
+      <!-- Left Main Panel: Real In-Game Screenshot -->
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title" data-i18n="live_panel_title">In-Game Companion Overlay</h2>
+          <div class="mode-pills">
+            <span class="pill hot" data-i18n="m2_v">Ranked · Normal · ARAM</span>
+            <span class="pill safe" data-i18n="m1_v">Local ONNX &lt;1ms</span>
+            <span class="pill" data-i18n="m4_v">100% Free · Zero Ads</span>
+          </div>
+        </div>
+        <div class="preview-frame">
+          <img src="./images/ingame_demo.jpg" alt="PACE MAKER real-time HUD overlay running over a live League of Legends match">
+        </div>
+        <div class="preview-cap">
+          <span data-i18n="ingame_cap">Actual in-game overlay running over a live 5v5 match (zero FPS drop)</span>
+          <a href="https://github.com/wpalswpa/lol-pacemaker" rel="noopener noreferrer" style="color:var(--accent);font-weight:700;" data-i18n="btn_source">View Open Source →</a>
+        </div>
+      </div>
+
+      <!-- Right Action Rail: Downloads + Specs + Riot Policy Safe -->
+      <aside class="panel" id="downloads">
+        <div class="panel-head">
+          <h2 class="panel-title" data-i18n="dl_head">Download Desktop App</h2>
+          <span class="panel-sub">v0.2.1</span>
+        </div>
+        <div class="panel-body dl-rail">
+          <a class="dl-btn-main" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer">
+            <span>
+              <span data-i18n="dl_win_t">Windows 10 / 11 (1-Click Setup .exe)</span>
+              <small data-i18n="dl_win_d">Auto-popup when LoL starts · Portable .zip included</small>
+            </span>
+            <span>↓</span>
+          </a>
+          <a class="dl-btn-sec" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer">
+            <span data-i18n="dl_mac_t">macOS (.app.zip)</span>
+            <small>Apple Silicon / Intel</small>
+          </a>
+
+          <table class="spec-table" aria-label="Technical specs">
+            <tr><th data-i18n="m1_k">Inference</th><td data-i18n="m1_v">Local ONNX &lt;1ms</td></tr>
+            <tr><th data-i18n="m2_k">Modes</th><td data-i18n="m2_v">Ranked · Normal · ARAM</td></tr>
+            <tr><th data-i18n="m3_k">Languages</th><td>EN · KO · JA · ES · PT</td></tr>
+            <tr><th data-i18n="m4_k">Cost &amp; Ads</th><td data-i18n="m4_v">100% Free · Zero Ads</td></tr>
+          </table>
+
+          <div class="trust-strip">
+            <strong data-i18n="sec_title">Riot Policy Safe &amp; Security Guaranteed</strong>
+            <p data-i18n="sec_desc">Read-only access to Riot's official local Live Client Data API (127.0.0.1:2999). No memory injection, no OCR, and zero gameplay data leaves your PC.</p>
+          </div>
+
+          <a class="dl-btn-sec" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer">
+            <span data-i18n="dl_sha_t">SHA-256 Integrity Checksums</span>
+            <small data-i18n="dl_sha_btn">Verify →</small>
+          </a>
+        </div>
+      </aside>
     </div>
   </section>
 
+  <!-- ── Global Riot Match Lookup (OP.GG Region Pills + Tabular Match Rows) ── -->
+  <section class="block" id="history">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title" data-i18n="hist_head">Global Riot Match Lookup</h2>
+        <span class="panel-sub" data-i18n="hist_desc">KR · NA · EUW · JP · BR · LAN — $0 Cloudflare Worker Proxy</span>
+      </div>
+      <div class="region-bar" id="region-bar" role="group" aria-label="Region">
+        <button type="button" class="region-btn active" data-region="kr">KR</button>
+        <button type="button" class="region-btn" data-region="na">NA</button>
+        <button type="button" class="region-btn" data-region="euw">EUW</button>
+        <button type="button" class="region-btn" data-region="jp">JP</button>
+        <button type="button" class="region-btn" data-region="br">BR</button>
+        <button type="button" class="region-btn" data-region="lan">LAN</button>
+        <button type="button" class="region-btn" data-region="las">LAS</button>
+        <button type="button" class="region-btn" data-region="sea">SEA</button>
+      </div>
+      <div class="panel-body">
+        <form class="search-form" id="riot-search-form">
+          <select id="riot-region" aria-label="Region">
+            <option value="kr">KR</option>
+            <option value="na">NA</option>
+            <option value="euw">EUW</option>
+            <option value="jp">JP</option>
+            <option value="br">BR</option>
+            <option value="lan">LAN</option>
+            <option value="las">LAS</option>
+            <option value="sea">SEA</option>
+          </select>
+          <input id="riot-id-input" type="text" value="Hide on bush#KR1" placeholder="GameName#Tag" required>
+          <button type="submit" data-i18n="hist_btn">Search</button>
+        </form>
+        <div class="match-status" id="match-status"></div>
+        <div class="match-list" id="match-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4-Step Visual Setup Guide ── -->
   <section class="block" id="setup">
-    <h2 class="sec-head" data-i18n="setup_head">How to Apply (4 Simple Steps)</h2>
-    <div class="grid-4">
-      <div class="card">
-        <div>
-          <img class="step-shot" src="./images/guide_step1.png" alt="Step 1 Unzip and first launch">
-          <span class="step-tag">STEP 01</span>
-          <h3 data-i18n="s1_t">1-Click Install &amp; Auto-Start</h3>
-          <p data-i18n="s1_d">Run LoLPacemaker-Setup.exe once (or click AUTO on the HUD). It waits silently in the background and pops up automatically whenever a LoL match starts.</p>
-        </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title" data-i18n="setup_head">How to Apply (4 Simple Steps)</h2>
+        <span class="panel-sub">Windows · macOS</span>
       </div>
-      <div class="card">
-        <div>
-          <img class="step-shot" src="./images/guide_step2.png" alt="Step 2 Set Borderless Window in League Video Settings">
-          <span class="step-tag">STEP 02</span>
-          <h3 data-i18n="s2_t">Borderless Window</h3>
-          <p data-i18n="s2_d">In League of Legends Video Settings, set Window Mode to Borderless so the transparent HUD floats cleanly over the game.</p>
-        </div>
-      </div>
-      <div class="card">
-        <div>
-          <img class="step-shot" src="./images/guide_step3.png" alt="Step 3 Auto-Connect to Riot 2999 Local API">
-          <span class="step-tag">STEP 03</span>
-          <h3 data-i18n="s3_t">Auto-Connect (All Modes)</h3>
-          <p data-i18n="s3_d">Start Ranked, Normal, ARAM, or Practice Tool. The HUD automatically detects your mode and updates live every 2 seconds.</p>
-        </div>
-      </div>
-      <div class="card">
-        <div>
-          <img class="step-shot" src="./images/guide_step4.png" alt="Step 4 Companion HUD Hotkeys F8 F9 Opacity">
-          <span class="step-tag">STEP 04</span>
-          <h3 data-i18n="s4_t">Companion Controls</h3>
-          <p data-i18n="s4_d">Drag anywhere to avoid Blitz/Porofessor. Press F8 for click-through, F9 to hide/show, [ / ] for opacity, or click the language badge to switch among 5 languages.</p>
+      <div class="panel-body">
+        <div class="steps-grid">
+          <div class="step-card">
+            <img class="step-shot" src="./images/guide_step1.png" alt="Step 1 Install and Auto-Start">
+            <div class="step-body">
+              <span class="step-tag">STEP 01</span>
+              <h3 data-i18n="s1_t">1-Click Install &amp; Auto-Start</h3>
+              <p data-i18n="s1_d">Run LoLPacemaker-Setup.exe once (or click AUTO on the HUD). It waits silently and pops up automatically when a LoL match starts.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <img class="step-shot" src="./images/guide_step2.png" alt="Step 2 Set Borderless Window">
+            <div class="step-body">
+              <span class="step-tag">STEP 02</span>
+              <h3 data-i18n="s2_t">Borderless Window</h3>
+              <p data-i18n="s2_d">In League Video Settings, set Window Mode to Borderless so the transparent HUD floats cleanly over the game.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <img class="step-shot" src="./images/guide_step3.png" alt="Step 3 Auto-Connect All Modes">
+            <div class="step-body">
+              <span class="step-tag">STEP 03</span>
+              <h3 data-i18n="s3_t">Auto-Connect (All Modes)</h3>
+              <p data-i18n="s3_d">Start Ranked, Normal, ARAM, or Practice Tool. The HUD detects your mode automatically and updates every 2 seconds.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <img class="step-shot" src="./images/guide_step4.png" alt="Step 4 Companion Hotkeys">
+            <div class="step-body">
+              <span class="step-tag">STEP 04</span>
+              <h3 data-i18n="s4_t">Companion Controls</h3>
+              <p data-i18n="s4_d">Drag anywhere to avoid Blitz/Porofessor. F8 click-through, F9 hide/show, [ / ] opacity, and 1-click 5-language switch.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
+  <!-- ── Troubleshooting & Support Split ── -->
   <section class="block" id="faq">
-    <h2 class="sec-head" data-i18n="faq_head">Troubleshooting &amp; FAQ</h2>
-    <details class="faq" open>
-      <summary data-i18n="q1">The HUD does not appear on top of League of Legends.</summary>
-      <p data-i18n="a1">Switch League's Video setting from Fullscreen to Borderless. Windows prevents any overlay from drawing above exclusive Fullscreen games.</p>
-    </details>
-    <details class="faq">
-      <summary data-i18n="q2">Windows SmartScreen or macOS Gatekeeper shows a warning.</summary>
-      <p data-i18n="a2">PACE MAKER is a free, zero-budget open-source project without a paid code-signing certificate. You can inspect 100% of the source code on GitHub and verify the SHA-256 hash before running.</p>
-    </details>
-    <details class="faq">
-      <summary data-i18n="q3">It stays on "Waiting for LoL..." during a match.</summary>
-      <p data-i18n="a3">The Riot local API (127.0.0.1:2999) opens only after the loading screen finishes and the match starts. If it still waits, check that local firewall rules do not block loopback port 2999.</p>
-    </details>
-    <details class="faq">
-      <summary data-i18n="q4">Is this safe under Riot Games Third-Party Policy (Ranked &amp; ARAM)?</summary>
-      <p data-i18n="a4">Yes. It reads only Riot's official local scoreboard/events API (127.0.0.1:2999) for player improvement coaching — zero memory reading, zero OCR, zero hidden enemy timers or wards.</p>
-    </details>
-  </section>
-
-  <section class="block" id="support">
-    <h2 class="sec-head" data-i18n="sup_head">Customer Support &amp; Feedback</h2>
-    <div class="grid-2">
-      <div class="card">
-        <div>
-          <h3 data-i18n="sup_bug_t">Bug Reports &amp; Feature Requests</h3>
-          <p data-i18n="sup_bug_d">Found a bug or want a new language/call? Open an issue directly on GitHub.</p>
+    <div class="bottom-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title" data-i18n="faq_head">Troubleshooting &amp; FAQ</h2>
         </div>
-        <a class="btn-ghost" href="https://github.com/wpalswpa/lol-pacemaker/issues" rel="noopener noreferrer" data-i18n="sup_bug_btn">Open GitHub Issue</a>
+        <details class="faq" open>
+          <summary data-i18n="q1">The HUD does not appear on top of League of Legends.</summary>
+          <p data-i18n="a1">Switch League's Video setting from Fullscreen to Borderless. Windows prevents any overlay from drawing above exclusive Fullscreen games.</p>
+        </details>
+        <details class="faq">
+          <summary data-i18n="q2">Windows SmartScreen or macOS Gatekeeper shows a warning.</summary>
+          <p data-i18n="a2">PACE MAKER is a free open-source project without a paid code-signing certificate. You can inspect 100% of the source code on GitHub and verify the SHA-256 hash before running.</p>
+        </details>
+        <details class="faq">
+          <summary data-i18n="q3">It stays on "Waiting for LoL..." during a match.</summary>
+          <p data-i18n="a3">The Riot local API (127.0.0.1:2999) opens only after the loading screen finishes and the match starts. Check that local firewall rules do not block loopback port 2999.</p>
+        </details>
+        <details class="faq">
+          <summary data-i18n="q4">Is this safe under Riot Games Third-Party Policy (Ranked &amp; ARAM)?</summary>
+          <p data-i18n="a4">Yes. It reads only Riot's official local scoreboard/events API (127.0.0.1:2999) for player improvement coaching — zero memory reading, zero OCR, zero hidden enemy timers or wards.</p>
+        </details>
       </div>
-      <div class="card">
-        <div>
-          <h3 data-i18n="sup_com_t">Community &amp; Updates</h3>
-          <p data-i18n="sup_com_d">Follow updates, share match feedback, and vote on upcoming coaching features on Reddit.</p>
+
+      <div class="support-stack" id="support">
+        <div class="sup-row">
+          <div>
+            <h3 data-i18n="sup_bug_t">Bug Reports &amp; Feature Requests</h3>
+            <p data-i18n="sup_bug_d">Found a bug or want a new language/call? Open an issue directly on GitHub.</p>
+          </div>
+          <a class="btn-sm" href="https://github.com/wpalswpa/lol-pacemaker/issues" rel="noopener noreferrer" data-i18n="sup_bug_btn">GitHub Issue</a>
         </div>
-        <a class="btn-ghost" href="https://www.reddit.com/user/_sogum_bread/" rel="noopener noreferrer" data-i18n="sup_com_btn">Visit Reddit Profile</a>
+        <div class="sup-row">
+          <div>
+            <h3 data-i18n="sup_com_t">Community &amp; Updates</h3>
+            <p data-i18n="sup_com_d">Follow updates, share match feedback, and vote on upcoming coaching features on Reddit.</p>
+          </div>
+          <a class="btn-sm" href="https://www.reddit.com/user/_sogum_bread/" rel="noopener noreferrer" data-i18n="sup_com_btn">Reddit</a>
+        </div>
+        <div class="sup-row">
+          <div>
+            <h3 data-i18n="dl_sha_t">SHA-256 Integrity Checksums</h3>
+            <p data-i18n="dl_sha_d">Every release is built in clean GitHub Actions runners and ships with checksums.sha256.</p>
+          </div>
+          <a class="btn-sm" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer" data-i18n="dl_sha_btn">Checksums</a>
+        </div>
       </div>
     </div>
-    <div class="trust">
-      <h3 data-i18n="sec_title">Riot Policy Safe &amp; Security Guaranteed</h3>
-      <p data-i18n="sec_desc">Read-only access to Riot's official local Live Client Data API (127.0.0.1:2999). No memory injection, no OCR, no hidden enemy wards/cooldowns, and zero gameplay data leaves your PC.</p>
-    </div>
   </section>
-
-  <footer>
-    <p data-i18n="footer">LoL Pacemaker isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games.</p>
-  </footer>
 </main>
+
+<footer>
+  <span data-i18n="footer">LoL Pacemaker isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games.</span>
+  <div class="foot-links">
+    <a href="https://github.com/wpalswpa/lol-pacemaker" rel="noopener noreferrer">GitHub</a>
+    <a href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer">Releases</a>
+    <a href="https://www.reddit.com/user/_sogum_bread/" rel="noopener noreferrer">Reddit</a>
+  </div>
+</footer>
 
 <script>
 const I18N = {
   en: {
-    nav_downloads: "Downloads", nav_history: "Match History", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download",
-    hist_head: "Global Riot Match Lookup", hist_desc: "Search recent matches across KR, NA, EUW, JP, BR, and LAN — powered by a $0 serverless Cloudflare Worker proxy.", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
-    badge: "Ranked · Normal · ARAM · 100% Local · $0 Server · No Ads",
+    game_lol: "League of Legends",
+    nav_overview: "Overview", nav_history: "Match History", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download App",
+    live_panel_title: "In-Game Companion Overlay",
+    hist_head: "Global Riot Match Lookup", hist_desc: "KR · NA · EUW · JP · BR · LAN — $0 Cloudflare Worker Proxy", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
+    badge: "League of Legends · Companion Overlay · 100% Local · $0 Server",
     hero_title: "Real-Time AI Coach That Changes Your In-Game Decisions",
     hero_sub: "Works across Ranked, Normal, ARAM, and Practice Tool. Runs locally on CPU via ONNX (<1ms) alongside Blitz or Porofessor — zero ads, zero FPS drops, 100% Riot policy compliant.",
-    btn_download: "Download Desktop App", btn_source: "View Open Source",
+    btn_source: "View Open Source →",
     m1_k: "Inference", m1_v: "Local ONNX <1ms", m2_k: "Modes", m2_v: "Ranked · Normal · ARAM", m3_k: "Languages", m4_k: "Cost & Ads", m4_v: "100% Free · Zero Ads",
     ingame_cap: "Actual in-game overlay running over a live 5v5 match (zero FPS drop)",
-    hud_win: "74.2% · Ahead", hud_phase: "Mid Macro", hud_lang_code: "EN",
-    hud_rank: "CS Top 14% · Level Top 18% (Tier Normal Approx.)",
-    hud_brief: "Strong pace (CS Top 14%). Convert lane prio into river vision and objective setup.",
-    hud_c1_t: "Free Baron — Enemy JG Dead (32s)", hud_c1_d: "Enemy jungler down for 32s (no enemy Smite). Pull Baron now.",
-    hud_c2_t: "Force Objective (5v3 · 32s window)", hud_c2_d: "Enemy down (2 dead). Push towers or take Baron before respawn.",
-    hud_c3_t: "Recall Timing (1650G)", hud_c3_d: "Enough gold for a spike. Shove wave and reset before next objective.",
-    hud_hint: "F8 Click-Through · F9 Hide · Drag to Move · [ ] Opacity",
-    dl_head: "Download Center",
-    dl_win_t: "Windows 10 / 11 (1-Click Setup .exe)", dl_win_d: "One-click installer (LoLPacemaker-Setup.exe) with desktop shortcut & auto-popup when LoL starts. Portable .zip also included.",
-    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Native macOS app bundle with local ONNX runtime, click-through overlay, and automatic locale detection.",
-    dl_sha_t: "SHA-256 Integrity Checksums", dl_sha_d: "Every release is built in clean GitHub Actions runners and ships with checksums.sha256 so you can verify file integrity.",
-    dl_btn: "Download Latest Release", dl_sha_btn: "Verify Checksums",
+    dl_head: "Download Desktop App",
+    dl_win_t: "Windows 10 / 11 (1-Click Setup .exe)", dl_win_d: "Auto-popup when LoL starts · Portable .zip included",
+    dl_mac_t: "macOS (.app.zip)",
+    dl_sha_t: "SHA-256 Integrity Checksums", dl_sha_d: "Every release is built in clean GitHub Actions runners and ships with checksums.sha256.",
+    dl_sha_btn: "Verify →",
     setup_head: "How to Apply (4 Simple Steps)",
-    s1_t: "1-Click Install & Auto-Start", s1_d: "Run LoLPacemaker-Setup.exe once (or click AUTO on the HUD). It waits silently in the background and pops up automatically whenever a LoL match starts.",
-    s2_t: "Borderless Window", s2_d: "In League of Legends Video Settings, set Window Mode to Borderless so the transparent HUD floats cleanly over the game.",
-    s3_t: "Auto-Connect (All Modes)", s3_d: "Start Ranked, Normal, ARAM, or Practice Tool. The HUD automatically detects your mode and updates live every 2 seconds.",
-    s4_t: "Companion Controls", s4_d: "Drag anywhere to avoid Blitz/Porofessor. Press F8 for click-through, F9 to hide/show, [ / ] for opacity, or click the language badge to switch among 5 languages.",
+    s1_t: "1-Click Install & Auto-Start", s1_d: "Run LoLPacemaker-Setup.exe once (or click AUTO on the HUD). It waits silently and pops up automatically when a LoL match starts.",
+    s2_t: "Borderless Window", s2_d: "In League Video Settings, set Window Mode to Borderless so the transparent HUD floats cleanly over the game.",
+    s3_t: "Auto-Connect (All Modes)", s3_d: "Start Ranked, Normal, ARAM, or Practice Tool. The HUD detects your mode automatically and updates every 2 seconds.",
+    s4_t: "Companion Controls", s4_d: "Drag anywhere to avoid Blitz/Porofessor. F8 click-through, F9 hide/show, [ / ] opacity, and 1-click 5-language switch.",
     faq_head: "Troubleshooting & FAQ",
     q1: "The HUD does not appear on top of League of Legends.", a1: "Switch League's Video setting from Fullscreen to Borderless. Windows prevents any overlay from drawing above exclusive Fullscreen games.",
-    q2: "Windows SmartScreen or macOS Gatekeeper shows a warning.", a2: "PACE MAKER is a free, zero-budget open-source project without a paid code-signing certificate. You can inspect 100% of the source code on GitHub and verify the SHA-256 hash before running.",
-    q3: "It stays on \"Waiting for LoL...\" during a match.", a3: "The Riot local API (127.0.0.1:2999) opens only after the loading screen finishes and the match starts. If it still waits, check that local firewall rules do not block loopback port 2999.",
+    q2: "Windows SmartScreen or macOS Gatekeeper shows a warning.", a2: "PACE MAKER is a free open-source project without a paid code-signing certificate. You can inspect 100% of the source code on GitHub and verify the SHA-256 hash before running.",
+    q3: "It stays on \"Waiting for LoL...\" during a match.", a3: "The Riot local API (127.0.0.1:2999) opens only after the loading screen finishes and the match starts. Check that local firewall rules do not block loopback port 2999.",
     q4: "Is this safe under Riot Games Third-Party Policy (Ranked & ARAM)?", a4: "Yes. It reads only Riot's official local scoreboard/events API (127.0.0.1:2999) for player improvement coaching — zero memory reading, zero OCR, zero hidden enemy timers or wards.",
-    sup_head: "Customer Support & Feedback",
-    sup_bug_t: "Bug Reports & Feature Requests", sup_bug_d: "Found a bug or want a new language/call? Open an issue directly on GitHub.", sup_bug_btn: "Open GitHub Issue",
-    sup_com_t: "Community & Updates", sup_com_d: "Follow updates, share match feedback, and vote on upcoming coaching features on Reddit.", sup_com_btn: "Visit Reddit Profile",
+    sup_bug_t: "Bug Reports & Feature Requests", sup_bug_d: "Found a bug or want a new language/call? Open an issue directly on GitHub.", sup_bug_btn: "GitHub Issue",
+    sup_com_t: "Community & Updates", sup_com_d: "Follow updates, share match feedback, and vote on upcoming coaching features on Reddit.", sup_com_btn: "Reddit",
     sec_title: "Riot Policy Safe & Security Guaranteed",
-    sec_desc: "Read-only access to Riot's official local Live Client Data API (127.0.0.1:2999). No memory injection, no OCR, no hidden enemy wards/cooldowns, and zero gameplay data leaves your PC.",
+    sec_desc: "Read-only access to Riot's official local Live Client Data API (127.0.0.1:2999). No memory injection, no OCR, and zero gameplay data leaves your PC.",
     footer: "LoL Pacemaker isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games."
   },
   ko: {
-    nav_downloads: "자료실", nav_history: "전적 검색", nav_setup: "적용 방법", nav_faq: "오류 해결", nav_support: "고객 응대", nav_cta: "다운로드",
-    hist_head: "글로벌 Riot 전적 검색", hist_desc: "KR, NA, EUW, JP, BR 등 전 세계 소환사 최근 전적을 서버비 0원 Cloudflare Workers로 바로 조회합니다.", hist_btn: "검색", hist_loading: "전적을 불러오는 중...", hist_err: "소환사를 찾을 수 없거나 형식이 잘못되었습니다 (예: Hide on bush#KR1).", hist_win: "승리", hist_loss: "패배",
-    badge: "랭크 · 일반 · 칼바람(ARAM) 전 모드 지원 · 100% 로컬 · 서버비 0원 · 무광고",
+    game_lol: "리그 오브 레전드",
+    nav_overview: "개요 · 인게임 HUD", nav_history: "전적 검색", nav_setup: "적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
+    live_panel_title: "인게임 컴패니언 오버레이",
+    hist_head: "글로벌 Riot 전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN — 서버비 0원 Cloudflare Workers", hist_btn: "검색", hist_loading: "전적을 불러오는 중...", hist_err: "소환사를 찾을 수 없거나 형식이 잘못되었습니다 (예: Hide on bush#KR1).", hist_win: "승리", hist_loss: "패배",
+    badge: "리그 오브 레전드 · 컴패니언 오버레이 · 100% 로컬 · 서버비 0원",
     hero_title: "게임 중 판단을 바꾸는 실시간 AI 코치",
     hero_sub: "랭크, 일반, 칼바람(증바람), 연습모드 모든 경기에서 자동 동작합니다. Blitz·Porofessor와 함께 켜도 프레임 저하 없이 내 PC에서 1ms 미만으로 실력 향상용 실시간 오더를 제공합니다.",
-    btn_download: "데스크톱 앱 다운로드", btn_source: "오픈소스 보기",
+    btn_source: "오픈소스 보기 →",
     m1_k: "추론 속도", m1_v: "로컬 ONNX <1ms", m2_k: "지원 모드", m2_v: "랭크 · 일반 · 칼바람", m3_k: "지원 언어", m4_k: "비용 · 광고", m4_v: "100% 무료 · 광고 0%",
     ingame_cap: "실제 5대5 인게임 화면 위에 투명 HUD가 적용된 실행 화면 (프레임 저하 0)",
-    hud_win: "74.2% · 우세", hud_phase: "중반 운영", hud_lang_code: "KO",
-    hud_rank: "CS 상위 14% · 레벨 상위 18% (티어 정규분포 근사)",
-    hud_brief: "티어 평균 이상 페이스(CS 상위 14%). 라인 주도권을 강가 시야와 오브젝트 선점으로 연결하세요.",
-    hud_c1_t: "바론 확정 각 — 상대 정글 이탈 (32초)", hud_c1_d: "상대 정글러가 32초간 부재 중(강타 없음). 바로 바론을 치세요.",
-    hud_c2_t: "수적 우위 압박 (5대3 · 32초 여유)", hud_c2_d: "상대 2명 이탈 중. 부활 전 포탑이나 바론을 압박하세요.",
-    hud_c3_t: "귀환 추천 (1650G 보유)", hud_c3_d: "코어·하위템 구매 골드 충족. 라인을 밀고 정비 후 다음 교전을 준비하세요.",
-    hud_hint: "F8 클릭 통과 · F9 숨김 · 드래그 이동 · [ ] 투명도",
-    dl_head: "다운로드 자료실",
-    dl_win_t: "Windows 10 / 11 (원클릭 설치 .exe)", dl_win_d: "한 번 설치(LoLPacemaker-Setup.exe)로 바탕화면 바로가기와 롤 경기 시작 시 자동 팝업까지 끝. 포터블 .zip도 함께 제공됩니다.",
-    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "로컬 ONNX 런타임, 클릭 통과 오버레이, OS 언어 자동 감지가 포함된 macOS 전용 앱 번들.",
-    dl_sha_t: "SHA-256 무결성 검증", dl_sha_d: "모든 릴리스는 클린 GitHub Actions에서 자동 빌드되며 checksums.sha256으로 파일 위변조 여부를 직접 확인할 수 있습니다.",
-    dl_btn: "최신 버전 다운로드", dl_sha_btn: "체크섬 확인",
+    dl_head: "데스크톱 앱 다운로드",
+    dl_win_t: "Windows 10 / 11 (원클릭 설치 .exe)", dl_win_d: "롤 시작 시 자동 팝업 · 포터블 .zip 포함",
+    dl_mac_t: "macOS (.app.zip)",
+    dl_sha_t: "SHA-256 무결성 검증", dl_sha_d: "모든 릴리스는 GitHub Actions 클린 환경에서 자동 빌드되며 checksums.sha256을 함께 제공합니다.",
+    dl_sha_btn: "체크섬 →",
     setup_head: "적용 방법 (4단계)",
-    s1_t: "원클릭 설치 & 자동 실행", s1_d: "LoLPacemaker-Setup.exe를 한 번 설치(또는 HUD 상단 AUTO 클릭)해 두면 다음부터 실행기를 찾지 않아도 롤 경기가 시작될 때 HUD가 자동으로 뜹니다.",
-    s2_t: "테두리 없는 창모드", s2_d: "롤 인게임 [설정 → 화면 → 창 모드]를 반드시 '테두리 없음(Borderless)'으로 맞춰야 투명 HUD가 게임 화면 위에 뜹니다.",
-    s3_t: "전 모드 자동 연결", s3_d: "랭크, 일반, 칼바람(증바람), 연습모드 경기가 시작되면 2999 공식 API에 자동 연결되어 모드에 맞는 오더를 2초마다 갱신합니다.",
-    s4_t: "병행 HUD 단축키", s4_d: "드래그로 원하는 위치에 배치하세요. F8 클릭 통과, F9 숨김/표시, [ / ] 투명도 조절, 상단 언어 버튼으로 5개 국어 즉시 전환이 가능합니다.",
-    faq_head: "오류 해결법 & 자주 묻는 질문",
+    s1_t: "원클릭 설치 & 자동 실행", s1_d: "LoLPacemaker-Setup.exe를 한 번 설치(또는 HUD 상단 AUTO 클릭)해 두면 다음부터 실행기를 찾지 않아도 롤 경기 시작 시 HUD가 자동으로 뜹니다.",
+    s2_t: "테두리 없는 창모드", s2_d: "롤 인게임 [설정 → 화면 → 창 모드]를 '테두리 없음(Borderless)'으로 맞춰야 투명 HUD가 게임 위에 뜹니다.",
+    s3_t: "전 모드 자동 연결", s3_d: "랭크, 일반, 칼바람(증바람), 연습모드 경기가 시작되면 2999 공식 API에 자동 연결되어 2초마다 오더를 갱신합니다.",
+    s4_t: "병행 HUD 단축키", s4_d: "드래그로 위치 이동, F8 클릭 통과, F9 숨김/표시, [ / ] 투명도 조절, 상단 버튼으로 5개 국어 즉시 전환.",
+    faq_head: "오류 해결 & 자주 묻는 질문",
     q1: "게임 화면 위에 HUD가 보이지 않습니다.", a1: "롤 화면 설정이 '전체 화면'이면 OS 보안상 오버레이가 가려집니다. 화면 설정을 '테두리 없음(Borderless)'으로 변경해 주세요.",
-    q2: "Windows SmartScreen 또는 macOS 보안 경고가 뜹니다.", a2: "유료 코드 서명 인증서가 없는 무료 오픈소스 앱이라 뜨는 정상 안내입니다. GitHub에서 전체 소스코드를 확인할 수 있으며 checksums.sha256으로 무결성 검증이 가능합니다.",
-    q3: "경기 중에도 'Waiting for LoL...'에서 넘어가지 않습니다.", a3: "Riot 로컬 API(127.0.0.1:2999)는 로딩이 끝나고 경기에 진입한 직후 열립니다. 진입 후에도 대기 중이면 PC 방화벽이 로컬 2999 포트를 막고 있는지 확인하세요.",
-    q4: "랭크나 칼바람에서 써도 Riot 운영방침에 위배되지 않나요?", a4: "네. Riot이 공식 제공하는 로컬 2999 공개 점수판·이벤트 API만 읽기 전용으로 사용합니다. 메모리 변조, 화면 캡처(OCR), 상대 스펠·와드 추적이 전혀 없으며 실력 향상 코칭 용도입니다.",
-    sup_head: "고객 응대 & 버그 제보",
-    sup_bug_t: "오류 제보 · 기능 건의", sup_bug_d: "실행 오류나 원하는 전략 오더·번역 개선이 있으면 GitHub Issues에 바로 남겨 주세요.", sup_bug_btn: "GitHub 문의 등록",
-    sup_com_t: "커뮤니티 · 업데이트 소식", sup_com_d: "Reddit 프로필에서 패치 소식과 글로벌 유저 피드백을 확인하실 수 있습니다.", sup_com_btn: "Reddit 커뮤니티 가기",
+    q2: "Windows SmartScreen 또는 macOS 보안 경고가 뜹니다.", a2: "유료 코드 서명 인증서가 없는 무료 오픈소스 앱이라 뜨는 정상 안내입니다. GitHub에서 전체 소스코드를 확인하고 checksums.sha256으로 검증할 수 있습니다.",
+    q3: "경기 중에도 'Waiting for LoL...'에서 넘어가지 않습니다.", a3: "Riot 로컬 API(127.0.0.1:2999)는 로딩이 끝나고 경기에 진입한 직후 열립니다. 진입 후에도 대기 중이면 방화벽이 로컬 2999 포트를 막고 있는지 확인하세요.",
+    q4: "랭크나 칼바람에서 써도 Riot 운영방침에 위배되지 않나요?", a4: "네. Riot 공식 로컬 2999 공개 점수판·이벤트 API만 읽기 전용으로 사용합니다. 메모리 변조, 화면 캡처(OCR), 상대 스펠·와드 추적이 전혀 없으며 실력 향상 코칭 용도입니다.",
+    sup_bug_t: "오류 제보 · 기능 건의", sup_bug_d: "실행 오류나 원하는 전략 오더·번역 개선이 있으면 GitHub Issues에 바로 남겨 주세요.", sup_bug_btn: "GitHub 문의",
+    sup_com_t: "커뮤니티 · 업데이트 소식", sup_com_d: "Reddit 프로필에서 패치 소식과 글로벌 유저 피드백을 확인하실 수 있습니다.", sup_com_btn: "Reddit",
     sec_title: "Riot 운영방침 준수 및 보안 보증",
-    sec_desc: "Riot 공식 로컬 API(127.0.0.1:2999) 공개 점수판만 읽기 전용으로 사용합니다. 메모리 변조·화면 캡처·비공개 정보 조회가 없으며 외부로 플레이 데이터가 전송되지 않습니다.",
+    sec_desc: "Riot 공식 로컬 API(127.0.0.1:2999) 공개 점수판만 읽기 전용으로 사용합니다. 메모리 변조·OCR·외부 데이터 전송이 전혀 없습니다.",
     footer: "LoL Pacemaker는 Riot Games의 공식 승인을 받은 서비스가 아니며 Riot Games의 입장을 대변하지 않습니다."
   },
   ja: {
-    nav_downloads: "ダウンロード", nav_history: "戦績検索", nav_setup: "使い方", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
-    hist_head: "グローバル Riot 戦績検索", hist_desc: "KR・JP・NA・EUW・BRなど全サーバーの直近戦績をサーバー費0円のCloudflare Workersで検索します。", hist_btn: "検索", hist_loading: "戦績を取得中...", hist_err: "サモナーが見つかりません（GameName#Tag形式で入力してください）。", hist_win: "勝利", hist_loss: "敗北",
-    badge: "ランク · ノーマル · ARAM 全モード対応 · 100%ローカル · 広告ゼロ",
+    game_lol: "リーグ・オブ・レジェンド",
+    nav_overview: "概要・HUD", nav_history: "戦績検索", nav_setup: "導入手順", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
+    live_panel_title: "インゲーム コンパニオンHUD",
+    hist_head: "グローバル Riot 戦績検索", hist_desc: "KR · JP · NA · EUW · BR — サーバー費0円 Cloudflare Workers", hist_btn: "検索", hist_loading: "戦績を取得中...", hist_err: "サモナーが見つかりません（GameName#Tag形式で入力してください）。", hist_win: "勝利", hist_loss: "敗北",
+    badge: "League of Legends · コンパニオンHUD · 100%ローカル · 広告ゼロ",
     hero_title: "試合中の判断を変えるリアルタイムAIコーチ",
     hero_sub: "ランク戦・ノーマル・ARAM・プラクティスすべてに自動対応。BlitzやPorofessorと併用してもFPS低下ゼロ、PC上のONNX(<1ms)で実力向上を支援します。",
-    btn_download: "デスクトップ版をダウンロード", btn_source: "ソースコードを見る",
+    btn_source: "ソースコードを見る →",
     m1_k: "推論速度", m1_v: "ローカルONNX <1ms", m2_k: "対応モード", m2_v: "ランク · ノーマル · ARAM", m3_k: "対応言語", m4_k: "料金・広告", m4_v: "完全無料・広告ゼロ",
     ingame_cap: "実際の5v5試合画面上に透過HUDを表示した動作画面（FPS低下ゼロ）",
-    hud_win: "74.2% · 有利", hud_phase: "中盤マクロ", hud_lang_code: "JA",
-    hud_rank: "CS 上位 14% · レベル 上位 18% (ティア正規近似)",
-    hud_brief: "ティア平均以上のペース(CS 上位 14%)。レーン主導権を川視界とオブジェクトに繋げよう。",
-    hud_c1_t: "バロン確定チャンス — 敵JG不在 (32秒)", hud_c1_d: "敵ジャングラーが32秒間デス中(スマイト無し)。今すぐバロンを狙おう。",
-    hud_c2_t: "人数有利プッシュ (5v3 · 残り32秒)", hud_c2_d: "敵2名デス中。復活前にタワーまたはバロンを押し切ろう。",
-    hud_c3_t: "リコール推奨 (1650G所持)", hud_c3_d: "装備購入ゴールド到達。ウェーブを押し込んでリコールしよう。",
-    hud_hint: "F8 クリック透過 · F9 非表示 · ドラッグ移動 · [ ] 透明度",
-    dl_head: "ダウンロードセンター",
-    dl_win_t: "Windows 10 / 11 (ワンクリック .exe)", dl_win_d: "LoLPacemaker-Setup.exeで簡単導入。試合開始時に自動でHUDが表示されます（ポータブル.zipも同梱）。",
-    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "ローカルONNX・クリック透過HUD・言語自動検出を備えたmacOSアプリバンドル。",
-    dl_sha_t: "SHA-256 チェックサム", dl_sha_d: "全リリースはGitHub Actionsで自動ビルドされ、checksums.sha256で改ざん検証が可能です。",
-    dl_btn: "最新版をダウンロード", dl_sha_btn: "チェックサム確認",
+    dl_head: "デスクトップ版ダウンロード",
+    dl_win_t: "Windows 10 / 11 (ワンクリック .exe)", dl_win_d: "試合開始時に自動表示 · ポータブル.zip同梱",
+    dl_mac_t: "macOS (.app.zip)",
+    dl_sha_t: "SHA-256 チェックサム", dl_sha_d: "全リリースはGitHub Actionsで自動ビルドされ、checksums.sha256で検証可能です。",
+    dl_sha_btn: "確認 →",
     setup_head: "導入手順（4ステップ）",
     s1_t: "ワンクリック導入・自動起動", s1_d: "LoLPacemaker-Setup.exeを一度入れる（またはHUDのAUTOを押す）だけで、次回からは試合開始時に自動でHUDが表示されます。",
     s2_t: "ボーダレス設定", s2_d: "LoLのビデオ設定でウィンドウモードを「ボーダレス」にすると透過HUDがゲーム上に表示されます。",
@@ -492,37 +742,31 @@ const I18N = {
     s4_t: "HUD操作キー", s4_d: "ドラッグ移動、F8クリック透過、F9表示切替、[ / ] 透明度調整、言語ボタンで5言語切替に対応。",
     faq_head: "トラブルシューティング & FAQ",
     q1: "ゲーム画面の上にHUDが表示されません。", a1: "LoLの画面設定を「フルスクリーン」から「ボーダレス」に変更してください。",
-    q2: "WindowsやmacOSのセキュリティ警告が出ます。", a2: "有料署名のない無料オープンソースのため表示されます。GitHubの全コードとSHA-256ハッシュを確認して安全に利用できます。",
+    q2: "WindowsやmacOSのセキュリティ警告が出ます。", a2: "有料署名のない無料オープンソースのため表示されます。GitHubの全コードとSHA-256ハッシュを確認して利用できます。",
     q3: "試合中も「Waiting for LoL...」のままです。", a3: "公式ローカルAPI(127.0.0.1:2999)はロード完了後に開きます。開始後も反応しない場合はファイアウォール設定を確認してください。",
     q4: "ランク戦やARAMで使っても規約違反になりませんか？", a4: "はい。Riot公式の公開スコアAPIのみ読み取り専用で使用し、メモリ改ざん・OCR・非公開タイマー取得は一切行いません。",
-    sup_head: "サポート & フィードバック",
-    sup_bug_t: "バグ報告・機能要望", sup_bug_d: "不具合や追加してほしい機能があればGitHub Issuesへお寄せください。", sup_bug_btn: "GitHub Issueを作成",
-    sup_com_t: "コミュニティ & 更新情報", sup_com_d: "Redditプロフィールで最新アップデートと開発状況を確認できます。", sup_com_btn: "Redditを見る",
+    sup_bug_t: "バグ報告・機能要望", sup_bug_d: "不具合や追加してほしい機能があればGitHub Issuesへお寄せください。", sup_bug_btn: "GitHub Issue",
+    sup_com_t: "コミュニティ & 更新情報", sup_com_d: "Redditプロフィールで最新アップデートと開発状況を確認できます。", sup_com_btn: "Reddit",
     sec_title: "Riotポリシー準拠・セキュリティ保証",
     sec_desc: "Riot公式ローカルAPI(127.0.0.1:2999)の公開情報のみを読み取り専用で使用。メモリ改ざん・OCR・外部データ送信は一切ありません。",
     footer: "LoL PacemakerはRiot Gamesの承認を受けたものではなく、Riot Gamesの見解を反映するものではありません。"
   },
   es: {
-    nav_downloads: "Descargas", nav_history: "Historial", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
-    hist_head: "Búsqueda Global de Partidas Riot", hist_desc: "Consulta partidas recientes en KR, NA, EUW, JP, BR y LAN con nuestro proxy gratuito en Cloudflare Workers.", hist_btn: "Buscar", hist_loading: "Cargando partidas...", hist_err: "Invocador no encontrado (usa el formato Nombre#Tag).", hist_win: "VICTORIA", hist_loss: "DERROTA",
-    badge: "Ranked · Normal · ARAM · 100% Local · Sin Anuncios",
+    game_lol: "League of Legends",
+    nav_overview: "Resumen", nav_history: "Historial", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
+    live_panel_title: "Overlay en Vivo",
+    hist_head: "Búsqueda Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN — Proxy gratuito en Cloudflare Workers", hist_btn: "Buscar", hist_loading: "Cargando partidas...", hist_err: "Invocador no encontrado (usa el formato Nombre#Tag).", hist_win: "VICTORIA", hist_loss: "DERROTA",
+    badge: "League of Legends · Overlay · 100% Local · Sin Anuncios",
     hero_title: "Coach IA en Tiempo Real que Mejora tus Decisiones",
     hero_sub: "Compatible con Ranked, Normal, ARAM y Práctica. Corre localmente en CPU con ONNX (<1ms) junto a Blitz o Porofessor sin bajar FPS.",
-    btn_download: "Descargar App de Escritorio", btn_source: "Ver Código Abierto",
+    btn_source: "Ver Código Abierto →",
     m1_k: "Inferencia", m1_v: "ONNX Local <1ms", m2_k: "Modos", m2_v: "Ranked · Normal · ARAM", m3_k: "Idiomas", m4_k: "Precio", m4_v: "100% Gratis · Sin Anuncios",
     ingame_cap: "Overlay real ejecutándose sobre una partida 5v5 en vivo (sin caída de FPS)",
-    hud_win: "74.2% · Ventaja", hud_phase: "Juego Medio", hud_lang_code: "ES",
-    hud_rank: "CS Top 14% · Nivel Top 18% (Aprox. Normal)",
-    hud_brief: "Gran ritmo (CS Top 14%). Convierte tu prioridad en visión de río y objetivos.",
-    hud_c1_t: "Barón Gratis — JG Enemigo Muerto (32s)", hud_c1_d: "Jungla enemigo fuera 32s (sin Castigo). Inicia Barón ahora.",
-    hud_c2_t: "Forzar Objetivo (5v3 · ventana 32s)", hud_c2_d: "2 enemigos muertos. Empuja torres o toma Barón antes de que revivan.",
-    hud_c3_t: "Momento de Base (1650G)", hud_c3_d: "Oro suficiente para pico de poder. Empuja la oleada y vuelve a base.",
-    hud_hint: "F8 Click-Through · F9 Ocultar · Arrastrar · [ ] Opacidad",
-    dl_head: "Centro de Descargas",
-    dl_win_t: "Windows 10 / 11 (Instalador .exe)", dl_win_d: "Instalador en 1 clic (LoLPacemaker-Setup.exe) con inicio automático al empezar partida. También incluye .zip portátil.",
-    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Aplicación nativa para macOS con ONNX local, HUD click-through y detección automática de idioma.",
-    dl_sha_t: "Checksums SHA-256", dl_sha_d: "Cada versión se compila en GitHub Actions e incluye checksums.sha256 para verificar integridad.",
-    dl_btn: "Descargar Última Versión", dl_sha_btn: "Verificar Checksums",
+    dl_head: "Descargar App de Escritorio",
+    dl_win_t: "Windows 10 / 11 (Instalador .exe)", dl_win_d: "Auto-apertura en partida · .zip portátil incluido",
+    dl_mac_t: "macOS (.app.zip)",
+    dl_sha_t: "Checksums SHA-256", dl_sha_d: "Cada versión se compila en GitHub Actions e incluye checksums.sha256.",
+    dl_sha_btn: "Verificar →",
     setup_head: "Cómo Aplicarlo (4 Pasos)",
     s1_t: "Instalación 1-Clic y Auto-Inicio", s1_d: "Instala LoLPacemaker-Setup.exe una vez (o activa AUTO en el HUD) para que aparezca automáticamente al empezar cualquier partida.",
     s2_t: "Modo Sin Bordes", s2_d: "En los ajustes de video de LoL, cambia el modo de ventana a Sin Bordes (Borderless) para ver el HUD sobre el juego.",
@@ -533,34 +777,28 @@ const I18N = {
     q2: "Aparece una advertencia de SmartScreen o Gatekeeper.", a2: "Es un proyecto gratuito de código abierto sin certificado comercial. Puedes revisar todo el código en GitHub y comprobar el SHA-256.",
     q3: "Se queda en \"Waiting for LoL...\" durante la partida.", a3: "La API local de Riot (127.0.0.1:2999) solo se abre al terminar la pantalla de carga. Verifica que tu firewall no bloquee el puerto 2999.",
     q4: "¿Es seguro bajo la política de Riot en Ranked y ARAM?", a4: "Sí. Solo lee la API local oficial de marcador público (127.0.0.1:2999) para mejorar tu toma de decisiones: cero inyección de memoria u OCR.",
-    sup_head: "Soporte y Contacto",
-    sup_bug_t: "Reportar Errores y Sugerencias", sup_bug_d: "¿Encontraste un fallo o quieres sugerir mejoras? Abre un issue en GitHub.", sup_bug_btn: "Abrir Issue en GitHub",
-    sup_com_t: "Comunidad y Novedades", sup_com_d: "Sigue las actualizaciones y comparte tu feedback en Reddit.", sup_com_btn: "Ir al Perfil de Reddit",
+    sup_bug_t: "Reportar Errores y Sugerencias", sup_bug_d: "¿Encontraste un fallo o quieres sugerir mejoras? Abre un issue en GitHub.", sup_bug_btn: "GitHub Issue",
+    sup_com_t: "Comunidad y Novedades", sup_com_d: "Sigue las actualizaciones y comparte tu feedback en Reddit.", sup_com_btn: "Reddit",
     sec_title: "Seguro bajo Políticas de Riot",
-    sec_desc: "Solo lectura sobre la API local oficial de Riot (127.0.0.1:2999). Sin inyección de memoria, sin OCR, sin datos ocultos y cero envío a servidores externos.",
+    sec_desc: "Solo lectura sobre la API local oficial de Riot (127.0.0.1:2999). Sin inyección de memoria, sin OCR y cero envío a servidores externos.",
     footer: "LoL Pacemaker no está avalado por Riot Games y no refleja las opiniones ni puntos de vista de Riot Games."
   },
   pt: {
-    nav_downloads: "Downloads", nav_history: "Histórico", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar",
-    hist_head: "Busca Global de Partidas Riot", hist_desc: "Consulte partidas recentes em KR, NA, EUW, JP e BR com nosso proxy gratuito no Cloudflare Workers.", hist_btn: "Buscar", hist_loading: "Carregando partidas...", hist_err: "Invocador não encontrado (use o formato Nome#Tag).", hist_win: "VITÓRIA", hist_loss: "DERROTA",
-    badge: "Ranqueada · Normal · ARAM · 100% Local · Sem Anúncios",
+    game_lol: "League of Legends",
+    nav_overview: "Visão Geral", nav_history: "Histórico", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar App",
+    live_panel_title: "Overlay em Tempo Real",
+    hist_head: "Busca Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR — Proxy gratuito no Cloudflare Workers", hist_btn: "Buscar", hist_loading: "Carregando partidas...", hist_err: "Invocador não encontrado (use o formato Nome#Tag).", hist_win: "VITÓRIA", hist_loss: "DERROTA",
+    badge: "League of Legends · Overlay · 100% Local · Sem Anúncios",
     hero_title: "Coach IA em Tempo Real que Muda suas Decisões",
     hero_sub: "Funciona em Ranqueada, Normal, ARAM e Modo Treino. Roda localmente na CPU via ONNX (<1ms) junto com Blitz ou Porofessor sem queda de FPS.",
-    btn_download: "Baixar App Desktop", btn_source: "Ver Código Aberto",
+    btn_source: "Ver Código Aberto →",
     m1_k: "Inferência", m1_v: "ONNX Local <1ms", m2_k: "Modos", m2_v: "Ranqueada · Normal · ARAM", m3_k: "Idiomas", m4_k: "Custo", m4_v: "100% Grátis · Sem Anúncios",
     ingame_cap: "Overlay real rodando sobre uma partida 5v5 ao vivo (zero queda de FPS)",
-    hud_win: "74.2% · Vantagem", hud_phase: "Mid Game", hud_lang_code: "PT",
-    hud_rank: "CS Top 14% · Nível Top 18% (Aprox. Normal)",
-    hud_brief: "Ótimo ritmo (CS Top 14%). Converta pressão de rota em visão e objetivos.",
-    hud_c1_t: "Barão Livre — JG Inimigo Morto (32s)", hud_c1_d: "Caçador inimigo fora por 32s (sem Golpear). Inicie Barão agora.",
-    hud_c2_t: "Forçar Objetivo (5v3 · janela 32s)", hud_c2_d: "2 inimigos mortos. Leve torres ou Barão antes do respawn.",
-    hud_c3_t: "Hora do Recall (1650G)", hud_c3_d: "Ouro suficiente para pico de item. Empurre a wave e resete antes da luta.",
-    hud_hint: "F8 Click-Through · F9 Ocultar · Arrastar · [ ] Opacidade",
-    dl_head: "Central de Downloads",
-    dl_win_t: "Windows 10 / 11 (Instalador .exe)", dl_win_d: "Instalador em 1 clique (LoLPacemaker-Setup.exe) com abertura automática na partida. Também inclui .zip portátil.",
-    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "App nativo para macOS com ONNX local, overlay click-through e detecção automática de idioma.",
-    dl_sha_t: "Checksums SHA-256", dl_sha_d: "Cada versão é compilada no GitHub Actions e inclui checksums.sha256 para conferir a integridade.",
-    dl_btn: "Baixar Última Versão", dl_sha_btn: "Verificar Checksums",
+    dl_head: "Baixar App Desktop",
+    dl_win_t: "Windows 10 / 11 (Instalador .exe)", dl_win_d: "Abre sozinho na partida · .zip portátil incluído",
+    dl_mac_t: "macOS (.app.zip)",
+    dl_sha_t: "Checksums SHA-256", dl_sha_d: "Cada versão é compilada no GitHub Actions e inclui checksums.sha256.",
+    dl_sha_btn: "Verificar →",
     setup_head: "Como Usar (4 Passos)",
     s1_t: "Instalação 1-Clique e Auto-Início", s1_d: "Instale LoLPacemaker-Setup.exe uma vez (ou clique em AUTO no HUD) para abrir automaticamente sempre que uma partida começar.",
     s2_t: "Modo Sem Moldura", s2_d: "Nas configurações de vídeo do LoL, mude o modo de janela para Sem Moldura (Borderless) para o HUD aparecer sobre o jogo.",
@@ -571,19 +809,22 @@ const I18N = {
     q2: "O Windows SmartScreen ou macOS mostra um aviso.", a2: "É um app gratuito e open-source sem certificado pago. Você pode auditar todo o código no GitHub e validar o hash SHA-256.",
     q3: "Fica preso em \"Waiting for LoL...\" na partida.", a3: "A API local da Riot (127.0.0.1:2999) só abre após a tela de carregamento. Confira se o firewall local não bloqueia a porta 2999.",
     q4: "É seguro nas políticas da Riot em Ranqueada e ARAM?", a4: "Sim. Apenas lê a API local oficial do placar público (127.0.0.1:2999) para coaching educativo — sem injeção de memória, OCR ou timers ocultos.",
-    sup_head: "Suporte ao Usuário",
-    sup_bug_t: "Reportar Bugs e Ideias", sup_bug_d: "Encontrou algum erro ou quer sugerir recursos? Abra uma issue no GitHub.", sup_bug_btn: "Abrir Issue no GitHub",
-    sup_com_t: "Comunidade e Atualizações", sup_com_d: "Acompanhe novidades e envie feedback no perfil do Reddit.", sup_com_btn: "Visitar Reddit",
+    sup_bug_t: "Reportar Bugs e Ideias", sup_bug_d: "Encontrou algum erro ou quer sugerir recursos? Abra uma issue no GitHub.", sup_bug_btn: "GitHub Issue",
+    sup_com_t: "Comunidade e Atualizações", sup_com_d: "Acompanhe novidades e envie feedback no perfil do Reddit.", sup_com_btn: "Reddit",
     sec_title: "Seguro nas Políticas da Riot",
-    sec_desc: "Acesso somente leitura à API local oficial da Riot (127.0.0.1:2999). Sem injeção de memória, sem OCR, sem dados ocultos e nenhum dado sai do seu PC.",
+    sec_desc: "Acesso somente leitura à API local oficial da Riot (127.0.0.1:2999). Sem injeção de memória, sem OCR e nenhum dado sai do seu PC.",
     footer: "LoL Pacemaker não é endossado pela Riot Games e não reflete as visões ou opiniões da Riot Games."
   }
 };
 
 const THEME_LABEL = {
-  en: "Toggle light / dark theme", ko: "라이트 / 다크 모드 전환", ja: "ライト / ダークテーマを切り替え",
-  es: "Cambiar tema claro / oscuro", pt: "Alternar tema claro / escuro"
+  en: "Toggle light / dark theme",
+  ko: "라이트 / 다크 모드 전환",
+  ja: "ライト / ダークテーマを切り替え",
+  es: "Cambiar tema claro / oscuro",
+  pt: "Alternar tema claro / escuro"
 };
+
 function currentTheme() {
   const t = document.documentElement.getAttribute("data-theme");
   if (t === "light" || t === "dark") return t;
@@ -602,23 +843,16 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
   try { localStorage.setItem("pacemaker_theme", next); } catch (_) {}
   paintThemeButton();
 });
-paintThemeButton();
-
-const navLinks = Array.from(document.querySelectorAll(".nav-links a"));
-const spy = new IntersectionObserver((entries) => {
-  for (const en of entries) {
-    if (!en.isIntersecting) continue;
-    for (const a of navLinks) a.setAttribute("aria-current", String(a.getAttribute("href") === "#" + en.target.id));
-  }
-}, { rootMargin: "-40% 0px -55% 0px" });
-for (const a of navLinks) { const sec = document.querySelector(a.getAttribute("href")); if (sec) spy.observe(sec); }
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paintThemeButton);
 
 function detectLang() {
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(location.search);
   const q = (params.get("lang") || "").toLowerCase();
   if (I18N[q]) return q;
-  const saved = (localStorage.getItem("pacemaker_lang") || "").toLowerCase();
-  if (I18N[saved]) return saved;
+  try {
+    const saved = localStorage.getItem("pacemaker_lang");
+    if (saved && I18N[saved]) return saved;
+  } catch (_) {}
   const nav = (navigator.language || "en").slice(0, 2).toLowerCase();
   return I18N[nav] ? nav : "en";
 }
@@ -627,55 +861,116 @@ function applyLang(lang) {
   const dict = I18N[lang] || I18N.en;
   document.documentElement.lang = lang;
   document.getElementById("lang-select").value = lang;
-  if (typeof paintThemeButton === "function") paintThemeButton();
-  for (const el of document.querySelectorAll("[data-i18n]")) {
+  document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.getAttribute("data-i18n");
     if (dict[key]) el.textContent = dict[key];
-  }
+  });
+  paintThemeButton();
   try { localStorage.setItem("pacemaker_lang", lang); } catch (_) {}
-  const url = new URL(window.location.href);
-  url.searchParams.set("lang", lang);
-  window.history.replaceState({}, "", url.toString());
 }
 
-document.getElementById("lang-select").addEventListener("change", (e) => applyLang(e.target.value));
+document.getElementById("lang-select").addEventListener("change", e => applyLang(e.target.value));
 applyLang(detectLang());
 
+/* Scrollspy for subbar tabs */
+const navAnchors = [...document.querySelectorAll(".nav-links a[href^='#']")];
+const spyTargets = navAnchors.map(a => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+if ("IntersectionObserver" in window && spyTargets.length) {
+  const io = new IntersectionObserver(entries => {
+    const top = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+    if (!top) return;
+    navAnchors.forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + top.target.id ? "true" : "false"));
+  }, { rootMargin: "-20% 0px -65% 0px" });
+  spyTargets.forEach(s => io.observe(s));
+}
+
+/* Sync region across header select, form select, and OP.GG-style region pills */
+function setRegion(reg) {
+  document.getElementById("riot-region").value = reg;
+  document.getElementById("hdr-region").value = reg;
+  document.querySelectorAll(".region-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-region") === reg);
+  });
+}
+document.querySelectorAll(".region-btn").forEach(btn => {
+  btn.addEventListener("click", () => setRegion(btn.getAttribute("data-region")));
+});
+document.getElementById("riot-region").addEventListener("change", e => setRegion(e.target.value));
+document.getElementById("hdr-region").addEventListener("change", e => setRegion(e.target.value));
+
+/* Global Riot Match Lookup via $0 Cloudflare Worker */
 const WORKER_URL = "https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev";
-document.getElementById("riot-search-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const lang = document.getElementById("lang-select").value || "en";
-  const dict = I18N[lang] || I18N.en;
-  const riotId = document.getElementById("riot-id-input").value.trim();
-  const region = document.getElementById("riot-region").value;
+async function runMatchLookup(region, rawInput) {
   const statusEl = document.getElementById("match-status");
   const listEl = document.getElementById("match-list");
+  const dict = I18N[document.documentElement.lang] || I18N.en;
+  const raw = rawInput.trim();
+  const parts = raw.split("#");
+  if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) {
+    statusEl.textContent = dict.hist_err;
+    listEl.replaceChildren();
+    return;
+  }
+  const gameName = parts[0].trim();
+  const tagLine = parts[1].trim();
   statusEl.textContent = dict.hist_loading;
   listEl.replaceChildren();
   try {
-    const res = await fetch(`${WORKER_URL}/?riot_id=${encodeURIComponent(riotId)}&region=${encodeURIComponent(region)}`);
+    const url = WORKER_URL + "/api/matches?region=" + encodeURIComponent(region)
+      + "&gameName=" + encodeURIComponent(gameName)
+      + "&tagLine=" + encodeURIComponent(tagLine);
+    const res = await fetch(url);
     const data = await res.json();
     if (!res.ok || !Array.isArray(data.matches)) {
-      statusEl.textContent = dict.hist_err;
+      statusEl.textContent = data.error || dict.hist_err;
       return;
     }
-    statusEl.textContent = `${data.riot_id} (${data.region})`;
-    for (const m of data.matches) {
+    statusEl.textContent = data.riotId + " (" + String(data.region || region).toUpperCase() + ")";
+    data.matches.forEach(m => {
       const row = document.createElement("div");
       row.className = "match-row " + (m.win ? "win" : "loss");
-      const rSpan = document.createElement("span");
-      rSpan.className = "match-res";
-      rSpan.textContent = m.win ? dict.hist_win : dict.hist_loss;
-      const cSpan = document.createElement("strong");
-      cSpan.textContent = `${m.champion} · ${m.gameMode}`;
-      const kSpan = document.createElement("span");
-      kSpan.textContent = `KDA ${m.kills}/${m.deaths}/${m.assists} · CS ${m.cs} · ${m.durationMin}m`;
-      row.append(rSpan, cSpan, kSpan);
+
+      const badge = document.createElement("span");
+      badge.className = "match-res";
+      badge.textContent = m.win ? dict.hist_win : dict.hist_loss;
+
+      const champ = document.createElement("span");
+      champ.className = "match-champ";
+      champ.textContent = m.champion;
+
+      const kdaRatio = m.deaths === 0 ? "Perfect" : ((m.kills + m.assists) / m.deaths).toFixed(2) + ":1";
+      const kda = document.createElement("span");
+      kda.className = "match-kda";
+      kda.textContent = m.kills + " / " + m.deaths + " / " + m.assists + " (" + kdaRatio + ")";
+
+      const cs = document.createElement("span");
+      cs.className = "match-cs";
+      cs.textContent = "CS " + m.cs;
+
+      const dur = document.createElement("span");
+      dur.className = "match-dur";
+      dur.textContent = Math.floor(m.durationSec / 60) + "m " + String(m.durationSec % 60).padStart(2, "0") + "s";
+
+      row.append(badge, champ, kda, cs, dur);
       listEl.appendChild(row);
-    }
+    });
   } catch (_) {
     statusEl.textContent = dict.hist_err;
   }
+}
+
+document.getElementById("riot-search-form").addEventListener("submit", e => {
+  e.preventDefault();
+  runMatchLookup(document.getElementById("riot-region").value, document.getElementById("riot-id-input").value);
+});
+document.getElementById("hdr-search-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const reg = document.getElementById("hdr-region").value;
+  const val = document.getElementById("hdr-riot-input").value.trim() || document.getElementById("riot-id-input").value;
+  setRegion(reg);
+  document.getElementById("riot-id-input").value = val;
+  document.getElementById("history").scrollIntoView({ behavior: "smooth" });
+  runMatchLookup(reg, val);
 });
 </script>
 </body>
