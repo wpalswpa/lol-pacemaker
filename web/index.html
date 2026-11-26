@@ -1478,7 +1478,8 @@ function showView() {
   document.querySelectorAll("section[data-view]").forEach(sec => { sec.hidden = sec.getAttribute("data-view") !== view; });
   document.querySelectorAll(".nav-links a[data-view-link]").forEach(a =>
     a.setAttribute("aria-current", a.getAttribute("data-view-link") === view ? "true" : "false"));
-  const target = location.hash && document.querySelector(location.hash);
+  const rawId = location.hash.length > 1 ? location.hash.slice(1) : "";
+  const target = rawId && /^[a-zA-Z0-9_-]+$/.test(rawId) ? document.getElementById(rawId) : null;
   if (target && !["#home", "#history", "#support", "#downloads", "#mypage"].includes(location.hash)) target.scrollIntoView();
   else window.scrollTo(0, 0);
 }

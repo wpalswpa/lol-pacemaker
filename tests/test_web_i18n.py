@@ -68,3 +68,8 @@ def test_three_menus_english_default_and_contact_inside_the_site():
         assert (Path(__file__).resolve().parent.parent / "docs" / "images" / img).exists()
     for key in ("ct_send", "chat_handoff", "gm2_d", "gw1_d"):
         assert html.count(f"{key}:") == 5  # every language has the string
+
+
+def test_show_view_safe_for_oauth_hash():
+    """OAuth callbacks return #auth_token=... which is an invalid CSS selector."""
+    assert "document.querySelector(location.hash)" not in _html("docs")
