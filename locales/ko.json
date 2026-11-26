@@ -88,5 +88,7 @@
   "call_aram_reset_title": "골드 정비 타이밍 ({gold}G 보유)",
   "call_aram_reset_detail": "보유 골드가 많습니다. 유리한 교전 후 정비해 코어템을 띄우세요.",
   "call_aram_poke_title": "라인 유지 · 5대5 한타 각 대기",
-  "call_aram_poke_detail": "체력과 핵심 스킬을 아끼면서 5명이 모였을 때 한 번에 교전하세요."
+  "call_aram_poke_detail": "체력과 핵심 스킬을 아끼면서 5명이 모였을 때 한 번에 교전하세요.",
+  "hud_auto_on": "자동 실행 켜짐 · 롤 경기가 시작되면 HUD가 자동으로 나타납니다.",
+  "hud_auto_off": "팁: 위 AUTO를 누르면 다음부터 실행기를 찾지 않아도 롤 시작 시 자동 실행됩니다."
 }

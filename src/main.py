@@ -18,6 +18,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--web", action="store_true", help="serve the browser HUD instead of the overlay window")
     ap.add_argument("--port", type=int, default=8787)
     ap.add_argument("--no-update", action="store_true", help="skip the model update check")
+    ap.add_argument("--background", action="store_true", help="start hidden and auto-show only while a LoL match is active")
     args = ap.parse_args(argv)
 
     settings = load_settings()
@@ -39,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     save_settings(settings)
     from src.overlay import Overlay  # imports tkinter only when the GUI is requested
 
-    Overlay(engine, settings).run()
+    Overlay(engine, settings, background_mode=args.background).run()
     return 0
 
 

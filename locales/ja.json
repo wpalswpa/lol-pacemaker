@@ -88,5 +88,7 @@
   "call_aram_reset_title": "装備購入リセット ({gold}G所持)",
   "call_aram_reset_detail": "未消費ゴールドが多め。有利な交換後にデスして装備を整えよう。",
   "call_aram_poke_title": "ウェーブ維持・5v5待機",
-  "call_aram_poke_detail": "体力と重要スキルを温存し、5人揃ってから仕掛けよう。"
+  "call_aram_poke_detail": "体力と重要スキルを温存し、5人揃ってから仕掛けよう。",
+  "hud_auto_on": "自動起動オン · 試合が始まるとHUDが自動で表示されます。",
+  "hud_auto_off": "ヒント: 上のAUTOをオンにすると、毎回起動せず試合開始時に自動表示されます。"
 }

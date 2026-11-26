@@ -11,7 +11,7 @@ from src.updater import home_dir
 LANGS = ("en", "ko", "ja", "es", "pt")
 TIERS = ("low", "mid", "high")
 OPACITY_MIN, OPACITY_MAX, OPACITY_STEP = 0.3, 1.0, 0.1
-HUD_WIDTH = 300
+HUD_WIDTH = 340
 
 
 def settings_path() -> Path:

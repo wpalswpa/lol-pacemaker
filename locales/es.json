@@ -88,5 +88,7 @@
   "call_aram_reset_title": "Resetea para Comprar ({gold}G)",
   "call_aram_reset_detail": "Mucho oro sin gastar. Busca un buen intercambio para comprar objetos.",
   "call_aram_poke_title": "Controla Oleada y Espera 5v5",
-  "call_aram_poke_detail": "Cuida tu vida y definitivas clave antes de iniciar en equipo."
+  "call_aram_poke_detail": "Cuida tu vida y definitivas clave antes de iniciar en equipo.",
+  "hud_auto_on": "Inicio automático ACTIVO · El HUD aparecerá solo al entrar en partida.",
+  "hud_auto_off": "Tip: Activa AUTO arriba para que el HUD aparezca solo en cada partida."
 }

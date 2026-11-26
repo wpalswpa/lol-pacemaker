@@ -88,5 +88,7 @@
   "call_aram_reset_title": "Resete para Comprar ({gold}G)",
   "call_aram_reset_detail": "Muito ouro acumulado. Troque uma boa luta para comprar seus itens.",
   "call_aram_poke_title": "Segure a Wave e Espere 5v5",
-  "call_aram_poke_detail": "Preserve vida e ultimates importantes para engajar com o time todo."
+  "call_aram_poke_detail": "Preserve vida e ultimates importantes para engajar com o time todo.",
+  "hud_auto_on": "Início automático LIGADO · O HUD aparece sozinho quando a partida começa.",
+  "hud_auto_off": "Dica: Ative AUTO acima para abrir automaticamente em toda partida."
 }

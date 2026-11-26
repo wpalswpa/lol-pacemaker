@@ -47,12 +47,23 @@ jobs:
         run: |
           uv sync --python 3.12 --group build
           uv run --python 3.12 python scripts/build.py
+      - name: Build Windows 1-click installer (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          ISCC="$(command -v iscc || echo '/c/Program Files (x86)/Inno Setup 6/ISCC.exe')"
+          "$ISCC" "/DMyAppVersion=${VER}" scripts/installer.iss
+          ls -lh dist/LoLPacemaker-Setup.exe
       - name: Upload OS binary directly to draft release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "${GITHUB_REF_NAME}" dist/LoLPacemaker-*.zip --clobber
+          if [ -f dist/LoLPacemaker-Setup.exe ]; then
+            gh release upload "${GITHUB_REF_NAME}" dist/LoLPacemaker-Setup.exe --clobber
+          fi
 
   checksums:
     needs: build

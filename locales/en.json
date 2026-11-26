@@ -88,5 +88,7 @@
   "call_aram_reset_title": "Reset to Spend ({gold}G)",
   "call_aram_reset_detail": "Holding heavy unspent gold. Trade a clean fight to buy items and spike.",
   "call_aram_poke_title": "Hold Wave & Cooldowns",
-  "call_aram_poke_detail": "Keep health up, track key ultimates, and engage together 5v5."
+  "call_aram_poke_detail": "Keep health up, track key ultimates, and engage together 5v5.",
+  "hud_auto_on": "Auto-start ON · HUD pops up automatically when a LoL match starts.",
+  "hud_auto_off": "Tip: Click AUTO above so HUD launches automatically whenever you play LoL."
 }
