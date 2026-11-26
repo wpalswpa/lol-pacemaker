@@ -1430,20 +1430,14 @@ function detectLang() {
   return "en";  // default is English; a chosen language is remembered (2026-11-26)
 }
 
+// Add language codes here as localized mp4 files (docs/images/intro_demo_<lang>.mp4) are uploaded
+const LOCALIZED_VIDEOS = new Set();
 function syncIntroVideo(lang) {
   const vid = document.getElementById("intro-video");
   if (!vid) return;
-  const fallback = "./images/intro_demo.mp4";
-  const localized = "./images/intro_demo_" + lang + ".mp4";
-  vid.onerror = () => {
-    vid.onerror = null;
-    if (vid.getAttribute("src") !== fallback) {
-      vid.setAttribute("src", fallback);
-      vid.load();
-    }
-  };
-  if (vid.getAttribute("src") !== localized) {
-    vid.setAttribute("src", localized);
+  const target = LOCALIZED_VIDEOS.has(lang) ? "./images/intro_demo_" + lang + ".mp4" : "./images/intro_demo.mp4";
+  if (vid.getAttribute("src") !== target) {
+    vid.setAttribute("src", target);
     vid.load();
   }
 }
