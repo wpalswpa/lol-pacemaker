@@ -15,4 +15,4 @@ def test_all_locales_match_english_keys():
 def test_unknown_locale_falls_back_to_english():
     tr = Translator(lang="fr_FR")
     assert tr.lang == "en"
-    assert tr.t("app_title") == "LoL Shotcaller"
+    assert tr.t("app_title") == "LoL Pacemaker"

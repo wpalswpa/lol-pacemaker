@@ -1,5 +1,5 @@
 [project]
-name = "lol-shotcaller"
+name = "lol-pacemaker"
 version = "0.1.0"
 description = "Zero-server, multi-language real-time AI shotcaller companion for League of Legends"
 readme = "README.md"
@@ -13,6 +13,10 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
+]
+train = [
+    "scikit-learn>=1.5.0",
+    "skl2onnx>=1.17.0",
 ]
 
 [tool.pytest.ini_options]
