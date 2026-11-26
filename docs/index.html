@@ -127,10 +127,8 @@
     display: inline-flex; align-items: center; gap: 8px;
     font-weight: 900; font-size: 14px; letter-spacing: 0.04em; color: #FFFFFF; white-space: nowrap;
   }
-  .brand-mark {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 24px; height: 24px; border-radius: 5px;
-    background: var(--accent); color: #FFFFFF; font: 900 13px/1 var(--mono);
+  .brand-logo {
+    width: 26px; height: 26px; border-radius: 6px; display: block; flex-shrink: 0;
   }
   .game-tab {
     display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
@@ -249,7 +247,7 @@
   }
   .crumb { font: 700 11.5px/1.3 var(--mono); color: var(--accent); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
   .page-header { padding: 18px 0 10px; }
-  h1 { margin: 0; font-size: clamp(28px, 3.6vw, 44px); font-weight: 900; letter-spacing: -0.035em; line-height: 1.12; }
+  h1 { margin: 0; font-size: clamp(28px, 3.6vw, 44px); font-weight: 900; letter-spacing: -0.035em; line-height: 1.12; color: var(--accent); }
   h1 span { display: block; }
   .h1-accent { color: var(--accent); }
   .hero-desc { margin: 14px 0 0; font-size: 16px; line-height: 1.6; color: var(--sub); max-width: 62ch; }
@@ -573,7 +571,7 @@
     <div class="topbar-inner">
       <div class="brand-group">
         <a class="brand" href="#home">
-          <span class="brand-mark">P</span>
+          <img class="brand-logo" src="./images/app_hud_folded.png" alt="PACE MAKER">
           <span>PACE MAKER</span>
         </a>
       </div>
@@ -1566,9 +1564,9 @@ document.getElementById("hdr-region").addEventListener("change", e => setRegion(
 
 /* Riot Account Linking (AGENTS §15) + OP.GG-style Match History & Self-Only AI Review */
 let CURRENT_DD = "16.23.1";
-let LINKED_USER = null; // { riot_id, region, token }
-let PENDING_CHALLENGE = null;
-let LAST_SEARCHED_ID = "";
+var LINKED_USER = null; // { riot_id, region, display_name, token }
+var PENDING_CHALLENGE = null;
+var LAST_SEARCHED_ID = "";
 
 function ddImg(kind, id) {
   if (kind === "champ") return "https://ddragon.leagueoflegends.com/cdn/" + CURRENT_DD + "/img/champion/" + encodeURIComponent(id) + ".png";
