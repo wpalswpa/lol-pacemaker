@@ -224,6 +224,7 @@
   .dl-meta dd { margin: 0; font-size: 13.5px; font-weight: 800; }
   .dl-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 40px; }
   .dl-card { display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 32px; }
+  .dl-os-icon { width: 34px; height: 34px; color: var(--text); margin-bottom: 14px; display: block; }
   .dl-card h2 { margin: 0 0 12px; font-size: 26px; font-weight: 900; letter-spacing: -0.02em; }
   .dl-card > p { margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--sub); }
   .dl-act { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-top: auto; padding-top: 28px; }
@@ -677,6 +678,7 @@
       </dl>
       <div class="dl-cards">
         <div class="dl-card">
+          <svg class="dl-os-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 3.5L11 2.2V11.3H2V3.5ZM12.2 2L22 0.5V11.3H12.2V2ZM2 12.5H11V21.7L2 20.4V12.5ZM12.2 12.5H22V23.3L12.2 21.9V12.5Z"/></svg>
           <h2>Windows</h2>
           <p data-i18n="dl_win_desc">Installer for Windows 10 / 11. Once installed, the HUD appears by itself when a League match starts.</p>
           <div class="dl-act">
@@ -685,6 +687,7 @@
           </div>
         </div>
         <div class="dl-card">
+          <svg class="dl-os-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z"/></svg>
           <h2>macOS</h2>
           <p data-i18n="dl_mac_desc">App for Apple Silicon Macs (M1 or later).</p>
           <div class="dl-act">
@@ -1000,7 +1003,7 @@ const I18N = {
   },
   ko: {
     game_lol: "리그 오브 레전드",
-    nav_overview: "제품 소개", nav_history: "전적 검색", nav_setup: "설치 · 적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
+    nav_overview: "서비스 소개", nav_history: "전적 검색", nav_setup: "설치 · 적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
     live_panel_title: "소개 영상",
     hist_head: "전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "검색", hist_loading: "불러오는 중...", hist_err: "소환사를 찾을 수 없습니다. (예: Hide on bush#KR1)", hist_win: "승리", hist_loss: "패배",
     b_head: "핵심 기능",
