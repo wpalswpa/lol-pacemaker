@@ -1,8 +1,8 @@
 name: release
 
 # Runs ONLY when a version tag is pushed (e.g. `git tag v0.2.0 && git push origin v0.2.0`).
-# It builds clean binaries on Windows and macOS, writes checksums.sha256 and creates a DRAFT
-# release; a human reviews it and presses "Publish". No secrets are used.
+# Uploads directly to a DRAFT GitHub Release (uses 0 bytes of Actions Artifact storage).
+# A human reviews the draft release and presses "Publish". No secrets are used.
 on:
   push:
     tags:
@@ -12,9 +12,26 @@ permissions:
   contents: write
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage bundled model files
+        run: |
+          mkdir -p release
+          for f in model_extended.onnx distribution_stats.json; do
+            if [ -f "assets/$f" ]; then cp "assets/$f" release/; fi
+          done
+      - name: Create draft release with model assets
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: release/*
+
   build:
+    needs: prepare
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
@@ -30,32 +47,25 @@ jobs:
         run: |
           uv sync --python 3.12 --group build
           uv run --python 3.12 python scripts/build.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-${{ matrix.os }}
-          path: dist/LoLPacemaker-*.zip
-          if-no-files-found: error
+      - name: Upload OS binary directly to draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" dist/LoLPacemaker-*.zip --clobber
 
-  publish:
+  checksums:
     needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          path: release
-          merge-multiple: true
-      - name: Stage model files (only if a trained model is committed)
+      - name: Download draft release assets and publish checksums.sha256
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          for f in model_extended.onnx distribution_stats.json; do
-            if [ -f "assets/$f" ]; then cp "assets/$f" release/; fi
-          done
-      - name: checksums.sha256
-        run: |
+          mkdir -p release
+          gh release download "${GITHUB_REF_NAME}" -D release
           cd release
           python3 ../scripts/make_checksums.py checksums.sha256 $(ls | grep -v '^checksums.sha256$')
           cat checksums.sha256
-      - uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          files: release/*
+          gh release upload "${GITHUB_REF_NAME}" checksums.sha256 --clobber
