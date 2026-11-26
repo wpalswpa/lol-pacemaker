@@ -3,7 +3,7 @@ name = "lol-pacemaker"
 version = "0.1.0"
 description = "Zero-server, multi-language real-time AI companion for League of Legends"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.15"
 dependencies = [
     "numpy>=1.26.0",
     "onnxruntime>=1.18.0",

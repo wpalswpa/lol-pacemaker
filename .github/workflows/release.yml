@@ -21,11 +21,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv sync --group dev --group build
-      - name: Tests must pass before anything is built
-        run: uv run python -m pytest -q
-      - name: Build app
-        run: uv run python scripts/build.py
+      - name: Pin Python 3.12 and run full test suite
+        run: |
+          uv python install 3.12
+          uv sync --python 3.12 --all-groups
+          uv run --python 3.12 python -m pytest -q
+      - name: Build lightweight app (exclude training packages)
+        run: |
+          uv sync --python 3.12 --group build
+          uv run --python 3.12 python scripts/build.py
       - uses: actions/upload-artifact@v4
         with:
           name: app-${{ matrix.os }}
