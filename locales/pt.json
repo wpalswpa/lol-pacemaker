@@ -21,6 +21,7 @@
   "call_smite_warn_detail": "Caçador aliado morto ({sec}s). Troque torres do outro lado ou limpe waves.",
   "call_num_adv_title": "Forçar Objetivo ({ally}v{enemy} · janela {sec}s)",
   "call_num_adv_detail": "{enemy_dead} inimigos mortos. Leve torres ou {objective} antes do respawn.",
+  "call_num_adv_detail_towers": "{enemy_dead} inimigos mortos. Leve torres antes do respawn.",
   "call_num_disadv_title": "Defender e Limpar Waves ({ally}v{enemy})",
   "call_num_disadv_detail": "Em desvantagem numérica. Ceda objetivos externos e defenda com segurança.",
   "call_soul_threat_title": "Contestar Alma do Dragão!",
@@ -50,6 +51,7 @@
   "lane_BOTTOM": "Atirador",
   "lane_UTILITY": "Suporte",
   "rank_item": "{metric} Top {pct}%",
+  "rank_item_avg": "{metric} {value} · média {mean} (top {pct}%)",
   "rank_approx": "≈ aprox. normal vs {tier} · min {minute}",
   "metric_cs_per_min": "CS/min",
   "metric_level": "Nível",
@@ -109,5 +111,7 @@
   "hud_menu_opacity": "Opacidade",
   "hud_menu_lang": "Idioma",
   "hud_menu_auto": "Iniciar com o computador",
-  "hud_menu_data": "Compartilhar dados anônimos"
+  "hud_menu_data": "Compartilhar dados anônimos",
+  "hud_menu_reset": "Redefinir posição",
+  "hud_menu_lock": "Travar posição"
 }

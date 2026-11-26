@@ -21,6 +21,7 @@
   "call_smite_warn_detail": "味方ジャングラー不在({sec}秒)。反対側のタワーやウェーブでトレードしよう。",
   "call_num_adv_title": "人数有利プッシュ ({ally}v{enemy} · 残り{sec}秒)",
   "call_num_adv_detail": "敵{enemy_dead}名デス中。復活前にタワーまたは{objective}を押し切ろう。",
+  "call_num_adv_detail_towers": "敵{enemy_dead}名デス中。復活前にタワーを押し切ろう。",
   "call_num_disadv_title": "人数不利・防衛 ({ally}v{enemy})",
   "call_num_disadv_detail": "人数不足。無理な集団戦を避けてウェーブクリアに集中しよう。",
   "call_soul_threat_title": "敵ドラゴンソウル阻止!",
@@ -50,6 +51,7 @@
   "lane_BOTTOM": "ADC",
   "lane_UTILITY": "サポート",
   "rank_item": "{metric} 上位 {pct}%",
+  "rank_item_avg": "{metric} {value}・平均 {mean}（上位{pct}%）",
   "rank_approx": "≈ 正規分布の近似 · {tier} · {minute}分基準",
   "metric_cs_per_min": "分間CS",
   "metric_level": "レベル",
@@ -109,5 +111,7 @@
   "hud_menu_opacity": "透明度",
   "hud_menu_lang": "言語",
   "hud_menu_auto": "PC起動時に自動実行",
-  "hud_menu_data": "匿名数値の提供"
+  "hud_menu_data": "匿名数値の提供",
+  "hud_menu_reset": "位置をリセット",
+  "hud_menu_lock": "位置を固定"
 }

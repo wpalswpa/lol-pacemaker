@@ -75,3 +75,18 @@ CREATE TABLE IF NOT EXISTS users (
   created_day TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_users_puuid_hash ON users (puuid_hash);
+
+-- AGENTS §20: automatic collection pipeline store (admin routes only). Anonymized by ml/pipeline.py:
+-- no names / Riot IDs / PUUIDs; tag = SHA-256(matchId)[:12]; payload = zlib+base64 slim match + timeline.
+CREATE TABLE IF NOT EXISTS riot_matches (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tag TEXT NOT NULL UNIQUE,
+  day TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  queue INTEGER NOT NULL,
+  bucket TEXT NOT NULL,
+  patch TEXT NOT NULL,
+  duration INTEGER NOT NULL,
+  remake INTEGER NOT NULL CHECK (remake IN (0, 1)),
+  payload TEXT NOT NULL
+);

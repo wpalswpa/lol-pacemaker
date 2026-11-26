@@ -21,6 +21,7 @@
   "call_smite_warn_detail": "Ally jungler dead ({sec}s). Trade opposite map side or clear waves.",
   "call_num_adv_title": "Force Objective ({ally}v{enemy} · {sec}s window)",
   "call_num_adv_detail": "Enemy down ({enemy_dead} dead). Push towers or take {objective} before respawn.",
+  "call_num_adv_detail_towers": "Enemy down ({enemy_dead} dead). Push towers before respawn.",
   "call_num_disadv_title": "Defend & Waveclear ({ally}v{enemy})",
   "call_num_disadv_detail": "Outnumbered. Give outer objectives and clear waves safely.",
   "call_soul_threat_title": "Contest Dragon Soul!",
@@ -50,6 +51,7 @@
   "lane_BOTTOM": "ADC",
   "lane_UTILITY": "Support",
   "rank_item": "{metric} Top {pct}%",
+  "rank_item_avg": "{metric} {value} · avg {mean} (top {pct}%)",
   "rank_approx": "≈ normal approx. vs {tier} · {minute}m",
   "metric_cs_per_min": "CS/min",
   "metric_level": "Level",
@@ -109,5 +111,7 @@
   "hud_menu_opacity": "Opacity",
   "hud_menu_lang": "Language",
   "hud_menu_auto": "Start with computer",
-  "hud_menu_data": "Share anonymous stats"
+  "hud_menu_data": "Share anonymous stats",
+  "hud_menu_reset": "Reset position",
+  "hud_menu_lock": "Lock position"
 }

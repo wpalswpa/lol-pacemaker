@@ -9,12 +9,22 @@ from typing import Any, Callable
 
 from src.i18n import Translator
 from src.predictor import LocalOnnxPredictor, ScoreboardState
-from src.strategy_core import Lane, LiveSnapshot, evaluate_snapshot
+from src.strategy_core import (
+    BARON_FIRST_SPAWN_SEC,
+    BARON_RESPAWN_SEC,
+    DRAGON_FIRST_SPAWN_SEC,
+    DRAGON_RESPAWN_SEC,
+    Lane,
+    LiveSnapshot,
+    evaluate_snapshot,
+    objective_up,
+)
 
 RIOT_LOCAL_URL = "https://127.0.0.1:2999/liveclientdata/allgamedata"
 HEAL_ITEMS = {3072, 3153, 3142, 6676, 6630, 3065, 6617, 3116}
 TANK_ITEMS = {3068, 3075, 3083, 3143, 3742, 6665, 3084}
 VALID_LANES: set[str] = {"TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"}
+MISSES_TO_WAIT = 3  # AGENTS §24: ~6 s of no 2999 answer = the match is over (one dropped request is tolerated)
 LANE_CS_POSITIONS = {"TOP", "MIDDLE", "BOTTOM"}  # same set as ml.collector lane_cs_diff
 
 
@@ -133,6 +143,7 @@ def parse_liveclient_data(raw: dict[str, Any], tier: str = "mid") -> LiveSnapsho
                 enemy_tank = True
 
     c = {k: [0, 0] for k in ("fb", "dragon", "herald", "tower", "grub", "baron", "elder", "inhib", "recent")}  # [blue, red]
+    last_dragon_t = last_baron_t = None  # AGENTS §19: objective respawn gating
 
     def bump(key: str, name: Any) -> None:
         n = str(name or "")
@@ -147,12 +158,14 @@ def parse_liveclient_data(raw: dict[str, Any], tier: str = "mid") -> LiveSnapsho
             bump("fb", ev.get("Recipient"))
         elif ename == "DragonKill":
             bump("elder" if str(ev.get("DragonType") or "").lower() == "elder" else "dragon", ev.get("KillerName"))
+            last_dragon_t = _safe_float(ev.get("EventTime"), game_time)
         elif ename == "HeraldKill":
             bump("herald", ev.get("KillerName"))
         elif ename == "HordeKill":
             bump("grub", ev.get("KillerName"))
         elif ename == "BaronKill":
             bump("baron", ev.get("KillerName"))
+            last_baron_t = _safe_float(ev.get("EventTime"), game_time)
         elif ename == "TurretKilled":
             tname = str(ev.get("TurretName") or "")
             if "T2" in tname:
@@ -201,7 +214,7 @@ def parse_liveclient_data(raw: dict[str, Any], tier: str = "mid") -> LiveSnapsho
     )
     blue_side = my_side == "blue"
     ally_drag, enemy_drag = (c["dragon"][0], c["dragon"][1]) if blue_side else (c["dragon"][1], c["dragon"][0])
-    ally_grubs = c["grub"][0] if blue_side else c["grub"][1]
+    ally_grubs, enemy_grubs = (c["grub"][0], c["grub"][1]) if blue_side else (c["grub"][1], c["grub"][0])
 
     my_scores = (me or {}).get("scores") or {}
     ally_team_kills = blue_kills if blue_side else red_kills
@@ -211,14 +224,19 @@ def parse_liveclient_data(raw: dict[str, Any], tier: str = "mid") -> LiveSnapsho
         game_time=game_time,
         game_mode=game_mode,
         scoreboard=sb,
-        ally_alive=ally_alive or 5,
-        enemy_alive=enemy_alive,
+        # AGENTS §19: an aced team really has 0 alive; only an empty player list means "unknown" (5v5)
+        ally_alive=ally_alive if players else 5,
+        enemy_alive=enemy_alive if players else 5,
         enemy_max_respawn=enemy_max_respawn,
         ally_jungler_dead_sec=ally_jg_dead,
         enemy_jungler_dead_sec=enemy_jg_dead,
         ally_dragons=ally_drag,
         enemy_dragons=enemy_drag,
         ally_grubs=ally_grubs,
+        enemy_grubs=enemy_grubs,
+        dragon_up=objective_up(game_time, last_dragon_t, DRAGON_FIRST_SPAWN_SEC, DRAGON_RESPAWN_SEC),
+        baron_up=objective_up(game_time, last_baron_t, BARON_FIRST_SPAWN_SEC, BARON_RESPAWN_SEC),
+        my_dead=bool((me or {}).get("isDead")),
         ally_carry_lane=ally_carry_lane,
         ally_carry_kills=max(0, ally_carry_kills),
         my_current_gold=_safe_float(active.get("currentGold"), 0.0),
@@ -262,6 +280,7 @@ class Engine:
         self._lock = threading.Lock()
         self._snap: LiveSnapshot | None = None
         self.latest: dict[str, Any] = {"status": "waiting"}
+        self._misses = 0  # consecutive failed polls (AGENTS §24)
 
     def _render(self) -> None:
         if self._snap is not None:
@@ -273,16 +292,33 @@ class Engine:
             raw = self._fetch()
             snap = parse_liveclient_data(raw, self.tier)
         except Exception:
+            self._misses += 1
+            if self._misses >= MISSES_TO_WAIT:
+                self._reset_waiting()
+            return False
+        self._misses = 0
+        if any(ev.get("EventName") == "GameEnd" for ev in ((raw.get("events") or {}).get("Events") or [])):
+            self._notify(raw, snap)  # §14 recorder needs GameEnd's Result before we forget the match
+            self._reset_waiting()  # the post-game screen still answers 2999; the match is over
             return False
         with self._lock:
             self._snap = snap
             self._render()
+        self._notify(raw, snap)
+        return True
+
+    def _notify(self, raw: dict[str, Any], snap: LiveSnapshot) -> None:
         if self._on_poll is not None:
             try:
                 self._on_poll(raw, snap)
             except Exception:
                 pass
-        return True
+
+    def _reset_waiting(self) -> None:
+        """Back to 'no match': the HUD hides instead of showing the last game's numbers (AGENTS §24)."""
+        with self._lock:
+            self._snap = None
+            self.latest = {"status": "waiting"}
 
     def set_lang(self, lang: str) -> None:
         with self._lock:

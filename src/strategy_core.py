@@ -13,6 +13,22 @@ from src.i18n import Translator
 from src.percentile import lookup_percentiles, top_percentile
 from src.predictor import LocalOnnxPredictor, ScoreboardState
 
+# Game constants (Summoner's Rift, patch 16.x; re-check each season). AGENTS §19.
+DRAGON_FIRST_SPAWN_SEC = 300.0
+DRAGON_RESPAWN_SEC = 300.0
+BARON_FIRST_SPAWN_SEC = 1200.0
+BARON_RESPAWN_SEC = 360.0
+# Voidgrubs available per game: max |voidgrubs_diff| in the 90 bundled KR matches (patch 16.x) is 3.
+VOIDGRUBS_TOTAL = 3
+
+
+def objective_up(game_time: float, last_kill_t: float | None, first_spawn: float, respawn: float) -> bool:
+    """True when the objective is (approximately) alive: spawned and not inside its respawn timer."""
+    if game_time < first_spawn:
+        return False
+    return last_kill_t is None or game_time - last_kill_t >= respawn
+
+
 CallKind = Literal["offense", "defense", "object", "recall", "counter", "macro"]
 Lane = Literal["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"]
 
@@ -33,6 +49,10 @@ class LiveSnapshot(BaseModel):
     ally_dragons: int = Field(default=0, ge=0, le=7)
     enemy_dragons: int = Field(default=0, ge=0, le=7)
     ally_grubs: int = Field(default=0, ge=0, le=6)
+    enemy_grubs: int = Field(default=0, ge=0, le=6)
+    dragon_up: bool = True
+    baron_up: bool = True
+    my_dead: bool = False
     ally_carry_lane: Lane | None = None
     ally_carry_kills: int = Field(default=0, ge=0)
     my_current_gold: float = Field(default=500.0, ge=0.0)
@@ -84,8 +104,10 @@ def _rank_block(snap: LiveSnapshot, predictor: LocalOnnxPredictor, tr: Translato
     """Top-% standing: tier distribution (AGENTS.md 10.4) if available, else legacy team-diff heuristic."""
     sb = snap.scoreboard
     minutes = max(snap.game_time / 60.0, 1.0)
+    # AGENTS §19: the tier distribution comes from ranked Summoner's Rift; other modes use the legacy diff view
+    stats = predictor.stats if snap.game_mode.upper() == "CLASSIC" else None
     found = lookup_percentiles(
-        predictor.stats,
+        stats,
         sb.tier,
         snap.game_time,
         snap.my_position,
@@ -97,8 +119,11 @@ def _rank_block(snap: LiveSnapshot, predictor: LocalOnnxPredictor, tr: Translato
     )
     if found:
         pct: dict[str, int] = found["pct"]
+        def fmt(metric: str, v: float) -> str:  # same unit the player sees in game
+            return f"{round(v * 100)}%" if metric == "kill_participation" else f"{v:.1f}"
+
         items = [
-            tr.t("rank_item", metric=f"key:metric_{m}", pct=pct[m])
+            tr.t("rank_item_avg", metric=f"key:metric_{m}", value=fmt(m, found["value"][m]), mean=fmt(m, found["mean"][m]), pct=pct[m])
             for m in ("cs_per_min", "level", "kill_participation")
             if m in pct
         ]
@@ -165,10 +190,19 @@ def evaluate_snapshot(
     calls: list[Shotcall] = []
     man_diff = snap.ally_alive - snap.enemy_alive
     is_aram = snap.game_mode.upper() == "ARAM"
-    primary_obj = "key:obj_turret" if is_aram else ("key:obj_baron" if snap.game_time >= 1200 else "key:obj_dragon")
+    if is_aram:
+        primary_obj = "key:obj_turret"
+    elif snap.game_time >= BARON_FIRST_SPAWN_SEC and snap.baron_up:
+        primary_obj = "key:obj_baron"
+    elif snap.dragon_up:
+        primary_obj = "key:obj_dragon"
+    else:
+        primary_obj = "key:obj_turret"
+    smite_objective_up = snap.dragon_up or (snap.game_time >= BARON_FIRST_SPAWN_SEC and snap.baron_up)
 
     # 1. Smite advantage / disadvantage (Summoner's Rift only)
-    if not is_aram and snap.enemy_jungler_dead_sec >= 8.0 and snap.ally_jungler_dead_sec <= 0.0 and man_diff >= 0:
+    if (not is_aram and smite_objective_up and snap.enemy_jungler_dead_sec >= 8.0
+            and snap.ally_jungler_dead_sec <= 0.0 and man_diff >= 0):
         calls.append(
             Shotcall(
                 priority=105,
@@ -197,7 +231,8 @@ def evaluate_snapshot(
                 priority=99,
                 kind="offense",
                 title_key="call_num_adv_title",
-                detail_key="call_num_adv_detail",
+                # "towers or {objective}" would read "towers or towers" when no epic objective is up (and always on ARAM)
+                detail_key="call_num_adv_detail_towers" if primary_obj == "key:obj_turret" else "call_num_adv_detail",
                 params={
                     "ally": snap.ally_alive,
                     "enemy": snap.enemy_alive,
@@ -241,7 +276,7 @@ def evaluate_snapshot(
                 )
             )
 
-        if 360 <= snap.game_time <= 840 and snap.ally_grubs < 6:
+        if 360 <= snap.game_time <= 840 and snap.ally_grubs + snap.enemy_grubs < VOIDGRUBS_TOTAL:
             calls.append(
                 Shotcall(
                     priority=82,
@@ -252,7 +287,7 @@ def evaluate_snapshot(
                 )
             )
 
-        if snap.game_time >= 1200 and man_diff >= 1:
+        if snap.game_time >= BARON_FIRST_SPAWN_SEC and snap.baron_up and man_diff >= 1:
             calls.append(
                 Shotcall(
                     priority=90,
@@ -276,7 +311,7 @@ def evaluate_snapshot(
 
     # 5. Gold spending timing: Recall on Rift (>=1300G) vs Fight-Reset on ARAM (>=2600G)
     if is_aram:
-        if snap.my_current_gold >= 2600:
+        if snap.my_current_gold >= 2600 and not snap.my_dead:
             calls.append(
                 Shotcall(
                     priority=78,
@@ -286,7 +321,7 @@ def evaluate_snapshot(
                     params={"gold": int(snap.my_current_gold)},
                 )
             )
-    elif snap.my_current_gold >= 1300:
+    elif snap.my_current_gold >= 1300 and not snap.my_dead:
         calls.append(
             Shotcall(
                 priority=78,

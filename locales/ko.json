@@ -21,6 +21,7 @@
   "call_smite_warn_detail": "아군 정글러 부재 ({sec}초). 반대편 타워·라인 밀기로 이득을 교환하세요.",
   "call_num_adv_title": "수적 우위 압박 ({ally}대{enemy} · {sec}초 여유)",
   "call_num_adv_detail": "상대 {enemy_dead}명 이탈 중. 부활 전 포탑이나 {objective}을 압박하세요.",
+  "call_num_adv_detail_towers": "상대 {enemy_dead}명 이탈 중. 부활 전 포탑을 압박하세요.",
   "call_num_disadv_title": "수적 열세 수성 ({ally}대{enemy})",
   "call_num_disadv_detail": "인원이 부족합니다. 무리한 교전 대신 라인 클리어에 집중하세요.",
   "call_soul_threat_title": "상대 용 영혼 저지!",
@@ -50,6 +51,7 @@
   "lane_BOTTOM": "원딜",
   "lane_UTILITY": "서폿",
   "rank_item": "{metric} 상위 {pct}%",
+  "rank_item_avg": "{metric} {value} · 평균 {mean} (상위 {pct}%)",
   "rank_approx": "≈ 정규분포 근사 · {tier} · {minute}분 기준",
   "metric_cs_per_min": "분당 CS",
   "metric_level": "레벨",
@@ -109,5 +111,7 @@
   "hud_menu_opacity": "투명도",
   "hud_menu_lang": "언어",
   "hud_menu_auto": "컴퓨터 켤 때 자동 실행",
-  "hud_menu_data": "익명 수치 제공"
+  "hud_menu_data": "익명 수치 제공",
+  "hud_menu_reset": "위치 초기화",
+  "hud_menu_lock": "위치 고정"
 }

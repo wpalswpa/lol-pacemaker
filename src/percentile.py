@@ -34,7 +34,8 @@ def lookup_percentiles(
 ) -> dict | None:
     """Top-% per metric from `distribution_stats.json` (AGENTS.md 10.4); None if unavailable.
 
-    Returns {"minute": int, "role": str, "pct": {metric: int}} using the closest stored minute and
+    Returns {"minute": int, "role": str, "pct": {metric: int}, "mean": {metric: float}, "value": {metric: float}}
+    (AGENTS §21: the HUD shows my value next to the average) using the closest stored minute and
     the player's role (falls back to the "ALL" bucket).
     """
     try:
@@ -47,12 +48,15 @@ def lookup_percentiles(
         if role not in by_role:
             return None
         pct: dict[str, int] = {}
+        mean: dict[str, float] = {}
+        value: dict[str, float] = {}
         for metric in METRICS:
             v = values.get(metric)
             cell = by_role[role].get(metric)
             if v is None or not cell:
                 continue
             pct[metric] = top_percentile(float(v), float(cell["mean"]), float(cell["std"]))
-        return {"minute": minute, "role": role, "pct": pct} if pct else None
+            mean[metric], value[metric] = float(cell["mean"]), float(v)
+        return {"minute": minute, "role": role, "pct": pct, "mean": mean, "value": value} if pct else None
     except (KeyError, TypeError, ValueError, AttributeError):
         return None

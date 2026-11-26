@@ -38,6 +38,7 @@ class HudSettings:
     collapsed: bool = False    # AGENTS §17-1: F9 hides every panel (the logo button stays)
     panels_on: dict = field(default_factory=lambda: dict(PANEL_DEFAULT_ON))
     panels_pos: dict = field(default_factory=dict)  # name -> [x, y]; missing = default top-left layout
+    locked: bool = False       # AGENTS §21: True = dragging does not move the logo or panels
 
     def sanitized(self, screen_w: int = 3840, screen_h: int = 2160) -> "HudSettings":
         """Clamp every field to a safe range (a corrupt/hand-edited file must not hide the HUD off-screen)."""
@@ -67,6 +68,7 @@ class HudSettings:
             panels_pos={k: [max(0, min(screen_w - 60, _int(v[0], 0))), max(0, min(screen_h - 40, _int(v[1], 0)))]
                         for k, v in (self.panels_pos or {}).items()
                         if k in PANELS and isinstance(v, (list, tuple)) and len(v) == 2},
+            locked=bool(self.locked),
         )
 
     def with_panel_toggled(self, name: str) -> "HudSettings":
@@ -75,6 +77,14 @@ class HudSettings:
 
     def with_panel_pos(self, name: str, x: int, y: int) -> "HudSettings":
         return HudSettings(**{**asdict(self), "panels_pos": {**self.panels_pos, name: [int(x), int(y)]}})
+
+    def toggled_locked(self) -> "HudSettings":
+        return HudSettings(**{**asdict(self), "locked": not self.locked})
+
+    def with_layout_reset(self) -> "HudSettings":
+        """AGENTS §21: logo and every panel back to the default top-left layout (other settings kept)."""
+        default = HudSettings()
+        return HudSettings(**{**asdict(self), "x": default.x, "y": default.y, "panels_pos": {}})
 
     def toggled_collapsed(self) -> "HudSettings":
         return HudSettings(**{**asdict(self), "collapsed": not self.collapsed})

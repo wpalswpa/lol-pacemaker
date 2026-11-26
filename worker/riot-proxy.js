@@ -7,6 +7,7 @@
  * - 60s Cloudflare edge cache per Riot ID to protect rate limits
  */
 
+import { handleAdminMatches } from "./matches.js";
 import { handleGames } from "./games.js";
 import { handleSupport } from "./support.js";
 import { handleChat } from "./chat.js";
@@ -53,6 +54,8 @@ export default {
 
     // AGENTS §14: desktop-app contribution route (no browser CORS needed)
     if (path === "/v1/games") return handleGames(request, env);
+    // AGENTS §20: collection pipeline store (admin token only, never called by the web page)
+    if (path === "/v1/admin/matches") return handleAdminMatches(request, env);
 
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
 

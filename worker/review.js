@@ -544,10 +544,11 @@ function profile(key, label, metric, value, unit, cell) {
   const z = Math.max(-3, Math.min(3, zRaw ?? 0));
   const t = Number((50 + 10 * z).toFixed(1));
   const pct = Number((normCdf(z) * 100).toFixed(1));
-  const grade = t >= 70 ? "elite" : t >= 60 ? "high" : t >= 40 ? "avg" : t >= 30 ? "low" : "risk";
+  const gradeCode = t >= 70 ? "elite" : t >= 60 ? "high" : t >= 40 ? "avg" : t >= 30 ? "low" : "risk";
   return {
     key, label, metric, raw: value === null ? null : Number(value.toFixed(metric === "lane_gd15" ? 0 : 2)), unit,
-    t_score: t, percentile: pct, grade, radar: Math.round(Math.max(10, Math.min(100, pct))),
+    t_score: t, percentile: pct, grade_code: gradeCode, z: zRaw === null ? null : Number(z.toFixed(3)),
+    radar: Math.round(Math.max(10, Math.min(100, pct))),
     baseline: cell ? { mean: cell.mean, std: cell.std, n: cell.n, position: cell.position, bucket: cell.bucket } : null,
   };
 }
@@ -674,14 +675,21 @@ export function playerMetrics(match, timeline, pid) {
       for (const [id, pf] of Object.entries(f.participantFrames || {})) v += (pTeam[Number(id)] === myTeam ? 1 : -1) * (pf.totalGold || 0);
       return { t: f.timestamp || 0, v };
     });
+    // Turning point (AGENTS §19-5): the final window (ending on the last frame = the nexus push) is a
+    // consequence, not a cause, so it is excluded. Windows where the team gold lead flips sign win first.
     const w = REVIEW_RULES.swingFrames;
-    let drop = null;
-    let rise = null;
-    for (let i = 0; i + w < gd.length; i++) {
-      const d = gd[i + w].v - gd[i].v;
-      if (!drop || d < drop.delta) drop = { from: gd[i].t, to: gd[i + w].t, delta: d, before: gd[i].v };
-      if (!rise || d > rise.delta) rise = { from: gd[i].t, to: gd[i + w].t, delta: d, before: gd[i].v };
+    const wins = [];
+    for (let i = 0; i + w < gd.length - 1; i++) {
+      wins.push({ from: gd[i].t, to: gd[i + w].t, delta: gd[i + w].v - gd[i].v, before: gd[i].v, after: gd[i + w].v });
     }
+    const pick = (better, flips) => {
+      const flipped = wins.filter(flips);
+      const pool = flipped.length ? flipped : wins;
+      const best = pool.reduce((acc, x) => (!acc || better(x.delta, acc.delta) ? x : acc), null);
+      return best && { ...best, flip: flipped.length > 0 };
+    };
+    const drop = pick((a, b) => a < b, (x) => x.before >= 0 && x.after < 0 && x.delta < 0);
+    const rise = pick((a, b) => a > b, (x) => x.before <= 0 && x.after > 0 && x.delta > 0);
     pat.max_drop_3m = drop ? -drop.delta : null;
     pat.max_rise_3m = rise ? rise.delta : null;
     pat._drop = drop;
@@ -715,7 +723,7 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
   if (isRemake(info) || group === "unsupported") {
     const remake = group !== "unsupported";
     return {
-      ...base, status: remake ? "remake" : "unsupported", metrics: [], costly_deaths: [], patterns: {}, turning_point: null,
+      ...base, status: remake ? "remake" : "unsupported", metrics: [], overall_perf: null, costly_deaths: [], patterns: {}, turning_point: null,
       coaching: {
         summary: remake
           ? (ko ? `다시하기·조기 항복 경기(${fmtTime((info.gameDuration || 0) * 1000)})라 분석에서 제외했습니다.` : `Remake / early surrender (${fmtTime((info.gameDuration || 0) * 1000)}): excluded from analysis.`)
@@ -740,9 +748,19 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
       ["vision", "vision_per_min", "/m"], ["survival", "deaths_per10", "/10m"], ["damage", "dmg_share", "%"]];
   const metrics = defs.map(([key, metric, unit]) => {
     const p = profile(key, L(key), metric, m[metric], unit, cell(metric));
-    p.grade_label = GRADE_LABEL[ko ? "ko" : "en"][p.grade];
+    p.grade = GRADE_LABEL[ko ? "ko" : "en"][p.grade_code];
     return p;
   });
+
+  // Overall: mean z of the six metrics, re-standardized against the same mean z of baseline players
+  // (scripts/build_review_baseline.mjs stores it as `composite_z`), so its percentile is not compressed.
+  const metricZ = metrics.filter((p) => p.z !== null).map((p) => p.z);
+  const meanZ = metricZ.length ? metricZ.reduce((a, b) => a + b, 0) / metricZ.length : null;
+  const ovp = profile("overall", ko ? "종합" : "Overall", "composite_z", meanZ, "z", cell("composite_z"));
+  const overall = ovp.baseline && meanZ !== null
+    ? { t_score: ovp.t_score, percentile: ovp.percentile, top_pct: Number((100 - ovp.percentile).toFixed(1)),
+      grade: GRADE_LABEL[ko ? "ko" : "en"][ovp.grade_code], grade_code: ovp.grade_code, mean_z: Number(meanZ.toFixed(3)), metrics_used: metricZ.length, baseline: ovp.baseline }
+    : null;
 
   // Costly deaths (existing §15 evidence)
   const myTeam = me.teamId;
@@ -777,13 +795,16 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
   let turning = null;
   const swing = m.win ? pat._rise : pat._drop;
   const swingZ = m.win ? patternZ.max_rise_3m : patternZ.max_drop_3m;
-  if (swing && swingZ !== undefined && swingZ >= 0 && group !== "aram") {
+  // A window where the lead actually flipped is the turning point whatever its size; otherwise it must be
+  // at least as large as the typical biggest swing (z >= 0) to be called one.
+  if (swing && group !== "aram" && (swing.flip || (swingZ !== undefined && swingZ >= 0))) {
     const inWin = (e) => e.timestamp >= swing.from && e.timestamp <= swing.to;
     const myDeaths = events.filter((e) => e.type === "CHAMPION_KILL" && e.victimId === myPid && inWin(e));
     const objs = events.filter((e) => inWin(e) && ((e.type === "ELITE_MONSTER_KILL" && e.killerTeamId)
       || e.type === "BUILDING_KILL"));
-    const ours = objs.filter((e) => (e.type === "ELITE_MONSTER_KILL" ? e.killerTeamId === myTeam : e.teamId !== myTeam)).map((e) => objName(e, ko));
-    const theirs = objs.filter((e) => (e.type === "ELITE_MONSTER_KILL" ? e.killerTeamId !== myTeam : e.teamId === myTeam)).map((e) => objName(e, ko));
+    const tally = (names) => Object.entries(names.reduce((a, n) => ({ ...a, [n]: (a[n] || 0) + 1 }), {})).map(([n, c]) => (c > 1 ? `${n} ${c}` : n));
+    const ours = tally(objs.filter((e) => (e.type === "ELITE_MONSTER_KILL" ? e.killerTeamId === myTeam : e.teamId !== myTeam)).map((e) => objName(e, ko)));
+    const theirs = tally(objs.filter((e) => (e.type === "ELITE_MONSTER_KILL" ? e.killerTeamId !== myTeam : e.teamId === myTeam)).map((e) => objName(e, ko)));
     turning = {
       from: fmtTime(swing.from), to: fmtTime(swing.to), team_gold_swing: swing.delta, team_gold_before: swing.before,
       my_deaths: myDeaths.map((e) => fmtTime(e.timestamp)), objectives_taken: ours, objectives_lost: theirs, favorable: swing.delta > 0,
@@ -799,12 +820,12 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
     const valTxt = `${sign}${p.raw}${p.unit}`;
     if (p.t_score >= REVIEW_RULES.strengthT) {
       ev.push({ side: "strength", key: p.key, z: (p.t_score - 50) / 10, value: valTxt, text: ko
-        ? `${p.label} ${valTxt} — 같은 포지션 기준 평균 ${ref}${p.unit}보다 좋습니다(T ${p.t_score}, 상위 ${(100 - p.percentile).toFixed(0)}%).`
-        : `${p.label} ${valTxt} beat the same-role average ${ref}${p.unit} (T ${p.t_score}, top ${(100 - p.percentile).toFixed(0)}%).` });
+        ? `${p.label} ${valTxt} — 같은 포지션 기준 평균 ${ref}${p.unit}보다 좋습니다(T ${p.t_score}, 상위 ${Math.max(1, Math.round(100 - p.percentile))}%).`
+        : `${p.label} ${valTxt} beat the same-role average ${ref}${p.unit} (T ${p.t_score}, top ${Math.max(1, Math.round(100 - p.percentile))}%).` });
     } else if (p.t_score < REVIEW_RULES.weaknessT) {
       ev.push({ side: "improvement", key: p.key, z: (p.t_score - 50) / 10, value: valTxt, text: ko
-        ? `${p.label} ${valTxt} — 같은 포지션 기준 평균 ${ref}${p.unit}에 못 미쳤습니다(T ${p.t_score}, 하위 ${p.percentile.toFixed(0)}%).`
-        : `${p.label} ${valTxt} fell short of the same-role average ${ref}${p.unit} (T ${p.t_score}, bottom ${p.percentile.toFixed(0)}%).` });
+        ? `${p.label} ${valTxt} — 같은 포지션 기준 평균 ${ref}${p.unit}에 못 미쳤습니다(T ${p.t_score}, 하위 ${Math.max(1, Math.round(p.percentile))}%).`
+        : `${p.label} ${valTxt} fell short of the same-role average ${ref}${p.unit} (T ${p.t_score}, bottom ${Math.max(1, Math.round(p.percentile))}%).` });
     }
   }
   const zs = REVIEW_RULES.strengthT / 10 - 5; // +0.5
@@ -827,19 +848,19 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
     const lostTxt = turning.objectives_lost.length ? (ko ? ` 잃은 것: ${turning.objectives_lost.join("·")}.` : ` Lost: ${turning.objectives_lost.join(", ")}.`) : "";
     const tookTxt = turning.objectives_taken.length ? (ko ? ` 얻은 것: ${turning.objectives_taken.join("·")}.` : ` Took: ${turning.objectives_taken.join(", ")}.`) : "";
     if (turning.favorable) {
-      ev.push({ side: "strength", key: "turning_point", z: swingZ, value: String(turning.team_gold_swing), text: ko
+      ev.push({ side: "strength", key: "turning_point", z: swingZ === undefined ? null : swingZ, basis: swing.flip ? "lead_flip" : "swing_size", value: String(turning.team_gold_swing), text: ko
         ? `분수령 ${turning.from}~${turning.to}: 팀 골드 차가 3분 동안 +${amt} 벌어졌습니다.${tookTxt}`
         : `Turning point ${turning.from}-${turning.to}: team gold lead grew by ${amt} in 3 min.${tookTxt}` });
     } else {
-      ev.push({ side: "improvement", key: "turning_point", z: -swingZ, value: String(turning.team_gold_swing), text: ko
+      ev.push({ side: "improvement", key: "turning_point", z: swingZ === undefined ? null : -swingZ, basis: swing.flip ? "lead_flip" : "swing_size", value: String(turning.team_gold_swing), text: ko
         ? `분수령 ${turning.from}~${turning.to}: 팀 골드 차가 3분 동안 -${amt} 무너졌습니다.${deaths}${lostTxt}`
         : `Turning point ${turning.from}-${turning.to}: team gold fell by ${amt} in 3 min.${deaths}${lostTxt}` });
     }
   }
-  const strengthsEv = ev.filter((e) => e.side === "strength").sort((a, b) => b.z - a.z).slice(0, REVIEW_RULES.maxItems);
+  const strengthsEv = ev.filter((e) => e.side === "strength").sort((a, b) => (b.z ?? 0) - (a.z ?? 0)).slice(0, REVIEW_RULES.maxItems);
   // The turning point always leads the improvements (AGENTS §19-6); the rest by z, worst first.
   const improvEv = ev.filter((e) => e.side === "improvement")
-    .sort((a, b) => (b.key === "turning_point") - (a.key === "turning_point") || a.z - b.z).slice(0, REVIEW_RULES.maxItems);
+    .sort((a, b) => (b.key === "turning_point") - (a.key === "turning_point") || (a.z ?? 0) - (b.z ?? 0)).slice(0, REVIEW_RULES.maxItems);
   const strengths = strengthsEv.length ? strengthsEv.map((e) => e.text)
     : [ko ? "기준 분포에서 평균보다 뚜렷하게(T 55 이상) 앞선 지표가 없습니다." : "No metric clearly above the baseline (T >= 55)."];
   const improvements = improvEv.length ? improvEv.map((e) => e.text)
@@ -873,7 +894,7 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
     ...base, status: "ok",
     cs_per_min: Number(m.cs_per_min.toFixed(1)), vision_score: me.visionScore || 0,
     kill_participation: m.kp === null ? 0 : Math.round(m.kp), gold_diff_15m: m.lane_gd15,
-    costly_deaths: topDeaths, metrics, patterns, pattern_z: patternZ, turning_point: turning,
+    costly_deaths: topDeaths, metrics, overall_perf: overall, patterns, pattern_z: patternZ, turning_point: turning,
     baseline: { queue: group === "other" ? "rift" : group, position: m.position, duration_bucket: bucket, source: baseline?.source || null },
     coaching: { summary, strengths, improvements, evidence: [...strengthsEv, ...improvEv].map(({ text, ...rest }) => rest) },
     findings,

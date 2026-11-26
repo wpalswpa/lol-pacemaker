@@ -1,50 +1,56 @@
 {
   "selected": "logistic",
   "n_train": 256,
+  "side_flip_augment": true,
   "n_eval": 57,
   "n_matches": 90,
-  "brier": 0.1312,
-  "log_loss": 0.3969,
-  "auc": 0.9275,
-  "onnx_max_diff": 1.1920928955078125e-07,
+  "brier": 0.1486,
+  "log_loss": 0.4298,
+  "auc": 0.8687,
+  "onnx_max_diff": 7.018860470608956e-08,
   "candidates": [
     {
       "model": "logistic",
-      "log_loss": 0.3969,
-      "brier": 0.1312,
-      "auc": 0.9275,
-      "onnx_max_diff": 1.1920928955078125e-07,
-      "parity_ok": true
+      "log_loss": 0.4298,
+      "brier": 0.1486,
+      "auc": 0.8687,
+      "onnx_max_diff": 7.018860470608956e-08,
+      "parity_ok": true,
+      "monotone_violations": []
     },
     {
       "model": "gboost",
-      "log_loss": 0.4953,
-      "brier": 0.1715,
-      "auc": 0.8525,
-      "onnx_max_diff": 7.85714290296724e-08,
-      "parity_ok": true
+      "log_loss": 0.4722,
+      "brier": 0.1645,
+      "auc": 0.8475,
+      "onnx_max_diff": 8.111003491073632e-08,
+      "parity_ok": true,
+      "monotone_violations": [
+        "avg_level_diff",
+        "inhibitors_diff"
+      ]
     }
   ],
   "top_patterns": [
     {
       "feature": "cs_diff",
-      "importance": 0.17575
-    },
-    {
-      "feature": "first_blood",
-      "importance": 0.11543
-    },
-    {
-      "feature": "avg_level_diff",
-      "importance": 0.04681
-    },
-    {
-      "feature": "towers_diff",
-      "importance": 0.04646
+      "importance": 0.14042
     },
     {
       "feature": "assists_diff",
-      "importance": 0.04124
+      "importance": 0.08944
+    },
+    {
+      "feature": "towers_diff",
+      "importance": 0.05599
+    },
+    {
+      "feature": "recent_3m_kill_diff",
+      "importance": 0.03533
+    },
+    {
+      "feature": "avg_level_diff",
+      "importance": 0.00565
     }
   ],
   "stats_cells": 72

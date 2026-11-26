@@ -150,10 +150,20 @@ class Overlay:
         self.logo.bind("<B1-Motion>", lambda e: self._move(self.root, e))
         self.logo.bind("<ButtonRelease-1>", self._logo_release)
 
+    def _default_pos(self, name: str) -> tuple[int, int]:
+        """DEFAULT_POS, but the second row starts below the taller of the logo and the win panel (AGENTS §21:
+        the win panel is 74 px tall on macOS, so a fixed LOGO-based row overlapped it by 17 px)."""
+        x, y = DEFAULT_POS[name]
+        win = self.panels.get("win")
+        if name in ("calls", "brief") and win is not None:
+            win.update_idletasks()
+            y = MARGIN + max(LOGO, win.winfo_reqheight()) + 10
+        return x, y
+
     def _panel_window(self, name: str) -> tk.Toplevel:
         win = tk.Toplevel(self.root, bg=BORDER)
         _borderless(win, self.settings.opacity)
-        x, y = self.settings.panels_pos.get(name, DEFAULT_POS[name])
+        x, y = self.settings.panels_pos.get(name, self._default_pos(name))
         win.geometry(f"+{x}+{y}")
         inner = tk.Frame(win, bg=BG)
         inner.pack(fill="both", expand=True, padx=1, pady=1)
@@ -210,7 +220,7 @@ class Overlay:
     def _logo_release(self, e: Any) -> None:
         if abs(e.x_root - self._press[0]) < 5 and abs(e.y_root - self._press[1]) < 5:
             self._toggle_menu()  # a click, not a drag
-        else:
+        elif not self.settings.locked:
             self.settings = self.settings.moved(self.root.winfo_x(), self.root.winfo_y())
             self._on_settings(self.settings)
 
@@ -241,6 +251,8 @@ class Overlay:
         row(tr.t("hud_menu_data"), self.settings.share_data, lambda: self._set_sharing(not self.settings.share_data))
         row(tr.t("hud_menu_auto"), self._autostart_on, self._toggle_autostart)
         row(f"{tr.t('hud_menu_lang')}: {tr.lang.upper()}", True, self._cycle_lang)
+        row(tr.t("hud_menu_lock"), self.settings.locked, self._toggle_locked)
+        row(tr.t("hud_menu_reset"), False, self.reset_layout)
         op = tk.Frame(inner, bg=BG)
         op.pack(fill="x", padx=12, pady=(4, 4))
         tk.Label(op, text=f"{tr.t('hud_menu_opacity')} {int(self.settings.opacity * 100)}%", fg=FG_SUB, bg=BG,
@@ -259,11 +271,28 @@ class Overlay:
         self._drag = (e.x_root - win.winfo_x(), e.y_root - win.winfo_y())
 
     def _move(self, win: tk.Misc, e: Any) -> None:
+        if self.settings.locked:  # AGENTS §21: position lock
+            return
         win.geometry(f"+{e.x_root - self._drag[0]}+{e.y_root - self._drag[1]}")
 
     def _save_pos(self, name: str) -> None:
+        if self.settings.locked:
+            return
         w = self.panels[name]
         self.settings = self.settings.with_panel_pos(name, w.winfo_x(), w.winfo_y())
+        self._on_settings(self.settings)
+
+    def _toggle_locked(self) -> None:
+        self.settings = self.settings.toggled_locked()
+        self._on_settings(self.settings)
+
+    def reset_layout(self) -> None:
+        """AGENTS §21: put the logo and every panel back to the default layout and save it."""
+        self.settings = self.settings.with_layout_reset()
+        self.root.geometry(f"+{MARGIN}+{MARGIN}")
+        for name, w in self.panels.items():
+            x, y = self._default_pos(name)
+            w.geometry(f"+{x}+{y}")
         self._on_settings(self.settings)
 
     def _toggle_panel(self, name: str) -> None:

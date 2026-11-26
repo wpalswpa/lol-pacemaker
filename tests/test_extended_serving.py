@@ -40,7 +40,11 @@ def test_extended_model_briefing_renders_in_every_language(trained_dir, lang):
 
     assert res["lang"] == lang and res["model_mode"] == "extended" and res["rank_mode"] == "distribution"
     assert 0.0 <= res["win_pct"] <= 100.0
-    assert res["causes"] and res["causes"][0]["delta_pp"] < 0
+    # The synthetic fixture now selects the tree candidate, whose ablation deltas can all be 0 (AGENTS §19 limits);
+    # the sign of the top cause is checked on the bundled real-data model below.
+    assert res["causes"] and res["causes"][0]["delta_pp"] <= 0
+    real = evaluate_snapshot(_behind_snapshot(), LocalOnnxPredictor(model_dirs=[]), Translator(lang))
+    assert real["causes"] and real["causes"][0]["delta_pp"] < 0
     # percentages from the stored tier distribution appear in the summary and the briefing
     assert re.search(r"\d+%", res["rank_summary"]) and res["smart_briefing"]
     for text in [res["rank_summary"], res["smart_briefing"], res["labels"]["model"], *[c["title"] + c["detail"] for c in res["calls"]],
@@ -100,7 +104,8 @@ def test_percentile_lookup_edges():
     assert lookup_percentiles(STATS, "mid", 4000, "MIDDLE", {"cs_per_min": 7.0}) is None  # too late
     assert lookup_percentiles(STATS, "high", 600, "MIDDLE", {"cs_per_min": 7.0}) is None  # tier missing
     mid = lookup_percentiles(STATS, "mid", 600, "MIDDLE", {"cs_per_min": 7.0, "level": 7.0, "kill_participation": None})
-    assert mid == {"minute": 10, "role": "MIDDLE", "pct": {"cs_per_min": 50, "level": 50}}
+    assert {k: mid[k] for k in ("minute", "role", "pct")} == {"minute": 10, "role": "MIDDLE", "pct": {"cs_per_min": 50, "level": 50}}
+    assert mid["value"] == {"cs_per_min": 7.0, "level": 7.0} and set(mid["mean"]) == {"cs_per_min", "level"}  # AGENTS §21
     fallback = lookup_percentiles(STATS, "mid", 600, "TOP", {"cs_per_min": 8.0})  # role missing -> ALL
     assert fallback["role"] == "ALL" and fallback["pct"]["cs_per_min"] < 50  # better than the mean -> small Top-%
     assert lookup_percentiles(STATS, "mid", 1150, None, {"cs_per_min": 7.0})["minute"] == 20  # nearest stored minute

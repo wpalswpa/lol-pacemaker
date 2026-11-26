@@ -35,7 +35,7 @@ EXTENDED_FEATURES: list[str] = [
 # Features whose definition cannot be reproduced identically from MATCH-V5 Timeline
 # (see AGENTS.md 10.1). They stay in the ONNX input but are forced to 0 on BOTH the
 # training and the serving side, so they can never create a train/serve mismatch.
-MASKED_FEATURES: frozenset[str] = frozenset({"item_gold_diff", "alive_diff"})
+MASKED_FEATURES: frozenset[str] = frozenset({"item_gold_diff", "alive_diff", "first_blood"})
 MASK_VECTOR: np.ndarray = np.array(
     [0.0 if f in MASKED_FEATURES else 1.0 for f in EXTENDED_FEATURES], dtype=np.float32
 )

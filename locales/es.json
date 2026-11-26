@@ -21,6 +21,7 @@
   "call_smite_warn_detail": "Jungla aliado muerto ({sec}s). Intercambia torres o limpia oleadas.",
   "call_num_adv_title": "Forzar Objetivo ({ally}v{enemy} · ventana {sec}s)",
   "call_num_adv_detail": "{enemy_dead} enemigos muertos. Empuja torres o toma {objective} antes de que revivan.",
+  "call_num_adv_detail_towers": "{enemy_dead} enemigos muertos. Empuja torres antes de que revivan.",
   "call_num_disadv_title": "Defender y Limpiar ({ally}v{enemy})",
   "call_num_disadv_detail": "En desventaja numérica. Cede objetivos externos y limpia oleadas seguro.",
   "call_soul_threat_title": "¡Disputar Alma de Dragón!",
@@ -50,6 +51,7 @@
   "lane_BOTTOM": "ADC",
   "lane_UTILITY": "Soporte",
   "rank_item": "{metric} Top {pct}%",
+  "rank_item_avg": "{metric} {value} · media {mean} (top {pct}%)",
   "rank_approx": "≈ aprox. normal vs {tier} · min {minute}",
   "metric_cs_per_min": "CS/min",
   "metric_level": "Nivel",
@@ -109,5 +111,7 @@
   "hud_menu_opacity": "Opacidad",
   "hud_menu_lang": "Idioma",
   "hud_menu_auto": "Iniciar con el ordenador",
-  "hud_menu_data": "Compartir datos anónimos"
+  "hud_menu_data": "Compartir datos anónimos",
+  "hud_menu_reset": "Restablecer posición",
+  "hud_menu_lock": "Fijar posición"
 }

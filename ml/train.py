@@ -15,6 +15,7 @@ import numpy as np
 import onnxruntime as ort
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
+from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LogisticRegression
@@ -40,6 +41,19 @@ def split_by_match(rows: list[dict[str, Any]], eval_fraction: float = 0.2, seed:
     eval_idx = [i for g in eval_ids for i in groups[g]]
     train_idx = [i for g in ids[n_eval:] for i in groups[g]]
     return sorted(train_idx), sorted(eval_idx)
+
+
+def side_flip_augment(X: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """AGENTS §19: append the red-side view of every training row.
+
+    Every non-context feature is a blue-minus-red difference, so the same game seen from red is
+    (-diff, context unchanged, 1 - label). Training on both views forces P(blue | even) = 0.5 and
+    removes the side/first-blood bias a small sample can carry. Applied to the training split only.
+    """
+    ctx = np.array([f in CONTEXT_COLUMNS for f in EXTENDED_FEATURES])
+    flipped = X.copy()
+    flipped[:, ~ctx] = -flipped[:, ~ctx]
+    return np.vstack([X, flipped]).astype(np.float32), np.concatenate([y, 1 - y])
 
 
 def build_distribution_stats(player_rows: list[dict[str, Any]], min_n: int = MIN_N) -> dict[str, Any]:
@@ -69,14 +83,74 @@ def build_distribution_stats(player_rows: list[dict[str, Any]], min_n: int = MIN
     return {"schema": 1, "min_n": min_n, "tiers": tiers}
 
 
+# Every non-context feature is a blue-minus-red advantage: its coefficient must be >= 0 (AGENTS §19).
+ADVANTAGE_FEATURES = [f for f in EXTENDED_FEATURES if f not in CONTEXT_COLUMNS and f not in MASKED_FEATURES]
+
+
+class MonotoneLogistic(ClassifierMixin, BaseEstimator):
+    """L2 logistic regression (same objective as sklearn, C=1) with advantage coefficients bounded >= 0.
+
+    Exported through a plain StandardScaler + LogisticRegression pipeline, so ONNX conversion is unchanged.
+    """
+
+    def __init__(self, C: float = 1.0) -> None:
+        self.C = C
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "MonotoneLogistic":
+        from scipy.optimize import minimize
+
+        scaler = StandardScaler().fit(X)
+        Z = scaler.transform(X).astype(np.float64)
+        y = np.asarray(y, dtype=np.float64)
+        n_feat = Z.shape[1]
+
+        def obj(theta: np.ndarray) -> tuple[float, np.ndarray]:
+            w, b = theta[:n_feat], theta[n_feat]
+            m = Z @ w + b
+            p = 1.0 / (1.0 + np.exp(-m))
+            loss = 0.5 * float(w @ w) + self.C * float(np.sum(np.logaddexp(0.0, m) - y * m))
+            g = self.C * (p - y)
+            return loss, np.concatenate([w + Z.T @ g, [g.sum()]])
+
+        bounds = [(0.0, None) if f in ADVANTAGE_FEATURES else ((0.0, 0.0) if f in MASKED_FEATURES else (None, None)) for f in EXTENDED_FEATURES]
+        res = minimize(obj, np.zeros(n_feat + 1), jac=True, method="L-BFGS-B", bounds=bounds + [(None, None)])
+        clf = LogisticRegression()
+        clf.classes_ = np.array([0, 1])
+        clf.coef_ = res.x[:n_feat].reshape(1, -1)
+        clf.intercept_ = np.array([res.x[n_feat]])
+        clf.n_features_in_ = n_feat
+        self.pipeline_ = Pipeline([("scaler", scaler), ("clf", clf)])
+        self.classes_ = clf.classes_
+        return self
+
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        return self.pipeline_.predict_proba(X)
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        return self.pipeline_.predict(X)
+
+
+def monotone_violations(model: Any, tol: float = 1e-6) -> list[str]:
+    """Advantage features whose +1 lowers blue win probability at 10/15/20/25 min, any tier (AGENTS §19)."""
+    bad = []
+    for minute in (10.0, 15.0, 20.0, 25.0):
+        for tier in (0.0, 1.0, 2.0):
+            base = {f: 0.0 for f in EXTENDED_FEATURES} | {"game_time_min": minute, "tier_bucket": tier}
+            rows = [base] + [base | {f: 1.0} for f in ADVANTAGE_FEATURES]
+            p = model.predict_proba(vectorize_rows(rows))[:, 1]
+            bad += [f for f, v in zip(ADVANTAGE_FEATURES, p[1:]) if v < p[0] - tol]
+    return sorted(set(bad))
+
+
 def _candidates() -> dict[str, Any]:
     return {
-        "logistic": Pipeline([("scaler", StandardScaler()), ("clf", LogisticRegression(max_iter=1000, C=1.0, random_state=42))]),
+        "logistic": MonotoneLogistic(C=1.0),
         "gboost": GradientBoostingClassifier(n_estimators=80, max_depth=3, learning_rate=0.1, subsample=0.9, random_state=42),
     }
 
 
 def _to_onnx(model: Any, path: Path) -> None:
+    model = getattr(model, "pipeline_", model)
     onx = convert_sklearn(
         model,
         initial_types=[("X", FloatTensorType([None, len(EXTENDED_FEATURES)]))],
@@ -90,6 +164,7 @@ def train_and_export_onnx(
     out_dir: Path | str,
     parity_tol: float = 1e-4,
     player_rows: list[dict[str, Any]] | None = None,
+    augment_sides: bool = True,
 ) -> dict[str, Any]:
     """Compare logistic vs. small boosted trees, export the best ONNX that passes parity."""
     if len(rows) < 20:
@@ -100,6 +175,8 @@ def train_and_export_onnx(
     X_tr, y_tr, X_ev, y_ev = X[train_idx], y[train_idx], X[eval_idx], y[eval_idx]
     if len(set(y_tr.tolist())) < 2:
         raise ValueError("Training split contains a single class; need wins and losses")
+    if augment_sides:
+        X_tr, y_tr = side_flip_augment(X_tr, y_tr)
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -121,15 +198,16 @@ def train_and_export_onnx(
             "auc": round(float(roc_auc_score(y_ev, sk)), 4) if len(set(y_ev.tolist())) > 1 else 0.5,
             "onnx_max_diff": diff,
             "parity_ok": diff <= parity_tol,
+            "monotone_violations": monotone_violations(model),
         }
         scored.append(entry)
-        if entry["parity_ok"] and (best is None or ll < best[0]):
+        if entry["parity_ok"] and not entry["monotone_violations"] and (best is None or ll < best[0]):
             best = (ll, name, model, cand_file)
 
     if best is None:
         for f in out_path.glob("_candidate_*.onnx"):
             f.unlink()
-        raise RuntimeError(f"ONNX parity check failed for every candidate (tol {parity_tol}): {scored}")
+        raise RuntimeError(f"No candidate passed ONNX parity (tol {parity_tol}) and the monotonicity check: {scored}")
 
     _, chosen, model, cand_file = best
     (out_path / "model_extended.onnx").write_bytes(cand_file.read_bytes())
@@ -155,6 +233,7 @@ def train_and_export_onnx(
     metrics = {
         "selected": chosen,
         "n_train": int(len(train_idx)),
+        "side_flip_augment": bool(augment_sides),
         "n_eval": int(len(eval_idx)),
         "n_matches": len({str(r.get("match_id") or i) for i, r in enumerate(rows)}),
         "brier": chosen_entry["brier"],
@@ -175,9 +254,10 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Train from collector JSONL and export ONNX + distribution_stats.json")
     ap.add_argument("--data", nargs="+", type=Path, required=True)
     ap.add_argument("--out", type=Path, default=Path("build/model"))
+    ap.add_argument("--no-side-flip", action="store_true", help="disable AGENTS §19 side-flip augmentation")
     args = ap.parse_args(argv)
     snaps, players = load_jsonl(args.data)
-    m = train_and_export_onnx(snaps, args.out, player_rows=players)
+    m = train_and_export_onnx(snaps, args.out, player_rows=players, augment_sides=not args.no_side_flip)
     print(json.dumps({k: m[k] for k in ("selected", "n_matches", "n_eval", "log_loss", "auc", "onnx_max_diff", "stats_cells")}))
     return 0
 

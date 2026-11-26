@@ -1,0 +1,40 @@
+name: collect
+
+# AGENTS §20: automatic match collection into D1 (admin route of the Worker).
+# Needs two repository secrets: RIOT_API_KEY (personal/production key; a dev key expires in 24 h)
+# and PACEMAKER_ADMIN_TOKEN (same value as the Worker secret ADMIN_TOKEN). No Cloudflare token.
+# Collection only: retraining (`python -m ml.pipeline build`) and publishing stay manual (AGENTS §13).
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      max:
+        description: 'matches per run'
+        default: '30'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Collect anonymized matches into D1
+        env:
+          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+          PACEMAKER_ADMIN_TOKEN: ${{ secrets.PACEMAKER_ADMIN_TOKEN }}
+          MAX_MATCHES: ${{ github.event.inputs.max || '30' }}
+        run: |
+          if [ -z "$RIOT_API_KEY" ] || [ -z "$PACEMAKER_ADMIN_TOKEN" ]; then
+            echo "::error::RIOT_API_KEY / PACEMAKER_ADMIN_TOKEN secrets are not set"; exit 1
+          fi
+          case "$MAX_MATCHES" in ''|*[!0-9]*) echo "::error::max must be a number"; exit 1;; esac
+          uv run --no-dev python -m ml.pipeline collect --store d1 --max "$MAX_MATCHES"
