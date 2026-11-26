@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self' https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev;">
 <title>PACE MAKER Desktop — Real-Time LoL AI Coach</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23ff5a1f'/%3E%3C/svg%3E">
 <style>
@@ -136,7 +136,12 @@
   h2.sec-head { font-size: 24px; font-weight: 900; letter-spacing: -0.02em; margin: 0 0 18px; }
 
   .os-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 18px; }
-  .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  @media (max-width: 760px) { .grid-4 { grid-template-columns: 1fr; } }
+  .step-shot {
+    width: 100%; height: auto; display: block; border-radius: 10px;
+    border: 1px solid var(--line); margin-bottom: 12px;
+  }
   .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
   @media (max-width: 760px) { .os-grid { grid-template-columns: 1fr; } }
 
@@ -171,6 +176,32 @@
   .trust h3 { margin: 0 0 6px; font-size: 16px; color: var(--good); }
   .trust p { margin: 0; font-size: 14px; color: #d1d5db; }
 
+  .search-form {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+  }
+  .search-form select, .search-form input {
+    background: var(--surface2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 10px; padding: 11px 14px; font-size: 14px; font-weight: 600;
+  }
+  .search-form input { flex: 1; min-width: 220px; }
+  .search-form button {
+    padding: 11px 22px; border-radius: 10px; border: 0; background: var(--accent);
+    color: #fff; font-size: 14px; font-weight: 800; cursor: pointer;
+  }
+  .search-form button:hover { background: var(--accent-hover); }
+  .match-list { display: grid; gap: 10px; }
+  .match-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--surface2); border: 1px solid var(--line); border-left: 4px solid var(--line);
+    border-radius: 10px; padding: 12px 16px; font-size: 13.5px;
+  }
+  .match-row.win { border-left-color: #34d399; }
+  .match-row.loss { border-left-color: #f87171; }
+  .match-res { font-weight: 900; min-width: 54px; }
+  .match-row.win .match-res { color: #34d399; }
+  .match-row.loss .match-res { color: #f87171; }
+  .match-status { font-size: 13.5px; color: var(--sub); padding: 6px 2px; }
+
   footer {
     border-top: 1px solid var(--line); margin-top: 64px; padding-top: 24px;
     text-align: center; font-size: 12.5px; color: var(--dim);
@@ -186,6 +217,7 @@
     </a>
     <nav class="nav-links">
       <a href="#downloads" data-i18n="nav_downloads">Downloads</a>
+      <a href="#history" data-i18n="nav_history">Match History</a>
       <a href="#setup" data-i18n="nav_setup">How to Use</a>
       <a href="#faq" data-i18n="nav_faq">Troubleshooting</a>
       <a href="#support" data-i18n="nav_support">Support</a>
@@ -277,11 +309,35 @@
     </div>
   </section>
 
+  <section class="block" id="history">
+    <h2 class="sec-head" data-i18n="hist_head">Global Riot Match Lookup</h2>
+    <div class="card">
+      <p style="margin-bottom:14px;" data-i18n="hist_desc">Search recent matches across KR, NA, EUW, JP, BR, and LAN — powered by a $0 serverless Cloudflare Worker proxy.</p>
+      <form class="search-form" id="riot-search-form">
+        <select id="riot-region" aria-label="Region">
+          <option value="kr">KR</option>
+          <option value="na">NA</option>
+          <option value="euw">EUW</option>
+          <option value="jp">JP</option>
+          <option value="br">BR</option>
+          <option value="lan">LAN</option>
+          <option value="las">LAS</option>
+          <option value="sea">SEA</option>
+        </select>
+        <input id="riot-id-input" type="text" value="Hide on bush#KR1" placeholder="GameName#Tag" required>
+        <button type="submit" data-i18n="hist_btn">Search</button>
+      </form>
+      <div class="match-status" id="match-status"></div>
+      <div class="match-list" id="match-list"></div>
+    </div>
+  </section>
+
   <section class="block" id="setup">
     <h2 class="sec-head" data-i18n="setup_head">How to Apply (4 Simple Steps)</h2>
     <div class="grid-4">
       <div class="card">
         <div>
+          <img class="step-shot" src="./images/guide_step1.png" alt="Step 1 Unzip and first launch">
           <span class="step-tag">STEP 01</span>
           <h3 data-i18n="s1_t">Unzip &amp; Launch</h3>
           <p data-i18n="s1_d">Extract the zip and launch LoLPacemaker. On first run (unsigned open-source app), click More info → Run anyway on Windows, or Right-click → Open on macOS.</p>
@@ -289,6 +345,7 @@
       </div>
       <div class="card">
         <div>
+          <img class="step-shot" src="./images/guide_step2.png" alt="Step 2 Set Borderless Window in League Video Settings">
           <span class="step-tag">STEP 02</span>
           <h3 data-i18n="s2_t">Borderless Window</h3>
           <p data-i18n="s2_d">In League of Legends Video Settings, set Window Mode to Borderless so the transparent HUD floats cleanly over the game.</p>
@@ -296,6 +353,7 @@
       </div>
       <div class="card">
         <div>
+          <img class="step-shot" src="./images/guide_step3.png" alt="Step 3 Auto-Connect to Riot 2999 Local API">
           <span class="step-tag">STEP 03</span>
           <h3 data-i18n="s3_t">Auto-Connect (All Modes)</h3>
           <p data-i18n="s3_d">Start Ranked, Normal, ARAM, or Practice Tool. The HUD automatically detects your mode and updates live every 2 seconds.</p>
@@ -303,6 +361,7 @@
       </div>
       <div class="card">
         <div>
+          <img class="step-shot" src="./images/guide_step4.png" alt="Step 4 Companion HUD Hotkeys F8 F9 Opacity">
           <span class="step-tag">STEP 04</span>
           <h3 data-i18n="s4_t">Companion Controls</h3>
           <p data-i18n="s4_d">Drag anywhere to avoid Blitz/Porofessor. Press F8 for click-through, F9 to hide/show, [ / ] for opacity, or click the language badge to switch among 5 languages.</p>
@@ -363,7 +422,8 @@
 <script>
 const I18N = {
   en: {
-    nav_downloads: "Downloads", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download",
+    nav_downloads: "Downloads", nav_history: "Match History", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download",
+    hist_head: "Global Riot Match Lookup", hist_desc: "Search recent matches across KR, NA, EUW, JP, BR, and LAN — powered by a $0 serverless Cloudflare Worker proxy.", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
     badge: "Ranked · Normal · ARAM · 100% Local · $0 Server · No Ads",
     hero_title: "Real-Time AI Coach That Changes Your In-Game Decisions",
     hero_sub: "Works across Ranked, Normal, ARAM, and Practice Tool. Runs locally on CPU via ONNX (<1ms) alongside Blitz or Porofessor — zero ads, zero FPS drops, 100% Riot policy compliant.",
@@ -400,7 +460,8 @@ const I18N = {
     footer: "LoL Pacemaker isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games."
   },
   ko: {
-    nav_downloads: "자료실", nav_setup: "적용 방법", nav_faq: "오류 해결", nav_support: "고객 응대", nav_cta: "다운로드",
+    nav_downloads: "자료실", nav_history: "전적 검색", nav_setup: "적용 방법", nav_faq: "오류 해결", nav_support: "고객 응대", nav_cta: "다운로드",
+    hist_head: "글로벌 Riot 전적 검색", hist_desc: "KR, NA, EUW, JP, BR 등 전 세계 소환사 최근 전적을 서버비 0원 Cloudflare Workers로 바로 조회합니다.", hist_btn: "검색", hist_loading: "전적을 불러오는 중...", hist_err: "소환사를 찾을 수 없거나 형식이 잘못되었습니다 (예: Hide on bush#KR1).", hist_win: "승리", hist_loss: "패배",
     badge: "랭크 · 일반 · 칼바람(ARAM) 전 모드 지원 · 100% 로컬 · 서버비 0원 · 무광고",
     hero_title: "게임 중 판단을 바꾸는 실시간 AI 코치",
     hero_sub: "랭크, 일반, 칼바람(증바람), 연습모드 모든 경기에서 자동 동작합니다. Blitz·Porofessor와 함께 켜도 프레임 저하 없이 내 PC에서 1ms 미만으로 실력 향상용 실시간 오더를 제공합니다.",
@@ -437,7 +498,8 @@ const I18N = {
     footer: "LoL Pacemaker는 Riot Games의 공식 승인을 받은 서비스가 아니며 Riot Games의 입장을 대변하지 않습니다."
   },
   ja: {
-    nav_downloads: "ダウンロード", nav_setup: "使い方", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
+    nav_downloads: "ダウンロード", nav_history: "戦績検索", nav_setup: "使い方", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
+    hist_head: "グローバル Riot 戦績検索", hist_desc: "KR・JP・NA・EUW・BRなど全サーバーの直近戦績をサーバー費0円のCloudflare Workersで検索します。", hist_btn: "検索", hist_loading: "戦績を取得中...", hist_err: "サモナーが見つかりません（GameName#Tag形式で入力してください）。", hist_win: "勝利", hist_loss: "敗北",
     badge: "ランク · ノーマル · ARAM 全モード対応 · 100%ローカル · 広告ゼロ",
     hero_title: "試合中の判断を変えるリアルタイムAIコーチ",
     hero_sub: "ランク戦・ノーマル・ARAM・プラクティスすべてに自動対応。BlitzやPorofessorと併用してもFPS低下ゼロ、PC上のONNX(<1ms)で実力向上を支援します。",
@@ -474,7 +536,8 @@ const I18N = {
     footer: "LoL PacemakerはRiot Gamesの承認を受けたものではなく、Riot Gamesの見解を反映するものではありません。"
   },
   es: {
-    nav_downloads: "Descargas", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
+    nav_downloads: "Descargas", nav_history: "Historial", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
+    hist_head: "Búsqueda Global de Partidas Riot", hist_desc: "Consulta partidas recientes en KR, NA, EUW, JP, BR y LAN con nuestro proxy gratuito en Cloudflare Workers.", hist_btn: "Buscar", hist_loading: "Cargando partidas...", hist_err: "Invocador no encontrado (usa el formato Nombre#Tag).", hist_win: "VICTORIA", hist_loss: "DERROTA",
     badge: "Ranked · Normal · ARAM · 100% Local · Sin Anuncios",
     hero_title: "Coach IA en Tiempo Real que Mejora tus Decisiones",
     hero_sub: "Compatible con Ranked, Normal, ARAM y Práctica. Corre localmente en CPU con ONNX (<1ms) junto a Blitz o Porofessor sin bajar FPS.",
@@ -511,7 +574,8 @@ const I18N = {
     footer: "LoL Pacemaker no está avalado por Riot Games y no refleja las opiniones ni puntos de vista de Riot Games."
   },
   pt: {
-    nav_downloads: "Downloads", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar",
+    nav_downloads: "Downloads", nav_history: "Histórico", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar",
+    hist_head: "Busca Global de Partidas Riot", hist_desc: "Consulte partidas recentes em KR, NA, EUW, JP e BR com nosso proxy gratuito no Cloudflare Workers.", hist_btn: "Buscar", hist_loading: "Carregando partidas...", hist_err: "Invocador não encontrado (use o formato Nome#Tag).", hist_win: "VITÓRIA", hist_loss: "DERROTA",
     badge: "Ranqueada · Normal · ARAM · 100% Local · Sem Anúncios",
     hero_title: "Coach IA em Tempo Real que Muda suas Decisões",
     hero_sub: "Funciona em Ranqueada, Normal, ARAM e Modo Treino. Roda localmente na CPU via ONNX (<1ms) junto com Blitz ou Porofessor sem queda de FPS.",
@@ -575,6 +639,43 @@ function applyLang(lang) {
 
 document.getElementById("lang-select").addEventListener("change", (e) => applyLang(e.target.value));
 applyLang(detectLang());
+
+const WORKER_URL = "https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev";
+document.getElementById("riot-search-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const lang = document.getElementById("lang-select").value || "en";
+  const dict = I18N[lang] || I18N.en;
+  const riotId = document.getElementById("riot-id-input").value.trim();
+  const region = document.getElementById("riot-region").value;
+  const statusEl = document.getElementById("match-status");
+  const listEl = document.getElementById("match-list");
+  statusEl.textContent = dict.hist_loading;
+  listEl.replaceChildren();
+  try {
+    const res = await fetch(`${WORKER_URL}/?riot_id=${encodeURIComponent(riotId)}&region=${encodeURIComponent(region)}`);
+    const data = await res.json();
+    if (!res.ok || !Array.isArray(data.matches)) {
+      statusEl.textContent = dict.hist_err;
+      return;
+    }
+    statusEl.textContent = `${data.riot_id} (${data.region})`;
+    for (const m of data.matches) {
+      const row = document.createElement("div");
+      row.className = "match-row " + (m.win ? "win" : "loss");
+      const rSpan = document.createElement("span");
+      rSpan.className = "match-res";
+      rSpan.textContent = m.win ? dict.hist_win : dict.hist_loss;
+      const cSpan = document.createElement("strong");
+      cSpan.textContent = `${m.champion} · ${m.gameMode}`;
+      const kSpan = document.createElement("span");
+      kSpan.textContent = `KDA ${m.kills}/${m.deaths}/${m.assists} · CS ${m.cs} · ${m.durationMin}m`;
+      row.append(rSpan, cSpan, kSpan);
+      listEl.appendChild(row);
+    }
+  } catch (_) {
+    statusEl.textContent = dict.hist_err;
+  }
+});
 </script>
 </body>
 </html>
