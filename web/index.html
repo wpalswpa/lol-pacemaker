@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self' https://lol-pacemaker-riot-proxy.jayu25si-video.workers.dev;">
-<title>PACE MAKER — Real-Time LoL AI Coach &amp; Match Lookup</title>
+<title>PACE MAKER - Real-Time LoL Coach</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23ff5a1f'/%3E%3Cpath d='M4 11V5h3.5a2 2 0 0 1 0 4H6v2H4z' fill='%23fff'/%3E%3C/svg%3E">
 <script>
 (function () {
@@ -221,8 +221,23 @@
     margin-bottom: 12px;
   }
   .crumb { font: 700 11.5px/1.3 var(--mono); color: var(--accent); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
-  h1 { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.25; }
-  .hero-desc { margin: 4px 0 0; font-size: 13.5px; color: var(--sub); max-width: 720px; }
+  .page-header { padding: 18px 0 10px; }
+  h1 { margin: 0; font-size: clamp(28px, 3.6vw, 44px); font-weight: 900; letter-spacing: -0.035em; line-height: 1.12; }
+  h1 span { display: block; }
+  .h1-accent { color: var(--accent); }
+  .hero-desc { margin: 12px 0 0; font-size: 15.5px; line-height: 1.55; color: var(--sub); max-width: 60ch; }
+  .workspace-grid .panel:first-child { box-shadow: 0 24px 48px -28px color-mix(in srgb, var(--accent) 55%, transparent); }
+  .dl-btn-main { transition: transform .15s ease, background .15s ease; }
+  .dl-btn-main:hover { transform: translateY(-1px); }
+  .dl-btn-main:active { transform: scale(0.98); }
+  @media (prefers-reduced-motion: no-preference) {
+    .page-header h1 span, .page-header .hero-desc, .workspace-grid > * { animation: rise .6s cubic-bezier(.16, 1, .3, 1) both; }
+    .page-header h1 span:nth-child(2) { animation-delay: .08s; }
+    .page-header .hero-desc { animation-delay: .16s; }
+    .workspace-grid > :nth-child(1) { animation-delay: .22s; }
+    .workspace-grid > :nth-child(2) { animation-delay: .3s; }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  }
 
   .mode-pills { display: flex; gap: 6px; flex-wrap: wrap; }
   .pill {
@@ -394,8 +409,6 @@
           <span class="brand-mark">P</span>
           <span>PACE MAKER</span>
         </a>
-        <span class="game-tab"><span class="game-dot"></span><span data-i18n="game_lol">League of Legends</span></span>
-        <span class="ver-pill">v0.2.1 · All Modes</span>
       </div>
       <div class="topbar-actions">
         <select id="lang-select" aria-label="Language">
@@ -406,7 +419,7 @@
           <option value="pt">PT · Português</option>
         </select>
         <button class="icon-btn" id="theme-toggle" type="button"><span id="theme-icon" aria-hidden="true"></span></button>
-        <a class="nav-cta" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer" data-i18n="nav_cta">Download App</a>
+        <a class="nav-cta" href="#downloads" data-i18n="nav_cta">Download App</a>
       </div>
     </div>
   </div>
@@ -442,9 +455,8 @@
   <section class="block" id="overview">
     <div class="page-header">
       <div>
-        <div class="crumb" data-i18n="badge">League of Legends · Companion Overlay · 100% Local · $0 Server</div>
-        <h1 data-i18n="hero_title">Real-Time AI Coach That Changes Your In-Game Decisions</h1>
-        <p class="hero-desc" data-i18n="hero_sub">Works across Ranked, Normal, ARAM, and Practice Tool. Runs locally on CPU via ONNX (&lt;1ms) alongside Blitz or Porofessor — zero ads, zero FPS drops, 100% Riot policy compliant.</p>
+        <h1><span data-i18n="hero_title_a">Your next winning move,</span> <span class="h1-accent" data-i18n="hero_title_b">on screen every 2 seconds.</span></h1>
+        <p class="hero-desc" data-i18n="hero_sub">Live win chance and the play to make now, right on top of your game. Ranked, Normal and ARAM.</p>
       </div>
     </div>
 
@@ -452,18 +464,16 @@
       <!-- Left Main Panel: Real In-Game Screenshot -->
       <div class="panel">
         <div class="panel-head">
-          <h2 class="panel-title" data-i18n="live_panel_title">In-Game Companion Overlay</h2>
+          <h2 class="panel-title" data-i18n="live_panel_title">In-game screen</h2>
           <div class="mode-pills">
             <span class="pill hot" data-i18n="m2_v">Ranked · Normal · ARAM</span>
-            <span class="pill safe" data-i18n="m1_v">Local ONNX &lt;1ms</span>
-            <span class="pill" data-i18n="m4_v">100% Free · Zero Ads</span>
           </div>
         </div>
         <div class="preview-frame">
           <img src="./images/ingame_demo.jpg" alt="PACE MAKER real-time HUD overlay running over a live League of Legends match">
         </div>
         <div class="preview-cap">
-          <span data-i18n="ingame_cap">Actual in-game overlay running over a live 5v5 match (zero FPS drop)</span>
+          <span data-i18n="ingame_cap">The HUD on top of a real 5v5 match</span>
           <a href="https://github.com/wpalswpa/lol-pacemaker" rel="noopener noreferrer" style="color:var(--accent);font-weight:700;" data-i18n="btn_source">View Open Source →</a>
         </div>
       </div>
@@ -472,23 +482,22 @@
       <aside class="panel" id="downloads">
         <div class="panel-head">
           <h2 class="panel-title" data-i18n="dl_head">Download Desktop App</h2>
-          <span class="panel-sub">v0.2.1</span>
+          <span class="panel-sub">v0.2.2</span>
         </div>
         <div class="panel-body dl-rail">
-          <a class="dl-btn-main" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer">
+          <a class="dl-btn-main" href="https://github.com/wpalswpa/lol-pacemaker/releases/latest/download/LoLPacemaker-Setup.exe" download>
             <span>
               <span data-i18n="dl_win_t">Windows 10 / 11 (1-Click Setup .exe)</span>
-              <small data-i18n="dl_win_d">Auto-popup when LoL starts · Portable .zip included</small>
+              <small data-i18n="dl_win_d">Pops up by itself when your match starts</small>
             </span>
             <span>↓</span>
           </a>
-          <a class="dl-btn-sec" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer">
+          <a class="dl-btn-sec" href="https://github.com/wpalswpa/lol-pacemaker/releases/latest/download/LoLPacemaker-macos.zip" download>
             <span data-i18n="dl_mac_t">macOS (.app.zip)</span>
-            <small>Apple Silicon / Intel</small>
+            <small data-i18n="dl_mac_d">Apple Silicon (M1 or later)</small>
           </a>
 
           <table class="spec-table" aria-label="Technical specs">
-            <tr><th data-i18n="m1_k">Inference</th><td data-i18n="m1_v">Local ONNX &lt;1ms</td></tr>
             <tr><th data-i18n="m2_k">Modes</th><td data-i18n="m2_v">Ranked · Normal · ARAM</td></tr>
             <tr><th data-i18n="m3_k">Languages</th><td>EN · KO · JA · ES · PT</td></tr>
             <tr><th data-i18n="m4_k">Cost &amp; Ads</th><td data-i18n="m4_v">100% Free · Zero Ads</td></tr>
@@ -496,10 +505,10 @@
 
           <div class="trust-strip">
             <strong data-i18n="sec_title">Riot Policy Safe &amp; Security Guaranteed</strong>
-            <p data-i18n="sec_desc">Read-only access to Riot's official local Live Client Data API (127.0.0.1:2999). No memory injection, no OCR, and zero gameplay data leaves your PC.</p>
+            <p data-i18n="sec_desc">Reads only Riot's official local game API (127.0.0.1:2999). No memory reading or screen capture. Match numbers leave your PC only if you opt in, and only anonymously.</p>
           </div>
 
-          <a class="dl-btn-sec" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer">
+          <a class="dl-btn-sec" href="https://github.com/wpalswpa/lol-pacemaker/releases/latest/download/checksums.sha256" download>
             <span data-i18n="dl_sha_t">SHA-256 Integrity Checksums</span>
             <small data-i18n="dl_sha_btn">Verify →</small>
           </a>
@@ -513,7 +522,7 @@
     <div class="panel">
       <div class="panel-head">
         <h2 class="panel-title" data-i18n="hist_head">Global Riot Match Lookup</h2>
-        <span class="panel-sub" data-i18n="hist_desc">KR · NA · EUW · JP · BR · LAN — $0 Cloudflare Worker Proxy</span>
+        <span class="panel-sub" data-i18n="hist_desc">KR · NA · EUW · JP · BR · LAN</span>
       </div>
       <div class="region-bar" id="region-bar" role="group" aria-label="Region">
         <button type="button" class="region-btn active" data-region="kr">KR</button>
@@ -613,7 +622,7 @@
         </details>
         <details class="faq">
           <summary data-i18n="q4">Is this safe under Riot Games Third-Party Policy (Ranked &amp; ARAM)?</summary>
-          <p data-i18n="a4">Yes. It reads only Riot's official local scoreboard/events API (127.0.0.1:2999) for player improvement coaching — zero memory reading, zero OCR, zero hidden enemy timers or wards.</p>
+          <p data-i18n="a4">Yes. It reads only Riot's official local scoreboard/events API (127.0.0.1:2999) for player improvement coaching - zero memory reading, zero OCR, zero hidden enemy timers or wards.</p>
         </details>
       </div>
 
@@ -635,9 +644,9 @@
         <div class="sup-row">
           <div>
             <h3 data-i18n="dl_sha_t">SHA-256 Integrity Checksums</h3>
-            <p data-i18n="dl_sha_d">Every release is built in clean GitHub Actions runners and ships with checksums.sha256.</p>
+            <p data-i18n="dl_sha_d">Use this to check that the file you downloaded is the original.</p>
           </div>
-          <a class="btn-sm" href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer" data-i18n="dl_sha_btn">Checksums</a>
+          <a class="btn-sm" href="https://github.com/wpalswpa/lol-pacemaker/releases/latest/download/checksums.sha256" download data-i18n="dl_sha_btn">Checksums</a>
         </div>
       </div>
     </div>
@@ -648,7 +657,7 @@
   <span data-i18n="footer">LoL Pacemaker isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games.</span>
   <div class="foot-links">
     <a href="https://github.com/wpalswpa/lol-pacemaker" rel="noopener noreferrer">GitHub</a>
-    <a href="https://github.com/wpalswpa/lol-pacemaker/releases" rel="noopener noreferrer">Releases</a>
+    <a href="./privacy.html" data-i18n="privacy">Privacy Policy</a>
     <a href="https://www.reddit.com/user/_sogum_bread/" rel="noopener noreferrer">Reddit</a>
   </div>
 </footer>
@@ -658,18 +667,17 @@ const I18N = {
   en: {
     game_lol: "League of Legends",
     nav_overview: "Overview", nav_history: "Match History", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download App",
-    live_panel_title: "In-Game Companion Overlay",
-    hist_head: "Global Riot Match Lookup", hist_desc: "KR · NA · EUW · JP · BR · LAN — $0 Cloudflare Worker Proxy", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
-    badge: "League of Legends · Companion Overlay · 100% Local · $0 Server",
-    hero_title: "Real-Time AI Coach That Changes Your In-Game Decisions",
-    hero_sub: "Works across Ranked, Normal, ARAM, and Practice Tool. Runs locally on CPU via ONNX (<1ms) alongside Blitz or Porofessor — zero ads, zero FPS drops, 100% Riot policy compliant.",
+    live_panel_title: "In-game screen",
+    hist_head: "Global Riot Match Lookup", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
+    hero_title_a: "Your next winning move,", hero_title_b: "on screen every 2 seconds.",
+    hero_sub: "Live win chance and the play to make now, right on top of your game. Ranked, Normal and ARAM.",
     btn_source: "View Open Source →",
-    m1_k: "Inference", m1_v: "Local ONNX <1ms", m2_k: "Modes", m2_v: "Ranked · Normal · ARAM", m3_k: "Languages", m4_k: "Cost & Ads", m4_v: "100% Free · Zero Ads",
-    ingame_cap: "Actual in-game overlay running over a live 5v5 match (zero FPS drop)",
+    m2_k: "Modes", m2_v: "Ranked · Normal · ARAM", m3_k: "Languages", m4_k: "Cost & Ads", m4_v: "100% Free · Zero Ads",
+    ingame_cap: "The HUD on top of a real 5v5 match",
     dl_head: "Download Desktop App",
-    dl_win_t: "Windows 10 / 11 (1-Click Setup .exe)", dl_win_d: "Auto-popup when LoL starts · Portable .zip included",
-    dl_mac_t: "macOS (.app.zip)",
-    dl_sha_t: "SHA-256 Integrity Checksums", dl_sha_d: "Every release is built in clean GitHub Actions runners and ships with checksums.sha256.",
+    dl_win_t: "Windows 10 / 11 (1-Click Setup .exe)", dl_win_d: "Pops up by itself when your match starts",
+    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon (M1 or later)",
+    dl_sha_t: "SHA-256 Integrity Checksums", dl_sha_d: "Use this to check that the file you downloaded is the original.",
     dl_sha_btn: "Verify →",
     setup_head: "How to Apply (4 Simple Steps)",
     s1_t: "1-Click Install & Auto-Start", s1_d: "Run LoLPacemaker-Setup.exe once (or click AUTO on the HUD). It waits silently and pops up automatically when a LoL match starts.",
@@ -680,28 +688,28 @@ const I18N = {
     q1: "The HUD does not appear on top of League of Legends.", a1: "Switch League's Video setting from Fullscreen to Borderless. Windows prevents any overlay from drawing above exclusive Fullscreen games.",
     q2: "Windows SmartScreen or macOS Gatekeeper shows a warning.", a2: "PACE MAKER is a free open-source project without a paid code-signing certificate. You can inspect 100% of the source code on GitHub and verify the SHA-256 hash before running.",
     q3: "It stays on \"Waiting for LoL...\" during a match.", a3: "The Riot local API (127.0.0.1:2999) opens only after the loading screen finishes and the match starts. Check that local firewall rules do not block loopback port 2999.",
-    q4: "Is this safe under Riot Games Third-Party Policy (Ranked & ARAM)?", a4: "Yes. It reads only Riot's official local scoreboard/events API (127.0.0.1:2999) for player improvement coaching — zero memory reading, zero OCR, zero hidden enemy timers or wards.",
+    q4: "Is this safe under Riot Games Third-Party Policy (Ranked & ARAM)?", a4: "Yes. It reads only Riot's official local scoreboard/events API (127.0.0.1:2999) for player improvement coaching - zero memory reading, zero OCR, zero hidden enemy timers or wards.",
     sup_bug_t: "Bug Reports & Feature Requests", sup_bug_d: "Found a bug or want a new language/call? Open an issue directly on GitHub.", sup_bug_btn: "GitHub Issue",
     sup_com_t: "Community & Updates", sup_com_d: "Follow updates, share match feedback, and vote on upcoming coaching features on Reddit.", sup_com_btn: "Reddit",
     sec_title: "Riot Policy Safe & Security Guaranteed",
-    sec_desc: "Read-only access to Riot's official local Live Client Data API (127.0.0.1:2999). No memory injection, no OCR, and zero gameplay data leaves your PC.",
+    sec_desc: "Reads only Riot's official local game API (127.0.0.1:2999). No memory reading or screen capture. Match numbers leave your PC only if you opt in, and only anonymously.",
+    privacy: "Privacy Policy",
     footer: "LoL Pacemaker isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games."
   },
   ko: {
     game_lol: "리그 오브 레전드",
     nav_overview: "개요 · 인게임 HUD", nav_history: "전적 검색", nav_setup: "적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
-    live_panel_title: "인게임 컴패니언 오버레이",
-    hist_head: "글로벌 Riot 전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN — 서버비 0원 Cloudflare Workers", hist_btn: "검색", hist_loading: "전적을 불러오는 중...", hist_err: "소환사를 찾을 수 없거나 형식이 잘못되었습니다 (예: Hide on bush#KR1).", hist_win: "승리", hist_loss: "패배",
-    badge: "리그 오브 레전드 · 컴패니언 오버레이 · 100% 로컬 · 서버비 0원",
-    hero_title: "게임 중 판단을 바꾸는 실시간 AI 코치",
-    hero_sub: "랭크, 일반, 칼바람(증바람), 연습모드 모든 경기에서 자동 동작합니다. Blitz·Porofessor와 함께 켜도 프레임 저하 없이 내 PC에서 1ms 미만으로 실력 향상용 실시간 오더를 제공합니다.",
+    live_panel_title: "인게임 화면",
+    hist_head: "글로벌 Riot 전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "검색", hist_loading: "전적을 불러오는 중...", hist_err: "소환사를 찾을 수 없거나 형식이 잘못되었습니다 (예: Hide on bush#KR1).", hist_win: "승리", hist_loss: "패배",
+    hero_title_a: "이 판을 뒤집을 다음 한 수,", hero_title_b: "2초마다 화면 위에.",
+    hero_sub: "경기 중 승률과 지금 해야 할 행동을 게임 화면 위에 띄워 줍니다. 랭크·일반·칼바람 자동 지원.",
     btn_source: "오픈소스 보기 →",
-    m1_k: "추론 속도", m1_v: "로컬 ONNX <1ms", m2_k: "지원 모드", m2_v: "랭크 · 일반 · 칼바람", m3_k: "지원 언어", m4_k: "비용 · 광고", m4_v: "100% 무료 · 광고 0%",
-    ingame_cap: "실제 5대5 인게임 화면 위에 투명 HUD가 적용된 실행 화면 (프레임 저하 0)",
+    m2_k: "지원 모드", m2_v: "랭크 · 일반 · 칼바람", m3_k: "지원 언어", m4_k: "비용 · 광고", m4_v: "100% 무료 · 광고 0%",
+    ingame_cap: "실제 5대5 경기 화면 위에 뜬 HUD",
     dl_head: "데스크톱 앱 다운로드",
-    dl_win_t: "Windows 10 / 11 (원클릭 설치 .exe)", dl_win_d: "롤 시작 시 자동 팝업 · 포터블 .zip 포함",
-    dl_mac_t: "macOS (.app.zip)",
-    dl_sha_t: "SHA-256 무결성 검증", dl_sha_d: "모든 릴리스는 GitHub Actions 클린 환경에서 자동 빌드되며 checksums.sha256을 함께 제공합니다.",
+    dl_win_t: "Windows 10 / 11 (원클릭 설치 .exe)", dl_win_d: "롤 경기가 시작되면 자동으로 뜹니다",
+    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon (M1 이후) 맥",
+    dl_sha_t: "SHA-256 무결성 검증", dl_sha_d: "내려받은 파일이 원본과 같은지 확인할 때 씁니다.",
     dl_sha_btn: "체크섬 →",
     setup_head: "적용 방법 (4단계)",
     s1_t: "원클릭 설치 & 자동 실행", s1_d: "LoLPacemaker-Setup.exe를 한 번 설치(또는 HUD 상단 AUTO 클릭)해 두면 다음부터 실행기를 찾지 않아도 롤 경기 시작 시 HUD가 자동으로 뜹니다.",
@@ -716,24 +724,24 @@ const I18N = {
     sup_bug_t: "오류 제보 · 기능 건의", sup_bug_d: "실행 오류나 원하는 전략 오더·번역 개선이 있으면 GitHub Issues에 바로 남겨 주세요.", sup_bug_btn: "GitHub 문의",
     sup_com_t: "커뮤니티 · 업데이트 소식", sup_com_d: "Reddit 프로필에서 패치 소식과 글로벌 유저 피드백을 확인하실 수 있습니다.", sup_com_btn: "Reddit",
     sec_title: "Riot 운영방침 준수 및 보안 보증",
-    sec_desc: "Riot 공식 로컬 API(127.0.0.1:2999) 공개 점수판만 읽기 전용으로 사용합니다. 메모리 변조·OCR·외부 데이터 전송이 전혀 없습니다.",
+    sec_desc: "Riot 공식 로컬 게임 API(127.0.0.1:2999)만 읽습니다. 메모리 조작·화면 캡처는 하지 않습니다. 경기 수치는 동의한 경우에만, 익명으로만 PC 밖으로 나갑니다.",
+    privacy: "개인정보 처리방침",
     footer: "LoL Pacemaker는 Riot Games의 공식 승인을 받은 서비스가 아니며 Riot Games의 입장을 대변하지 않습니다."
   },
   ja: {
     game_lol: "リーグ・オブ・レジェンド",
     nav_overview: "概要・HUD", nav_history: "戦績検索", nav_setup: "導入手順", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
-    live_panel_title: "インゲーム コンパニオンHUD",
-    hist_head: "グローバル Riot 戦績検索", hist_desc: "KR · JP · NA · EUW · BR — サーバー費0円 Cloudflare Workers", hist_btn: "検索", hist_loading: "戦績を取得中...", hist_err: "サモナーが見つかりません（GameName#Tag形式で入力してください）。", hist_win: "勝利", hist_loss: "敗北",
-    badge: "League of Legends · コンパニオンHUD · 100%ローカル · 広告ゼロ",
-    hero_title: "試合中の判断を変えるリアルタイムAIコーチ",
-    hero_sub: "ランク戦・ノーマル・ARAM・プラクティスすべてに自動対応。BlitzやPorofessorと併用してもFPS低下ゼロ、PC上のONNX(<1ms)で実力向上を支援します。",
+    live_panel_title: "ゲーム画面",
+    hist_head: "グローバル Riot 戦績検索", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "検索", hist_loading: "戦績を取得中...", hist_err: "サモナーが見つかりません（GameName#Tag形式で入力してください）。", hist_win: "勝利", hist_loss: "敗北",
+    hero_title_a: "この試合を勝ちに導く次の一手を、", hero_title_b: "2秒ごとに画面に。",
+    hero_sub: "試合中の勝率と今やるべき行動を、ゲーム画面の上に表示します。ランク・ノーマル・ARAM対応。",
     btn_source: "ソースコードを見る →",
-    m1_k: "推論速度", m1_v: "ローカルONNX <1ms", m2_k: "対応モード", m2_v: "ランク · ノーマル · ARAM", m3_k: "対応言語", m4_k: "料金・広告", m4_v: "完全無料・広告ゼロ",
-    ingame_cap: "実際の5v5試合画面上に透過HUDを表示した動作画面（FPS低下ゼロ）",
+    m2_k: "対応モード", m2_v: "ランク · ノーマル · ARAM", m3_k: "対応言語", m4_k: "料金・広告", m4_v: "完全無料・広告ゼロ",
+    ingame_cap: "実際の5v5の試合画面に表示されたHUD",
     dl_head: "デスクトップ版ダウンロード",
-    dl_win_t: "Windows 10 / 11 (ワンクリック .exe)", dl_win_d: "試合開始時に自動表示 · ポータブル.zip同梱",
-    dl_mac_t: "macOS (.app.zip)",
-    dl_sha_t: "SHA-256 チェックサム", dl_sha_d: "全リリースはGitHub Actionsで自動ビルドされ、checksums.sha256で検証可能です。",
+    dl_win_t: "Windows 10 / 11 (ワンクリック .exe)", dl_win_d: "試合が始まると自動で表示",
+    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon（M1以降）",
+    dl_sha_t: "SHA-256 チェックサム", dl_sha_d: "ダウンロードしたファイルが元のファイルと同じか確認するときに使います。",
     dl_sha_btn: "確認 →",
     setup_head: "導入手順（4ステップ）",
     s1_t: "ワンクリック導入・自動起動", s1_d: "LoLPacemaker-Setup.exeを一度入れる（またはHUDのAUTOを押す）だけで、次回からは試合開始時に自動でHUDが表示されます。",
@@ -748,24 +756,24 @@ const I18N = {
     sup_bug_t: "バグ報告・機能要望", sup_bug_d: "不具合や追加してほしい機能があればGitHub Issuesへお寄せください。", sup_bug_btn: "GitHub Issue",
     sup_com_t: "コミュニティ & 更新情報", sup_com_d: "Redditプロフィールで最新アップデートと開発状況を確認できます。", sup_com_btn: "Reddit",
     sec_title: "Riotポリシー準拠・セキュリティ保証",
-    sec_desc: "Riot公式ローカルAPI(127.0.0.1:2999)の公開情報のみを読み取り専用で使用。メモリ改ざん・OCR・外部データ送信は一切ありません。",
+    sec_desc: "Riot公式のローカルゲームAPI（127.0.0.1:2999）だけを読み取ります。メモリ操作や画面キャプチャはしません。試合の数値は同意した場合のみ、匿名でPCの外に送られます。",
+    privacy: "プライバシーポリシー",
     footer: "LoL PacemakerはRiot Gamesの承認を受けたものではなく、Riot Gamesの見解を反映するものではありません。"
   },
   es: {
     game_lol: "League of Legends",
     nav_overview: "Resumen", nav_history: "Historial", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
-    live_panel_title: "Overlay en Vivo",
-    hist_head: "Búsqueda Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN — Proxy gratuito en Cloudflare Workers", hist_btn: "Buscar", hist_loading: "Cargando partidas...", hist_err: "Invocador no encontrado (usa el formato Nombre#Tag).", hist_win: "VICTORIA", hist_loss: "DERROTA",
-    badge: "League of Legends · Overlay · 100% Local · Sin Anuncios",
-    hero_title: "Coach IA en Tiempo Real que Mejora tus Decisiones",
-    hero_sub: "Compatible con Ranked, Normal, ARAM y Práctica. Corre localmente en CPU con ONNX (<1ms) junto a Blitz o Porofessor sin bajar FPS.",
+    live_panel_title: "Pantalla de juego",
+    hist_head: "Búsqueda Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Cargando partidas...", hist_err: "Invocador no encontrado (usa el formato Nombre#Tag).", hist_win: "VICTORIA", hist_loss: "DERROTA",
+    hero_title_a: "Tu próxima jugada ganadora,", hero_title_b: "en pantalla cada 2 segundos.",
+    hero_sub: "Tu probabilidad de victoria y la jugada que toca, encima de tu partida. Clasificatoria, Normal y ARAM.",
     btn_source: "Ver Código Abierto →",
-    m1_k: "Inferencia", m1_v: "ONNX Local <1ms", m2_k: "Modos", m2_v: "Ranked · Normal · ARAM", m3_k: "Idiomas", m4_k: "Precio", m4_v: "100% Gratis · Sin Anuncios",
-    ingame_cap: "Overlay real ejecutándose sobre una partida 5v5 en vivo (sin caída de FPS)",
+    m2_k: "Modos", m2_v: "Ranked · Normal · ARAM", m3_k: "Idiomas", m4_k: "Precio", m4_v: "100% Gratis · Sin Anuncios",
+    ingame_cap: "El HUD sobre una partida real 5v5",
     dl_head: "Descargar App de Escritorio",
-    dl_win_t: "Windows 10 / 11 (Instalador .exe)", dl_win_d: "Auto-apertura en partida · .zip portátil incluido",
-    dl_mac_t: "macOS (.app.zip)",
-    dl_sha_t: "Checksums SHA-256", dl_sha_d: "Cada versión se compila en GitHub Actions e incluye checksums.sha256.",
+    dl_win_t: "Windows 10 / 11 (Instalador .exe)", dl_win_d: "Aparece solo al empezar la partida",
+    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon (M1 o posterior)",
+    dl_sha_t: "Checksums SHA-256", dl_sha_d: "Sirve para comprobar que el archivo descargado es el original.",
     dl_sha_btn: "Verificar →",
     setup_head: "Cómo Aplicarlo (4 Pasos)",
     s1_t: "Instalación 1-Clic y Auto-Inicio", s1_d: "Instala LoLPacemaker-Setup.exe una vez (o activa AUTO en el HUD) para que aparezca automáticamente al empezar cualquier partida.",
@@ -780,24 +788,24 @@ const I18N = {
     sup_bug_t: "Reportar Errores y Sugerencias", sup_bug_d: "¿Encontraste un fallo o quieres sugerir mejoras? Abre un issue en GitHub.", sup_bug_btn: "GitHub Issue",
     sup_com_t: "Comunidad y Novedades", sup_com_d: "Sigue las actualizaciones y comparte tu feedback en Reddit.", sup_com_btn: "Reddit",
     sec_title: "Seguro bajo Políticas de Riot",
-    sec_desc: "Solo lectura sobre la API local oficial de Riot (127.0.0.1:2999). Sin inyección de memoria, sin OCR y cero envío a servidores externos.",
+    sec_desc: "Solo lee la API local oficial de Riot (127.0.0.1:2999). Sin lectura de memoria ni captura de pantalla. Los números de la partida salen de tu PC solo si das tu consentimiento, y de forma anónima.",
+    privacy: "Política de privacidad",
     footer: "LoL Pacemaker no está avalado por Riot Games y no refleja las opiniones ni puntos de vista de Riot Games."
   },
   pt: {
     game_lol: "League of Legends",
     nav_overview: "Visão Geral", nav_history: "Histórico", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar App",
-    live_panel_title: "Overlay em Tempo Real",
-    hist_head: "Busca Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR — Proxy gratuito no Cloudflare Workers", hist_btn: "Buscar", hist_loading: "Carregando partidas...", hist_err: "Invocador não encontrado (use o formato Nome#Tag).", hist_win: "VITÓRIA", hist_loss: "DERROTA",
-    badge: "League of Legends · Overlay · 100% Local · Sem Anúncios",
-    hero_title: "Coach IA em Tempo Real que Muda suas Decisões",
-    hero_sub: "Funciona em Ranqueada, Normal, ARAM e Modo Treino. Roda localmente na CPU via ONNX (<1ms) junto com Blitz ou Porofessor sem queda de FPS.",
+    live_panel_title: "Tela do jogo",
+    hist_head: "Busca Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Carregando partidas...", hist_err: "Invocador não encontrado (use o formato Nome#Tag).", hist_win: "VITÓRIA", hist_loss: "DERROTA",
+    hero_title_a: "Sua próxima jogada vencedora,", hero_title_b: "na tela a cada 2 segundos.",
+    hero_sub: "Sua chance de vitória e a jogada certa agora, em cima do jogo. Ranqueada, Normal e ARAM.",
     btn_source: "Ver Código Aberto →",
-    m1_k: "Inferência", m1_v: "ONNX Local <1ms", m2_k: "Modos", m2_v: "Ranqueada · Normal · ARAM", m3_k: "Idiomas", m4_k: "Custo", m4_v: "100% Grátis · Sem Anúncios",
-    ingame_cap: "Overlay real rodando sobre uma partida 5v5 ao vivo (zero queda de FPS)",
+    m2_k: "Modos", m2_v: "Ranqueada · Normal · ARAM", m3_k: "Idiomas", m4_k: "Custo", m4_v: "100% Grátis · Sem Anúncios",
+    ingame_cap: "O HUD sobre uma partida real 5v5",
     dl_head: "Baixar App Desktop",
-    dl_win_t: "Windows 10 / 11 (Instalador .exe)", dl_win_d: "Abre sozinho na partida · .zip portátil incluído",
-    dl_mac_t: "macOS (.app.zip)",
-    dl_sha_t: "Checksums SHA-256", dl_sha_d: "Cada versão é compilada no GitHub Actions e inclui checksums.sha256.",
+    dl_win_t: "Windows 10 / 11 (Instalador .exe)", dl_win_d: "Aparece sozinho quando a partida começa",
+    dl_mac_t: "macOS (.app.zip)", dl_mac_d: "Apple Silicon (M1 ou posterior)",
+    dl_sha_t: "Checksums SHA-256", dl_sha_d: "Use para conferir se o arquivo baixado é o original.",
     dl_sha_btn: "Verificar →",
     setup_head: "Como Usar (4 Passos)",
     s1_t: "Instalação 1-Clique e Auto-Início", s1_d: "Instale LoLPacemaker-Setup.exe uma vez (ou clique em AUTO no HUD) para abrir automaticamente sempre que uma partida começar.",
@@ -808,11 +816,12 @@ const I18N = {
     q1: "O HUD não aparece em cima do League of Legends.", a1: "Mude o modo de vídeo do LoL de Tela Cheia para Sem Moldura (Borderless).",
     q2: "O Windows SmartScreen ou macOS mostra um aviso.", a2: "É um app gratuito e open-source sem certificado pago. Você pode auditar todo o código no GitHub e validar o hash SHA-256.",
     q3: "Fica preso em \"Waiting for LoL...\" na partida.", a3: "A API local da Riot (127.0.0.1:2999) só abre após a tela de carregamento. Confira se o firewall local não bloqueia a porta 2999.",
-    q4: "É seguro nas políticas da Riot em Ranqueada e ARAM?", a4: "Sim. Apenas lê a API local oficial do placar público (127.0.0.1:2999) para coaching educativo — sem injeção de memória, OCR ou timers ocultos.",
+    q4: "É seguro nas políticas da Riot em Ranqueada e ARAM?", a4: "Sim. Apenas lê a API local oficial do placar público (127.0.0.1:2999) para coaching educativo - sem injeção de memória, OCR ou timers ocultos.",
     sup_bug_t: "Reportar Bugs e Ideias", sup_bug_d: "Encontrou algum erro ou quer sugerir recursos? Abra uma issue no GitHub.", sup_bug_btn: "GitHub Issue",
     sup_com_t: "Comunidade e Atualizações", sup_com_d: "Acompanhe novidades e envie feedback no perfil do Reddit.", sup_com_btn: "Reddit",
     sec_title: "Seguro nas Políticas da Riot",
-    sec_desc: "Acesso somente leitura à API local oficial da Riot (127.0.0.1:2999). Sem injeção de memória, sem OCR e nenhum dado sai do seu PC.",
+    sec_desc: "Lê apenas a API local oficial da Riot (127.0.0.1:2999). Sem leitura de memória nem captura de tela. Os números da partida só saem do seu PC se você consentir, e de forma anônima.",
+    privacy: "Política de privacidade",
     footer: "LoL Pacemaker não é endossado pela Riot Games e não reflete as visões ou opiniões da Riot Games."
   }
 };

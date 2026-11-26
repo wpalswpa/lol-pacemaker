@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -12,6 +13,7 @@ LANGS = ("en", "ko", "ja", "es", "pt")
 TIERS = ("low", "mid", "high")
 OPACITY_MIN, OPACITY_MAX, OPACITY_STEP = 0.3, 1.0, 0.1
 HUD_WIDTH = 340
+_UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 
 
 def settings_path() -> Path:
@@ -27,6 +29,9 @@ class HudSettings:
     tier: str = "mid"
     click_through: bool = False
     visible: bool = True
+    consent_version: int = 0   # AGENTS §14: 0 = never asked; < CONSENT_VERSION -> ask again
+    share_data: bool = False   # opt-in anonymous game-stat contribution (default off)
+    install_id: str = ""       # random UUID4 created only when the user opts in
 
     def sanitized(self, screen_w: int = 3840, screen_h: int = 2160) -> "HudSettings":
         """Clamp every field to a safe range (a corrupt/hand-edited file must not hide the HUD off-screen)."""
@@ -48,7 +53,13 @@ class HudSettings:
             tier=self.tier if self.tier in TIERS else "mid",
             click_through=bool(self.click_through),
             visible=True,  # never start hidden: F9 state is per session
+            consent_version=max(0, _int(self.consent_version, 0)),
+            share_data=bool(self.share_data) and _UUID.match(str(self.install_id or "")) is not None,
+            install_id=str(self.install_id) if _UUID.match(str(self.install_id or "")) else "",
         )
+
+    def with_consent(self, version: int, share: bool, install_id: str) -> "HudSettings":
+        return HudSettings(**{**asdict(self), "consent_version": version, "share_data": share, "install_id": install_id})
 
     def with_opacity_step(self, direction: int) -> "HudSettings":
         new = round(max(OPACITY_MIN, min(OPACITY_MAX, self.opacity + direction * OPACITY_STEP)), 2)

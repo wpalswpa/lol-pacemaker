@@ -252,11 +252,13 @@ class Engine:
         translator: Translator,
         tier: str = "mid",
         fetch: Callable[[], dict[str, Any]] = fetch_liveclient,
+        on_poll: Callable[[dict[str, Any], LiveSnapshot], None] | None = None,
     ) -> None:
         self.predictor = predictor
         self.tr = translator
         self.tier = tier
         self._fetch = fetch
+        self._on_poll = on_poll  # AGENTS §14: opt-in contribution recorder (never raises into the loop)
         self._lock = threading.Lock()
         self._snap: LiveSnapshot | None = None
         self.latest: dict[str, Any] = {"status": "waiting"}
@@ -275,6 +277,11 @@ class Engine:
         with self._lock:
             self._snap = snap
             self._render()
+        if self._on_poll is not None:
+            try:
+                self._on_poll(raw, snap)
+            except Exception:
+                pass
         return True
 
     def set_lang(self, lang: str) -> None:

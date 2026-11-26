@@ -90,5 +90,15 @@
   "call_aram_poke_title": "Hold Wave & Cooldowns",
   "call_aram_poke_detail": "Keep health up, track key ultimates, and engage together 5v5.",
   "hud_auto_on": "Auto-start ON · HUD pops up automatically when a LoL match starts.",
-  "hud_auto_off": "Tip: Click AUTO above so HUD launches automatically whenever you play LoL."
+  "hud_auto_off": "Tip: Click AUTO above so HUD launches automatically whenever you play LoL.",
+  "consent_title": "Before you start",
+  "consent_body": "PACE MAKER only reads Riot's official local game API on this PC. Unless you turn on the option below, no game information leaves your computer.",
+  "consent_share": "Share anonymous match numbers to improve the model (optional)",
+  "consent_share_detail": "Sent once after each Summoner's Rift game: a random install ID, tier range, 18 team-difference numbers at 10/15/20/25 min, and which side won. Never your name, Riot ID, champions or chat. Turn off anytime with the DATA chip (stored records are deleted).",
+  "consent_autostart": "Start with my computer and pop up automatically when a match starts",
+  "consent_privacy": "Read the privacy policy",
+  "consent_ok": "Start",
+  "consent_ready": "PACE MAKER is waiting in the background. The HUD will appear when your match starts.",
+  "hud_data_on": "DATA ON · anonymous match numbers are shared after each game.",
+  "hud_data_off": "DATA OFF · nothing leaves this PC."
 }

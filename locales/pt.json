@@ -90,5 +90,15 @@
   "call_aram_poke_title": "Segure a Wave e Espere 5v5",
   "call_aram_poke_detail": "Preserve vida e ultimates importantes para engajar com o time todo.",
   "hud_auto_on": "Início automático LIGADO · O HUD aparece sozinho quando a partida começa.",
-  "hud_auto_off": "Dica: Ative AUTO acima para abrir automaticamente em toda partida."
+  "hud_auto_off": "Dica: Ative AUTO acima para abrir automaticamente em toda partida.",
+  "consent_title": "Antes de começar",
+  "consent_body": "O PACE MAKER só lê a API local oficial da Riot neste PC. Se você não ativar a opção abaixo, nenhuma informação da partida sai do seu computador.",
+  "consent_share": "Compartilhar números anônimos de partidas para melhorar o modelo (opcional)",
+  "consent_share_detail": "Enviado uma vez ao fim de cada partida em Summoner's Rift: um ID de instalação aleatório, faixa de elo, 18 diferenças entre times aos 10/15/20/25 min e qual lado venceu. Nunca seu nome, Riot ID, campeões ou chat. Desative quando quiser no chip DATA (os registros salvos são apagados).",
+  "consent_autostart": "Iniciar com o computador e aparecer automaticamente quando a partida começar",
+  "consent_privacy": "Ler a política de privacidade",
+  "consent_ok": "Começar",
+  "consent_ready": "O PACE MAKER está aguardando em segundo plano. O HUD aparece quando sua partida começar.",
+  "hud_data_on": "DATA ligado · números anônimos são compartilhados após cada partida.",
+  "hud_data_off": "DATA desligado · nada sai deste PC."
 }

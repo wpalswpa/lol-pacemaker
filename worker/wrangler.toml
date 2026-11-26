@@ -6,3 +6,9 @@ compatibility_date = "2026-11-01"
 #   cd worker
 #   npx wrangler secret put RIOT_API_KEY
 #   npx wrangler deploy
+
+# AGENTS §14: anonymous opt-in match numbers (Cloudflare D1 free tier). Schema: schema.sql
+[[d1_databases]]
+binding = "DB"
+database_name = "lol-pacemaker-games"
+database_id = "c006a48b-ca4a-4b47-8c8c-235aaed36555"

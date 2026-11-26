@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import threading
 
+from src.contribute import ContributionRecorder
 from src.engine import Engine
 from src.hud_state import TIERS, load_settings, save_settings
 from src.i18n import Translator
@@ -30,7 +31,17 @@ def main(argv: list[str] | None = None) -> int:
     if not args.no_update:  # background; a new model is used from the next launch
         threading.Thread(target=check_for_update, daemon=True).start()
 
-    engine = Engine(LocalOnnxPredictor(), Translator(lang=settings.lang), tier=settings.tier)
+    current = {"settings": lambda: settings}  # swapped to the overlay's live settings below
+    recorder = ContributionRecorder(  # AGENTS §14: does nothing unless the user opted in
+        consented=lambda: current["settings"]().share_data,
+        install_id=lambda: current["settings"]().install_id,
+        lang=lambda: engine.tr.lang,
+        tier=lambda: engine.tier,
+    )
+    engine = Engine(
+        LocalOnnxPredictor(), Translator(lang=settings.lang), tier=settings.tier,
+        on_poll=lambda raw, snap: recorder.observe(raw, snap.game_time, snap.game_mode, snap.scoreboard.to_feature_dict()),
+    )
     if args.web:
         from src.app import serve_web_hud
 
@@ -40,7 +51,9 @@ def main(argv: list[str] | None = None) -> int:
     save_settings(settings)
     from src.overlay import Overlay  # imports tkinter only when the GUI is requested
 
-    Overlay(engine, settings, background_mode=args.background).run()
+    overlay = Overlay(engine, settings, background_mode=args.background)
+    current["settings"] = lambda: overlay.settings
+    overlay.run()
     return 0
 
 

@@ -45,4 +45,4 @@ Name: "{autodesktop}\LoL Pacemaker"; Filename: "{app}\LoLPacemaker.exe"; Tasks: 
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "LoLPacemaker"; ValueData: """{app}\LoLPacemaker.exe"" --background"; Flags: uninsdeletevalue; Tasks: autostart
 
 [Run]
-Filename: "{app}\LoLPacemaker.exe"; Description: "{cm:LaunchProgram,LoL Pacemaker}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\LoLPacemaker.exe"; Parameters: "--background"; Description: "{cm:LaunchProgram,LoL Pacemaker}"; Flags: nowait postinstall skipifsilent

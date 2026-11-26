@@ -1,6 +1,7 @@
 """Tk companion HUD: PACE MAKER dark orange-black card overlay (thin view over `hud_state` + `engine`).
 
 Drag = move · F8 click-through · F9 hide/show · [ ] opacity · AUTO chip toggles OS login autostart ·
+DATA chip toggles opt-in anonymous stats (AGENTS §14) · first launch shows the consent window once ·
 language chip cycles en/ko/ja/es/pt.
 When started with `--background`, stays hidden until a LoL match starts and hides again when it ends.
 """
@@ -12,6 +13,7 @@ import tkinter as tk
 from typing import Any, Callable
 
 from src.autostart import is_autostart_enabled, set_autostart
+from src.contribute import CONSENT_VERSION, new_install_id, request_deletion
 from src.engine import Engine
 from src.hud_state import HUD_WIDTH, HudSettings, save_settings
 
@@ -28,6 +30,7 @@ MUTED = "#94A3B8"
 ACCENT = "#FF5A1F"
 ACCENT_SOFT = "#FF7A45"
 EMERALD = "#34D399"
+PRIVACY_URL = "https://wpalswpa.github.io/lol-pacemaker/privacy.html?lang={lang}"
 
 
 def set_click_through(root: tk.Tk, enabled: bool) -> bool:
@@ -136,6 +139,14 @@ class Overlay:
         self.auto_chip.pack(side="right", padx=(0, 5))
         self.auto_chip.bind("<Button-1>", self._toggle_autostart)
 
+        self.data_chip = tk.Label(
+            top, text="DATA", fg=MUTED, bg=PILL_BG,
+            font=("Helvetica", 8, "bold"), padx=6, pady=2,
+            highlightthickness=1, highlightbackground="#2A3142", cursor="hand2",
+        )
+        self.data_chip.pack(side="right", padx=(0, 5))
+        self.data_chip.bind("<Button-1>", self._toggle_data)
+
         self.phase_chip = tk.Label(
             top, text="", fg=FG_SUB, bg=PILL_BG,
             font=("Helvetica", 9, "bold"), padx=7, pady=2,
@@ -195,6 +206,68 @@ class Overlay:
         )
         self.status.pack(fill="x")
         self._style_auto_chip()
+        self._style_data_chip()
+
+    def _style_data_chip(self) -> None:
+        on = self.settings.share_data
+        self.data_chip.config(fg=EMERALD if on else MUTED, bg=PILL_GREEN_BG if on else PILL_BG,
+                              highlightbackground=EMERALD if on else "#2A3142")
+
+    def _set_sharing(self, share: bool) -> None:
+        """Opt in (new random id) or out (ask the server to delete, then forget the id)."""
+        old_id = self.settings.install_id
+        if share:
+            self.settings = self.settings.with_consent(CONSENT_VERSION, True, old_id or new_install_id())
+        else:
+            if old_id:
+                threading.Thread(target=request_deletion, args=(old_id,), daemon=True).start()
+            self.settings = self.settings.with_consent(CONSENT_VERSION, False, "")
+        self._on_settings(self.settings)
+
+    def _toggle_data(self, _e: Any = None) -> None:
+        self._set_sharing(not self.settings.share_data)
+        self._style_data_chip()
+        self.refresh_once()
+
+    def _ask_consent(self) -> None:
+        """One-time consent window (AGENTS §14). Share is OFF by default; autostart is ON by default."""
+        tr = self.engine.tr
+        win = tk.Toplevel(self.root)
+        win.title(f"PACE MAKER — {tr.t('consent_title')}")
+        win.attributes("-topmost", True)
+        win.configure(bg=BG, padx=18, pady=16)
+        win.resizable(False, False)
+        wrap = 420
+        tk.Label(win, text=tr.t("consent_title"), fg=FG, bg=BG, font=("Helvetica", 14, "bold")).pack(anchor="w")
+        tk.Label(win, text=tr.t("consent_body"), fg=FG_SUB, bg=BG, wraplength=wrap, justify="left").pack(anchor="w", pady=(6, 10))
+        share = tk.BooleanVar(value=False)
+        auto = tk.BooleanVar(value=True)
+        for var, key in ((share, "consent_share"), (auto, "consent_autostart")):
+            tk.Checkbutton(win, text=tr.t(key), variable=var, fg=FG, bg=BG, selectcolor=SURFACE,
+                           activebackground=BG, activeforeground=FG, wraplength=wrap, justify="left").pack(anchor="w")
+            if key == "consent_share":
+                tk.Label(win, text=tr.t("consent_share_detail"), fg=MUTED, bg=BG, wraplength=wrap - 24,
+                         justify="left", font=("Helvetica", 9)).pack(anchor="w", padx=(24, 0), pady=(0, 8))
+        link = tk.Label(win, text=tr.t("consent_privacy"), fg=ACCENT_SOFT, bg=BG, cursor="hand2", font=("Helvetica", 10, "underline"))
+        link.pack(anchor="w", pady=(8, 4))
+        link.bind("<Button-1>", lambda _e: __import__("webbrowser").open(PRIVACY_URL.format(lang=tr.lang)))
+        if self._background_mode:
+            tk.Label(win, text=tr.t("consent_ready"), fg=EMERALD, bg=BG, wraplength=wrap, justify="left").pack(anchor="w", pady=(4, 0))
+
+        def done() -> None:
+            self._set_sharing(bool(share.get()))
+            if set_autostart(bool(auto.get())):
+                self._autostart_on = bool(auto.get())
+            self._style_auto_chip()
+            self._style_data_chip()
+            win.destroy()
+
+        # A Label, not tk.Button: macOS Tk ignores Button bg, which rendered a grey button.
+        ok = tk.Label(win, text=tr.t("consent_ok"), bg=ACCENT, fg="#FFFFFF", padx=22, pady=7,
+                      font=("Helvetica", 11, "bold"), cursor="hand2")
+        ok.pack(anchor="e", pady=(12, 0))
+        ok.bind("<Button-1>", lambda _e: done())
+        win.protocol("WM_DELETE_WINDOW", done)  # closing = defaults (share off), never a silent opt-in
 
     def _style_auto_chip(self) -> None:
         if self._autostart_on:
@@ -236,13 +309,13 @@ class Overlay:
         if set_autostart(target):
             self._autostart_on = target
             self._style_auto_chip()
-            self.refresh()
+            self.refresh_once()
 
     def _cycle_lang(self, _e: Any = None) -> None:
         self.settings = self.settings.next_lang(self.engine.tr.lang)
         self.engine.set_lang(self.settings.lang or "en")
         self._persist()
-        self.refresh()
+        self.refresh_once()
 
     def _drag_start(self, e: Any) -> None:
         self._drag = (e.x_root - self.root.winfo_x(), e.y_root - self.root.winfo_y())
@@ -266,7 +339,7 @@ class Overlay:
             self.settings = self.settings.toggled_visible()
             self.root.withdraw()
 
-    def refresh(self) -> None:
+    def _render_once(self) -> None:
         st = self.engine.snapshot()
         tr = self.engine.tr
         in_game = "win_pct" in st
@@ -296,12 +369,18 @@ class Overlay:
                 else:
                     outer.pack_forget()
 
-        notes = [tr.t("hud_hint_keys")]
+        notes = [tr.t("hud_hint_keys"), tr.t("hud_data_on" if self.settings.share_data else "hud_data_off")]
         if not self._hotkeys_global:
             notes.append(tr.t("hud_hotkeys_local_only"))
         if self.settings.click_through:
             notes.append(tr.t("hud_clickthrough_on" if self._ct_ok else "hud_hotkeys_local_only"))
         self.status.config(text="\n".join(notes))
+
+    def refresh_once(self) -> None:
+        self._render_once()
+
+    def refresh(self) -> None:
+        self._render_once()
         self.root.after(1000, self.refresh)
 
     def run(self) -> None:
@@ -309,6 +388,8 @@ class Overlay:
         stop = threading.Event()
         threading.Thread(target=self.engine.run, args=(stop,), daemon=True).start()
         self.refresh()
+        if self.settings.consent_version < CONSENT_VERSION:
+            self._ask_consent()
         try:
             self.root.mainloop()
         finally:

@@ -10,3 +10,7 @@ data/
 dist/
 build/
 *.spec
+
+# wrangler local state / deps
+worker/node_modules/
+worker/.wrangler/

@@ -8,6 +8,8 @@
  * - Supports global routing: asia (KR/JP), americas (NA/BR/LAN/LAS), europe (EUW/EUNE/TR), sea (OC/SG/VN)
  */
 
+import { handleGames } from "./games.js";
+
 const ALLOWED_ORIGINS = new Set([
   "https://wpalswpa.github.io",
   "http://127.0.0.1:8787",
@@ -41,6 +43,11 @@ export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
     const headers = corsHeaders(origin);
+
+    // AGENTS §14: desktop-app contribution route (no browser CORS needed)
+    if (new URL(request.url).pathname === "/v1/games") {
+      return handleGames(request, env);
+    }
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers });

@@ -90,5 +90,15 @@
   "call_aram_poke_title": "라인 유지 · 5대5 한타 각 대기",
   "call_aram_poke_detail": "체력과 핵심 스킬을 아끼면서 5명이 모였을 때 한 번에 교전하세요.",
   "hud_auto_on": "자동 실행 켜짐 · 롤 경기가 시작되면 HUD가 자동으로 나타납니다.",
-  "hud_auto_off": "팁: 위 AUTO를 누르면 다음부터 실행기를 찾지 않아도 롤 시작 시 자동 실행됩니다."
+  "hud_auto_off": "팁: 위 AUTO를 누르면 다음부터 실행기를 찾지 않아도 롤 시작 시 자동 실행됩니다.",
+  "consent_title": "시작하기 전에",
+  "consent_body": "PACE MAKER는 이 PC에서 Riot 공식 로컬 게임 API만 읽습니다. 아래 항목을 켜지 않으면 어떤 경기 정보도 컴퓨터 밖으로 나가지 않습니다.",
+  "consent_share": "모델 개선을 위해 익명 경기 수치 제공 (선택)",
+  "consent_share_detail": "소환사의 협곡 경기가 끝날 때 한 번 보냅니다: 무작위 설치 ID, 티어 구간, 10·15·20·25분의 팀 차이 수치 18개, 이긴 진영. 소환사명·Riot ID·챔피언·채팅은 보내지 않습니다. DATA 칩으로 언제든 끌 수 있고, 끄면 저장된 기록을 지웁니다.",
+  "consent_autostart": "컴퓨터를 켜면 자동 실행하고, 경기가 시작되면 자동으로 띄우기",
+  "consent_privacy": "개인정보 처리방침 보기",
+  "consent_ok": "시작",
+  "consent_ready": "PACE MAKER가 백그라운드에서 대기 중입니다. 경기가 시작되면 HUD가 나타납니다.",
+  "hud_data_on": "DATA 켜짐 · 경기마다 익명 수치를 제공합니다.",
+  "hud_data_off": "DATA 꺼짐 · 어떤 정보도 PC 밖으로 나가지 않습니다."
 }

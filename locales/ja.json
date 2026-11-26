@@ -90,5 +90,15 @@
   "call_aram_poke_title": "ウェーブ維持・5v5待機",
   "call_aram_poke_detail": "体力と重要スキルを温存し、5人揃ってから仕掛けよう。",
   "hud_auto_on": "自動起動オン · 試合が始まるとHUDが自動で表示されます。",
-  "hud_auto_off": "ヒント: 上のAUTOをオンにすると、毎回起動せず試合開始時に自動表示されます。"
+  "hud_auto_off": "ヒント: 上のAUTOをオンにすると、毎回起動せず試合開始時に自動表示されます。",
+  "consent_title": "はじめる前に",
+  "consent_body": "PACE MAKERはこのPC上のRiot公式ローカルゲームAPIだけを読み取ります。下の項目をオンにしない限り、試合情報がPCの外に出ることはありません。",
+  "consent_share": "モデル改善のため匿名の試合数値を提供する（任意）",
+  "consent_share_detail": "サモナーズリフトの試合終了時に1回送信：ランダムなインストールID、ティア帯、10・15・20・25分時点のチーム差18項目、勝利陣営。サモナー名・Riot ID・チャンピオン・チャットは送りません。DATAチップでいつでもオフにでき、オフにすると保存記録を削除します。",
+  "consent_autostart": "PC起動時に自動実行し、試合開始時に自動表示する",
+  "consent_privacy": "プライバシーポリシーを見る",
+  "consent_ok": "開始",
+  "consent_ready": "PACE MAKERはバックグラウンドで待機中です。試合が始まるとHUDが表示されます。",
+  "hud_data_on": "DATA オン · 試合ごとに匿名の数値を提供します。",
+  "hud_data_off": "DATA オフ · 情報はPCの外に出ません。"
 }
