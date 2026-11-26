@@ -14,11 +14,13 @@ LoL Client (127.0.0.1:2999/liveclientdata/allgamedata)
    │  2s polling (read-only official public scoreboard & events)
    ▼
 lol-pacemaker (Local PC App — Server Cost $0)
-   ├── src/predictor.py      : Local ONNX Runtime (<1ms) using assets/model_sklearn.onnx
+   ├── src/predictor.py      : Local ONNX Runtime (<1ms): updated model → 18-feature → 8-feature fallback (§10.5)
    ├── src/strategy_core.py  : Real-time priority shotcaller (language-neutral keys + params)
    ├── src/i18n.py           : Locale loader (auto-detect OS/client locale or user override)
    ├── locales/*.json        : Country/language dictionaries (en.json, ko.json, extensible)
-   └── src/app.py            : Local HTTP HUD state server (stdlib http.server, no FastAPI)
+   ├── src/engine.py         : 2s 2999 poller → snapshot → localized result (UI-independent)
+   ├── src/updater.py        : HTTPS + SHA-256 verified model updates (§11)
+   └── src/overlay.py · src/app.py : Tk transparent HUD / browser HUD (§12)
 ```
 
 ## 3. 다국어(i18n) 설계 계약
@@ -38,15 +40,15 @@ lol-pacemaker (Local PC App — Server Cost $0)
 3. **오브젝트 타이밍 & 공허 유충**: 드래곤 영혼 직전(3스택), 바론/장로, 초반 공허 유충(`HordeKill`)·전령 타이밍을 구분하고 모순 콜(압박 vs 수성 동시 출력)을 자동 제거한다.
 4. **아군 캐리 중심 합류 & 라인전 판단**: 아군 중 최다 킬/성장 캐리 포지션을 식별해 중후반 한타 시 캐리 보호/합류 오더를 제시한다.
 5. **귀환 & 골드 타이밍 / 카운터 대응**: 보유 골드(`currentGold`) 기준 코어템/하위템 구매 가능 시점 안내 및 상대 치유·탱커 비중에 따른 카운터 하위템 우선순위를 제시한다. (보유 골드는 승률 계산 피처에 넣지 않는다.)
-6. **10분 ONNX 모델 + 실시간 판세 보정**: 8~12분 구간은 `model_sklearn.onnx`(585B) 승률을 그대로 반영하고, 중후반은 실시간 팀 아이템 골드·생존 수·오브젝트 격차를 반영하며 시간대 한계 안내를 표시한다.
+6. **ONNX 모델 + 실시간 판세 보정**: 18피처 모델이 있으면 시점(`game_time_min`)을 입력으로 넣어 전 구간에 쓰고(§10.5), 없으면 8~12분 구간만 `model_sklearn.onnx`(585B) 승률을 그대로 반영하며, 중후반은 실시간 팀 아이템 골드·생존 수·오브젝트 격차를 반영하며 시간대 한계 안내를 표시한다.
 
 ## 5. 병행 사용(Companion) HUD 원칙
 - 기존 오버레이(Porofessor 등)를 가리지 않도록 **소형 컴팩트 카드(최대 3개 오더)**만 표시한다.
-- 드래그 이동, `F8` 클릭 통과, `F9` 숨김/표시, 투명도 조절을 지원한다.
+- 드래그 이동, `F8` 클릭 통과, `F9` 숨김/표시, 투명도 조절, 언어 전환을 지원한다(구현 상세 §12).
 
 ## 6. 성공 및 통과 기준
 - 외부 서버·DB·API 키 없이 로컬 단독 실행 및 `pytest` 100% 통과.
-- `en.json`, `ko.json` 번역 키 100% 대칭 및 실제 게임 JSON 픽스처 기반 영문/국문 전략 출력 검증.
+- 5개 로케일(`en/ko/ja/es/pt`) 키·치환자 100% 대칭 및 실제 게임 JSON 픽스처 기반 전략·브리핑 출력 검증.
 
 ## 7. 차기 ML 학습 파이프라인 설계 (티어별 · 다중 시간대 · 패턴 기반 코칭)
 로컬 LLM 없이 **데이터 기반 패턴 분석**으로 실전 코칭을 제공하기 위해, 기존 8개 피처(10분 단일)를 넘어 학습-서빙 일치가 보장되는 정교한 파이프라인을 구축한다.
@@ -76,3 +78,49 @@ lol-pacemaker (Local PC App — Server Cost $0)
 - **지원 언어 (5개 권역 기본)**: `en` (Global/NA/EUW), `ko` (KR), `ja` (JP), `es` (LAN/LAS/EUW), `pt` (BR).
 - **자동 감지 및 전환**: `?lang=` URL 파라미터 → `localStorage` → `navigator.language` 순으로 자동 선택하고, 상단 언어 선택기에서 새로고침 없이 즉시 전환한다.
 - **보안 원칙**: 모든 번역 텍스트는 `textContent`로만 주입(DOM XSS 차단), 외부 광고·추적 스크립트 0개.
+
+## 10. 18피처 학습 파이프라인 확정 사양 (2026-11-26 개정, §7 보강)
+### 10.1 피처 계약의 정직한 범위 (§7-2 "정의 100% 동일" 적용)
+- ONNX 입력은 18칸(`ml/features.py::EXTENDED_FEATURES`)을 유지한다.
+- 그중 `item_gold_diff`(타임라인에서 아이템 가치 복원에 가격표·되돌리기 재생이 필요), `alive_diff`(타임라인에는 사망 타이머가 없어 2999의 `respawnTimer`와 정의가 다름)는 **학습·서빙 양쪽에서 동일하게 0으로 마스킹**한다(`MASKED_FEATURES`). 가짜 값으로 채우지 않고, 브리핑에도 쓰지 않는다. 유효 입력은 16칸이다. 생존 수·아이템은 §4의 실시간 오더(`strategy_core`)에서만 쓴다.
+- 서빙 쪽 피처 생성은 `ScoreboardState.to_feature_dict()` 한 곳이다(학습 `extract_timeline_snapshots`와 키·부호·의미가 같다: 모두 `아군 팀 − 상대 팀`을 블루 기준으로 계산).
+
+### 10.2 수집 CLI (`python -m ml.collector`)
+- 환경변수 `RIOT_API_KEY`만 읽는다(인자·로그·출력·산출물에 키를 쓰지 않는다).
+- 흐름: `LEAGUE-V4` 엔트리(Iron~Diamond는 tier/division 페이지, Master+는 `*leagues/by-queue`)에서 티어 구간(`low/mid/high`)별 소환사 표본 → `MATCH-V5` ids(queue 420) → match + timeline → 정제 → JSONL 한 줄씩 저장.
+- 중단 재개: `--checkpoint`(JSON)에 처리한 소환사·경기 id를 저장하고 다시 실행하면 이어서 한다. 속도 제한: 호출 간 최소 간격 + 429 `Retry-After` + 5xx 지수 백오프(sleep 주입 가능).
+- 정제: 큐 420 외·10분 미만·참가자 10명 아님·`gameEndedInEarlySurrender`·타임라인 결측 제외. `--patch 16.x`로 패치 필터. 한 경기에서 팀 단위 행(`kind: snapshot`)과 개인 단위 행(`kind: player`: `cs_per_min`·`level`·`kill_participation`)을 함께 낸다.
+- 같은 경기의 행은 `match_id`를 가진다(학습 분할 기준).
+
+### 10.3 학습 (`python -m ml.train`)
+- 분할은 **경기 단위**다(같은 경기의 10·15·20·25분 행이 학습·평가에 섞이지 않게 `match_id` 해시로 나눈다).
+- 후보: 로지스틱 회귀(표준화 포함)와 경량 트리(`GradientBoostingClassifier`, 소형). 평가 log-loss가 낮고 **ONNX Parity ≤ 1e-4**를 통과한 모델만 채택하며, 비교표를 `metrics_extended.json`에 남긴다. 어느 쪽도 Parity를 못 넘으면 학습을 실패로 처리한다.
+- 피처 기여도는 평가 세트 permutation importance(모델 종류 무관)로 `top_patterns`에 저장한다.
+- 산출물: `model_extended.onnx`, `distribution_stats.json`, `metrics_extended.json`.
+
+### 10.4 `distribution_stats.json` 스키마 (§8 구체화)
+```
+{"schema": 1, "min_n": 30,
+ "tiers": {"low|mid|high": {"<분: 10|15|20|25>": {"<ALL|TOP|JUNGLE|MIDDLE|BOTTOM|UTILITY>":
+     {"cs_per_min": {"mean","std","n"}, "level": {...}, "kill_participation": {...}}}}}}
+```
+- 표본 수 `n < min_n`인 칸은 저장하지 않는다. 상위 %는 `math.erf` 정규 근사(§8)이며, 실제 분포가 정규가 아니므로 화면에는 "근사"로 표기한다.
+
+### 10.5 서빙 연결과 폴백 순서
+- 모델 해석 순서: ① 업데이터가 검증해 둔 최신 모델 폴더 → ② 번들 `assets/model_extended.onnx` → ③ 번들 8피처 `assets/model_sklearn.onnx`. 앞 단계가 없거나 로드·입력 형상 검증에 실패하면 다음 단계로 내려간다.
+- 승률 하락 원인(`explain`): ONNX만으로 계산한다. 피처 하나씩 중립값(차이 0)으로 되돌린 승률과의 차이를 한 번의 배치 추론으로 구해, 승률을 가장 깎는 피처 상위를 고른다(마스킹된 피처 제외). 모델 종류에 상관없다.
+- 상위 %는 `distribution_stats.json`이 있고 게임 시간이 8분 이상일 때만 개인 지표(`CS/분`·레벨·킬 관여)로 계산한다(가장 가까운 기준 분·내 포지션, 없으면 `ALL`). 통계가 없으면 §8 이전의 팀 격차 방식으로 폴백하되 `rank_mode: legacy`로 표시한다.
+- 브리핑 = (상위 % 약점/강점) + (승률 하락 핵심 원인) + (실시간 오더 1순위). 모두 로케일 키 + 파라미터로 만들고 5개 언어 키 대칭 테스트를 건다.
+- **현재 번들 상태**: 실데이터 학습 전이므로 `assets/`에 확장 모델·분포 통계를 넣지 않는다(합성 데이터로 만든 모델을 사용자에게 배포하지 않는다). 앱은 ③ 8피처 + legacy 상위 %로 동작한다. 실데이터 학습 후 릴리스 자산 또는 `assets/`에 올리면 ①·②가 자동으로 쓰인다.
+
+## 11. 무서버 모델 업데이터 (`src/updater.py`)
+- 입력: GitHub Releases `latest` JSON → 자산 `model_extended.onnx`, `distribution_stats.json`, `checksums.sha256`(`<sha256>  <파일명>` 형식).
+- 규칙: ① HTTPS만 허용(리다이렉트 포함, http 거부) ② 허용 파일명 화이트리스트·크기 상한 ③ `checksums.sha256`에 있는 SHA-256과 다운로드 바이트가 같을 때만 통과 ④ ONNX는 로드·입력 18칸, 통계 JSON은 `tiers` 구조 검증 후 통과 ⑤ 전부 임시 폴더에 받은 뒤 버전 폴더로 옮기고 `current.json` 포인터를 `os.replace`로 한 번에 교체(부분 교체 없음) ⑥ 어떤 실패든 기존 모델을 건드리지 않고 `UpdateResult(status=...)`를 반환하며 앱은 §10.5 폴백으로 계속 동작한다.
+- 저장 위치: 사용자 데이터 폴더(`~/.lol-pacemaker/models/`, `LOL_PACEMAKER_HOME`으로 변경 가능). 시작 시 백그라운드 스레드로 확인하고 적용은 다음 실행부터다.
+- 한계: 체크섬이 모델과 같은 릴리스에서 오므로 **릴리스 계정이 탈취된 경우는 막지 못한다**(전송 변조·손상·부분 다운로드만 막는다). 서명 검증은 이번 범위 밖이다.
+
+## 12. 컴패니언 HUD와 패키징
+- 구조: `src/engine.py`(2999 폴링·평가, UI 무관) → `src/hud_state.py`(설정·창 상태 순수 로직, 테스트 대상) → `src/overlay.py`(Tk 투명 창, 얇은 뷰) / `src/app.py`(브라우저용 HUD, 보조). 진입점은 `python -m src.main`.
+- HUD: 약 300px 폭·최대 3개 오더, 투명 무테 최상단 창. 드래그 이동, 투명도 `[` `]` 및 − + 버튼(0.3~1.0), 언어 칩 클릭으로 5개 언어 순환(즉시 반영·저장), **F8 클릭 통과 토글, F9 숨김/표시**. 설정(`x,y,opacity,lang,tier,click_through`)은 사용자 폴더 `settings.json`에 저장하며 값은 범위 보정한다.
+- 전역 단축키는 `pynput`(선택 의존성)으로 등록하고, 없거나 권한이 없으면 창 포커스 키 바인딩으로 폴백하며 HUD에 그 사실을 표시한다. 클릭 통과는 Windows는 `WS_EX_TRANSPARENT`(ctypes), macOS는 `NSWindow.ignoresMouseEvents`(`pyobjc-framework-Cocoa`, macOS에서만 설치되는 의존성)로 구현한다. 호출이 실패하면 HUD 하단에 표시한다. 개발 Mac에서 창 표시·언어/투명도/숨김 동작과 macOS 클릭 통과 호출 성공까지 확인했고, **Windows 동작과 실제 게임 위 동작은 미검증**이다.
+- 패키징: `scripts/build.py`(PyInstaller `--windowed`, assets·locales 포함; Windows는 onefile `.exe`, macOS는 `.app` 번들을 zip — macOS GUI onefile은 PyInstaller가 비권장), `scripts/make_checksums.py`(`checksums.sha256` 생성, 업데이터와 같은 형식), `.github/workflows/release.yml`(태그 `v*` 푸시 때만: 테스트 통과 → Windows·macOS 클린 빌드 → `checksums.sha256` 생성 → **초안(draft)** 릴리스. 시크릿 미사용). macOS 빌드는 개발 Mac에서 실제로 만들어 번들 자원 로드와 `/state` 응답까지 확인했고(Windows 빌드·워크플로 실행은 미검증), 앱 크기는 약 120MB(zip 43MB)다. 워크플로를 만들 뿐 실행·발행은 사용자 승인 뒤다. 서명(Windows 코드서명·macOS 공증)이 없어 첫 실행 경고가 뜬다.

@@ -10,7 +10,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.i18n import Translator
-from src.percentile import top_percentile
+from src.percentile import lookup_percentiles, top_percentile
 from src.predictor import LocalOnnxPredictor, ScoreboardState
 
 CallKind = Literal["offense", "defense", "object", "recall", "counter", "macro"]
@@ -38,6 +38,11 @@ class LiveSnapshot(BaseModel):
     team_gold_diff: float = 0.0
     enemy_has_heavy_heal: bool = False
     enemy_has_heavy_tank: bool = False
+    # Active player's own numbers (for tier-distribution Top-% ranking)
+    my_position: Lane | None = None
+    my_cs: int = Field(default=0, ge=0)
+    my_level: int = Field(default=1, ge=1, le=18)
+    my_kill_participation: float | None = None  # (kills + assists) / ally team kills, None if no team kills yet
 
 
 class Shotcall(BaseModel):
@@ -72,6 +77,71 @@ def _pace_note_key(game_time: float) -> str | None:
     if game_time >= 720:
         return "pace_mid_note"
     return None
+
+
+def _rank_block(snap: LiveSnapshot, predictor: LocalOnnxPredictor, tr: Translator) -> dict[str, Any]:
+    """Top-% standing: tier distribution (AGENTS.md 10.4) if available, else legacy team-diff heuristic."""
+    sb = snap.scoreboard
+    minutes = max(snap.game_time / 60.0, 1.0)
+    found = lookup_percentiles(
+        predictor.stats,
+        sb.tier,
+        snap.game_time,
+        snap.my_position,
+        {
+            "cs_per_min": snap.my_cs / minutes,
+            "level": float(snap.my_level),
+            "kill_participation": snap.my_kill_participation,
+        },
+    )
+    if found:
+        pct: dict[str, int] = found["pct"]
+        items = [
+            tr.t("rank_item", metric=f"key:metric_{m}", pct=pct[m])
+            for m in ("cs_per_min", "level", "kill_participation")
+            if m in pct
+        ]
+        approx = tr.t("rank_approx", tier=f"key:tier_{sb.tier}", minute=found["minute"])
+        return {"mode": "distribution", "tier": sb.tier, "pct": pct, "summary": " · ".join(items) + " " + approx}
+
+    # Legacy: team CS/level lead against a fixed spread (no tier data available)
+    sign = 1.0 if sb.my_side == "blue" else -1.0
+    cs_pct = top_percentile(sign * float(sb.blue_cs - sb.red_cs), mean=0.0, std=25.0)
+    lvl_pct = top_percentile(sign * float(sb.blue_avg_level - sb.red_avg_level), mean=0.0, std=0.8)
+    return {
+        "mode": "legacy",
+        "pct": {"cs_per_min": cs_pct, "level": lvl_pct},
+        "summary": tr.t("rank_summary", cs_pct=cs_pct, lvl_pct=lvl_pct),
+    }
+
+
+def _causes(snap: LiveSnapshot, predictor: LocalOnnxPredictor) -> list[tuple[str, float]]:
+    return predictor.explain(snap.scoreboard)
+
+
+def _smart_briefing(rank: dict[str, Any], causes: list[tuple[str, float]], calls: list[dict[str, Any]], tr: Translator) -> str:
+    """(Top-% weakness/strength) + (largest win-rate drag) + (top live call)."""
+    parts: list[str] = []
+    pct: dict[str, int] = rank["pct"]
+    if rank["mode"] == "distribution" and pct:
+        weakest = max(pct, key=lambda m: pct[m])
+        strongest = min(pct, key=lambda m: pct[m])
+        tier_key = "key:tier_" + rank.get("tier", "mid")
+        if pct[weakest] > 50:
+            parts.append(tr.t("briefing_rank_weak", tier=tier_key, metric=f"key:metric_{weakest}", pct=pct[weakest]))
+        if pct[strongest] <= 35 and strongest != weakest:
+            parts.append(tr.t("briefing_rank_strong", metric=f"key:metric_{strongest}", pct=pct[strongest]))
+    else:
+        cs_pct = pct.get("cs_per_min", 50)
+        parts.append(tr.t("briefing_lead" if cs_pct <= 35 else "briefing_lag", cs_pct=cs_pct))
+    if causes and causes[0][1] <= -1.0:
+        feature, delta = causes[0]
+        parts.append(tr.t("briefing_cause", feature=f"key:feat_{feature}", delta=f"{delta:+.1f}"))
+    else:
+        parts.append(tr.t("briefing_cause_none"))
+    if calls:
+        parts.append(tr.t("briefing_action", title=calls[0]["title"]))
+    return " ".join(parts)
 
 
 def evaluate_snapshot(
@@ -250,14 +320,11 @@ def evaluate_snapshot(
     calls.sort(key=lambda c: c.priority, reverse=True)
     pace_key = _pace_note_key(snap.game_time)
 
-    # Normal-distribution Top-X% standing based on baseline diff (cs, avg_level)
     sb = snap.scoreboard
-    sign = 1.0 if sb.my_side == "blue" else -1.0
-    cs_diff = sign * float(sb.blue_cs - sb.red_cs)
-    lvl_diff = sign * float(sb.blue_avg_level - sb.red_avg_level)
-    cs_pct = top_percentile(cs_diff, mean=0.0, std=25.0)
-    lvl_pct = top_percentile(lvl_diff, mean=0.0, std=0.8)
-    briefing_key = "briefing_lead" if cs_pct <= 35 else "briefing_lag"
+    rank_info = _rank_block(snap, predictor, tr)
+    causes = _causes(snap, predictor)
+    calls_out = [c.render(tr) for c in calls[:max_calls]]
+    smart_briefing = _smart_briefing(rank_info, causes, calls_out, tr)
 
     return {
         "lang": tr.lang,
@@ -268,10 +335,15 @@ def evaluate_snapshot(
         "state": tr.t(state_key),
         "team_gold_diff": int(snap.team_gold_diff),
         "pace_note": tr.t(pace_key) if pace_key else None,
-        "rank_summary": tr.t("rank_summary", cs_pct=cs_pct, lvl_pct=lvl_pct),
-        "smart_briefing": tr.t(briefing_key, cs_pct=cs_pct),
-        "calls": [c.render(tr) for c in calls[:max_calls]],
+        "rank_mode": rank_info["mode"],
+        "rank_summary": rank_info["summary"],
+        "rank": rank_info["pct"],
+        "causes": [{"feature": f, "label": tr.t(f"feat_{f}"), "delta_pp": d} for f, d in causes],
+        "model_mode": predictor.mode,
+        "smart_briefing": smart_briefing,
+        "calls": calls_out,
         "labels": {
+            "model": tr.t("hud_model_extended" if predictor.mode == "extended" else "hud_model_legacy"),
             "win_rate": tr.t("hud_win_rate"),
             "gold_diff": tr.t("hud_gold_diff"),
             "hint_keys": tr.t("hud_hint_keys"),

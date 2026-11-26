@@ -1,18 +1,23 @@
 [project]
 name = "lol-pacemaker"
 version = "0.1.0"
-description = "Zero-server, multi-language real-time AI shotcaller companion for League of Legends"
+description = "Zero-server, multi-language real-time AI companion for League of Legends"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26.0",
     "onnxruntime>=1.18.0",
     "pydantic>=2.7.0",
+    "pynput>=1.7.6",  # global F8/F9 hotkeys (HUD falls back to focus-only keys if unavailable)
+    "pyobjc-framework-Cocoa>=10.0; sys_platform == 'darwin'",  # macOS click-through (NSWindow.ignoresMouseEvents)
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
+]
+build = [
+    "pyinstaller>=6.6.0",
 ]
 train = [
     "scikit-learn>=1.5.0",

@@ -1,0 +1,57 @@
+name: release
+
+# Runs ONLY when a version tag is pushed (e.g. `git tag v0.2.0 && git push origin v0.2.0`).
+# It builds clean binaries on Windows and macOS, writes checksums.sha256 and creates a DRAFT
+# release; a human reviews it and presses "Publish". No secrets are used.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --group dev --group build
+      - name: Tests must pass before anything is built
+        run: uv run python -m pytest -q
+      - name: Build app
+        run: uv run python scripts/build.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ matrix.os }}
+          path: dist/LoLPacemaker-*.zip
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Stage model files (only if a trained model is committed)
+        run: |
+          for f in model_extended.onnx distribution_stats.json; do
+            if [ -f "assets/$f" ]; then cp "assets/$f" release/; fi
+          done
+      - name: checksums.sha256
+        run: |
+          cd release
+          python3 ../scripts/make_checksums.py checksums.sha256 $(ls | grep -v '^checksums.sha256$')
+          cat checksums.sha256
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: release/*

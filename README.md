@@ -31,16 +31,25 @@ Existing League apps excel at **pre-game** (runes, bans, matchups) and **post-ga
 
 ```
 lol-pacemaker/
-├── AGENTS.md            # Architecture & design specification
-├── pyproject.toml       # Minimal dependencies (onnxruntime, numpy, pydantic)
-├── assets/              # Verified 585B ONNX win-rate model & baseline stats
-├── locales/             # Region/language packs (en.json, ko.json)
+├── AGENTS.md            # Architecture & design specification (source of truth)
+├── pacemaker.py         # PyInstaller entry point
+├── assets/              # Bundled 8-feature ONNX fallback (+ model_extended.onnx / distribution_stats.json once trained)
+├── locales/             # en / ko / ja / es / pt language packs (keys kept 100% symmetric by tests)
 ├── src/
-│   ├── i18n.py          # OS locale auto-detection & template formatting
-│   ├── predictor.py     # Zero-server local ONNX inference (<1ms)
-│   ├── strategy_core.py # Language-neutral priority shotcaller engine
-│   └── app.py           # Local 2999 poller + lightweight companion HUD server
-└── tests/               # Unit tests for ONNX, i18n symmetry, and shotcalling
+│   ├── main.py          # Entry point: overlay (default) or --web browser HUD
+│   ├── engine.py        # 2s Live Client poller -> snapshot -> localized result
+│   ├── overlay.py       # Tk transparent HUD (drag, opacity, F8 click-through, F9 hide, language chip)
+│   ├── hud_state.py     # HUD settings & clamping (pure logic, tested)
+│   ├── predictor.py     # ONNX inference: updated model -> 18-feature -> 8-feature fallback; win-rate drivers
+│   ├── strategy_core.py # Priority shotcaller + Top-% / cause / action briefing
+│   ├── percentile.py    # Tier-distribution Top-% (math.erf, no SciPy)
+│   ├── updater.py       # HTTPS + SHA-256 verified, atomic model updates from GitHub Releases
+│   └── i18n.py
+├── ml/                  # Offline only: collector (Riot API -> JSONL), features, train (ONNX + distribution_stats.json)
+├── scripts/             # build.py (PyInstaller), make_checksums.py
+├── .github/workflows/release.yml   # tag-triggered clean builds -> draft release
+├── web/index.html       # 5-language static download page
+└── tests/
 ```
 
 ---
@@ -49,8 +58,28 @@ lol-pacemaker/
 
 ```bash
 uv sync --all-groups
-uv run pytest -v
-uv run python -m src.app --lang en
+uv run python -m pytest -v            # full suite
+uv run python -m src.main --lang en --tier mid      # overlay window
+uv run python -m src.main --web                     # or the browser HUD: http://127.0.0.1:8787/overlay
 ```
 
-Then open `http://127.0.0.1:8787/overlay` (or launch the companion popup) while in Practice Tool, Replay, or a live match.
+HUD keys: **F8** click-through · **F9** hide/show · **[ ]** opacity · drag to move · click the language chip to cycle languages.
+
+## Training a model (offline, needs your own Riot API key)
+
+```bash
+export RIOT_API_KEY=...                                   # never commit or log it
+uv run python -m ml.collector --platform kr --bucket mid --max-matches 500 --patch 16.5
+uv run python -m ml.train --data data/snapshots.jsonl --out build/model
+```
+
+The collector resumes from `data/checkpoint.json`. Copy `model_extended.onnx` and `distribution_stats.json` to `assets/` (or attach them to a release together with `checksums.sha256`) and the app picks them up.
+
+## Build & release
+
+```bash
+uv run python scripts/build.py        # -> dist/LoLPacemaker-<windows|macos>.zip
+```
+
+Pushing a `v*` tag runs the release workflow (tests -> Windows/macOS builds -> `checksums.sha256` -> **draft** release).
+Binaries are unsigned, so Windows SmartScreen / macOS Gatekeeper show a first-run warning.
