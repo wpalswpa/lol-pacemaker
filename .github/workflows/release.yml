@@ -49,12 +49,13 @@ jobs:
           uv run --python 3.12 python scripts/build.py
       - name: Build Windows 1-click installer (Inno Setup)
         if: runner.os == 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
-          VER="${GITHUB_REF_NAME#v}"
-          ISCC="$(command -v iscc || echo '/c/Program Files (x86)/Inno Setup 6/ISCC.exe')"
-          "$ISCC" "/DMyAppVersion=${VER}" scripts/installer.iss
-          ls -lh dist/LoLPacemaker-Setup.exe
+          $ver = $env:GITHUB_REF_NAME -replace '^v',''
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' }
+          & $iscc "/DMyAppVersion=$ver" scripts\installer.iss
+          Get-Item dist\LoLPacemaker-Setup.exe
       - name: Upload OS binary directly to draft release
         shell: bash
         env:
