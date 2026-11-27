@@ -5,7 +5,7 @@
  * No raw IP is stored: a SHA-256 of (IP + today + SUPPORT_SALT) only rate-limits 5 messages / hour.
  */
 
-import { verifyToken } from "./review.js";
+import { isAdminSession, verifyToken } from "./review.js";
 
 const CATEGORIES = new Set(["install", "error", "idea", "delete"]);
 const LANGS = new Set(["en", "ko", "ja", "es", "pt"]);
@@ -33,13 +33,26 @@ export async function handleSupport(request, env, headers) {
   const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers });
   if (!env.DB) return json({ error: "db_not_configured" }, 503);
 
-  if (request.method === "GET") {
+  const isOperator = async () => {
     const auth = request.headers.get("Authorization") || "";
-    if (!env.ADMIN_TOKEN || auth !== `Bearer ${env.ADMIN_TOKEN}`) return json({ error: "forbidden" }, 403);
+    if (env.ADMIN_TOKEN && auth === `Bearer ${env.ADMIN_TOKEN}`) return true;
+    const session = await verifyToken(request, env);
+    return isAdminSession(session, env);
+  };
+
+  if (request.method === "GET") {
+    if (!(await isOperator())) return json({ error: "forbidden" }, 403);
     const rows = await env.DB.prepare(
       "SELECT id, day, category, lang, message, contact FROM tickets ORDER BY id DESC LIMIT 100"
     ).all();
     return json({ tickets: rows.results || [] });
+  }
+  if (request.method === "DELETE") {
+    if (!(await isOperator())) return json({ error: "forbidden" }, 403);
+    const id = Number(new URL(request.url).searchParams.get("id") || "0");
+    if (!Number.isInteger(id) || id <= 0) return json({ error: "invalid_id" }, 400);
+    await env.DB.prepare("DELETE FROM tickets WHERE id = ?").bind(id).run();
+    return json({ ok: true, deleted: id });
   }
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 

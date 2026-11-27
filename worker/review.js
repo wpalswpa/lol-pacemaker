@@ -127,6 +127,18 @@ export async function verifyToken(request, env) {
   return payload;
 }
 
+export async function isAdminSession(session, env) {
+  if (!session?.email_hash || !env.ADMIN_EMAILS) return false;
+  const allowed = String(env.ADMIN_EMAILS).split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (!allowed.length) return false;
+  const salt = env.SUPPORT_SALT || "";
+  for (const em of allowed) {
+    const h = await sha256Hex(`admin_email:${em}:${salt}`);
+    if (h === session.email_hash) return true;
+  }
+  return false;
+}
+
 export async function handleAuthChallenge(request, env, headers) {
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405, headers);
   if (!env.RIOT_API_KEY || !env.DB) return json({ error: "service_unavailable" }, 503, headers);
@@ -304,10 +316,12 @@ export async function handleAuthMe(request, env, headers) {
         await env.DB.prepare("UPDATE users SET riot_id = ? WHERE user_id = ?").bind(riotId, u.user_id).run();
       }
     }
+    const isAdmin = await isAdminSession(session, env);
     return json({
       logged_in: true,
       linked: Boolean(u.puuid),
       riot_linked: Boolean(u.puuid),
+      is_admin: isAdmin,
       provider: u.provider,
       display_name: u.display_name,
       avatar_url: u.avatar_url || "",

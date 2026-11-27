@@ -695,6 +695,7 @@
         <a href="#home" data-view-link="home" aria-current="true" data-i18n="nav_overview">Product</a>
         <a href="#history" data-view-link="history" data-i18n="nav_history">Match History</a>
         <a href="#support" data-view-link="support" data-i18n="nav_support">Support</a>
+        <a href="#admin" id="nav-admin" hidden>운영자</a>
       </nav>
       <form class="hdr-search" id="hdr-search-form">
         <select id="hdr-region" aria-label="Region">
@@ -975,6 +976,20 @@
           <a class="btn-sm" href="https://github.com/wpalswpa/lol-pacemaker/releases/latest/download/checksums.sha256" download data-i18n="dl_sha_btn">Checksums</a>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ── Operator-only Inbox (server-verified ADMIN_EMAILS secret) ── -->
+  <section class="block" id="admin" data-view="admin" hidden>
+    <div class="panel">
+      <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div>
+          <h2 class="panel-title" id="admin-title">운영자 · 문의함</h2>
+          <span class="panel-sub" id="admin-sub"></span>
+        </div>
+        <button type="button" class="m-btn" id="admin-refresh-btn" style="padding:7px 12px;">새로고침</button>
+      </div>
+      <div class="panel-body" id="admin-body" style="display:grid;gap:10px;"></div>
     </div>
   </section>
 </main>
@@ -1619,17 +1634,20 @@ const WORKER_URL = "https://api.lol-pacemaker.workers.dev";
 
 /* Three menus + dedicated downloads & mypage views (AGENTS §15/§17) */
 const VIEW_OF = { "": "home", "#home": "home", "#overview": "home", "#setup": "home",
-  "#downloads": "downloads", "#mypage": "mypage", "#history": "history", "#support": "support", "#faq": "support", "#contact": "support" };
+  "#downloads": "downloads", "#mypage": "mypage", "#history": "history", "#support": "support", "#faq": "support", "#contact": "support", "#admin": "admin" };
 function showView() {
   const baseHash = (location.hash || "").split("?")[0];
   const view = VIEW_OF[baseHash] || "home";
   document.querySelectorAll("section[data-view]").forEach(sec => { sec.hidden = sec.getAttribute("data-view") !== view; });
   document.querySelectorAll(".nav-links a[data-view-link]").forEach(a =>
     a.setAttribute("aria-current", a.getAttribute("data-view-link") === view ? "true" : "false"));
+  const na = document.getElementById("nav-admin");
+  if (na) na.setAttribute("aria-current", view === "admin" ? "true" : "false");
   const rawId = baseHash.length > 1 ? baseHash.slice(1) : "";
   const target = rawId && /^[a-zA-Z0-9_-]+$/.test(rawId) ? document.getElementById(rawId) : null;
-  if (target && !["#home", "#history", "#support", "#downloads", "#mypage"].includes(baseHash)) target.scrollIntoView();
+  if (target && !["#home", "#history", "#support", "#downloads", "#mypage", "#admin"].includes(baseHash)) target.scrollIntoView();
   else window.scrollTo(0, 0);
+  if (view === "admin" && typeof loadAdminTickets === "function") loadAdminTickets();
 }
 window.addEventListener("hashchange", showView);
 showView();
@@ -1939,6 +1957,16 @@ function renderAuthUI() {
     hdrBtn.textContent = ko ? "로그인" : "Sign In";
   }
 
+  // Operator-only nav tab (visible only when server confirms is_admin)
+  const navAdmin = document.getElementById("nav-admin");
+  if (navAdmin) {
+    navAdmin.hidden = !Boolean(LINKED_USER?.is_admin);
+    navAdmin.textContent = ko ? "운영자" : "Admin";
+  }
+  if ((location.hash || "").split("?")[0] === "#admin" && typeof loadAdminTickets === "function") {
+    loadAdminTickets();
+  }
+
   // Gate Direct Contact behind login (AGENTS §16/§28)
   const ctGate = document.getElementById("ct-login-gate");
   const ctFields = document.getElementById("ct-fields");
@@ -2171,6 +2199,7 @@ document.getElementById("auth-modal").addEventListener("click", e => {
     if (res.ok && (d.logged_in || d.linked)) {
       LINKED_USER = {
         provider: d.provider || "",
+        is_admin: Boolean(d.is_admin),
         riot_id: d.riot_id || "",
         region: d.region || "KR",
         display_name: d.display_name || "",
@@ -2767,6 +2796,86 @@ document.getElementById("hdr-search-form").addEventListener("submit", e => {
   location.hash = "#history?region=" + encodeURIComponent(reg) + "&riot_id=" + encodeURIComponent(val);
   runMatchLookup(reg, val);
 });
+
+async function loadAdminTickets() {
+  const body = document.getElementById("admin-body");
+  const sub = document.getElementById("admin-sub");
+  if (!body) return;
+  const ko = document.documentElement.lang === "ko";
+  document.getElementById("admin-title").textContent = ko ? "운영자 · 문의함" : "Operator · Support Inbox";
+  document.getElementById("admin-refresh-btn").textContent = ko ? "새로고침" : "Refresh";
+  body.replaceChildren();
+  if (!LINKED_USER?.is_admin || !LINKED_USER?.token) {
+    if (sub) sub.textContent = "";
+    const msg = el("div", "", ko ? "운영자 권한이 없습니다." : "Operator access required.");
+    msg.style.color = "var(--sub)";
+    body.appendChild(msg);
+    return;
+  }
+  if (sub) sub.textContent = ko ? "불러오는 중..." : "Loading...";
+  try {
+    const res = await fetch(WORKER_URL + "/v1/support", {
+      headers: { Authorization: "Bearer " + LINKED_USER.token },
+    });
+    if (!res.ok) {
+      if (sub) sub.textContent = "";
+      body.appendChild(el("div", "", ko ? "권한이 없거나 조회에 실패했습니다." : "Access denied or failed to load."));
+      return;
+    }
+    const d = await res.json();
+    const list = Array.isArray(d.tickets) ? d.tickets : [];
+    if (sub) sub.textContent = ko ? ("총 " + list.length + "건") : (list.length + " ticket(s)");
+    if (!list.length) {
+      const empty = el("div", "", ko ? "접수된 문의가 없습니다." : "No support tickets yet.");
+      empty.style.color = "var(--sub)";
+      body.appendChild(empty);
+      return;
+    }
+    const CAT_KO = { install: "설치·실행", error: "오류", idea: "제안", delete: "삭제 요청" };
+    list.forEach(t => {
+      const card = el("div", "rev-card");
+      card.style.display = "grid"; card.style.gap = "6px";
+      const top = el("div");
+      top.style.display = "flex"; top.style.alignItems = "center"; top.style.justifyContent = "space-between"; top.style.gap = "8px";
+      const meta = el("div");
+      meta.style.display = "flex"; meta.style.alignItems = "center"; meta.style.gap = "6px"; meta.style.flexWrap = "wrap";
+      meta.append(
+        el("strong", "", "#" + t.id),
+        el("span", "rev-grade mid", (ko ? CAT_KO[t.category] : t.category) || t.category),
+        el("span", "", (t.day || "") + " · " + String(t.lang || "").toUpperCase()),
+      );
+      meta.lastChild.style.color = "var(--sub)"; meta.lastChild.style.fontSize = "11.5px";
+      const delBtn = el("button", "m-btn", ko ? "처리 완료 (삭제)" : "Resolve & Delete");
+      delBtn.type = "button"; delBtn.style.padding = "4px 10px";
+      delBtn.addEventListener("click", async () => {
+        if (!confirm(ko ? ("문의 #" + t.id + "을(를) 삭제할까요?") : ("Delete ticket #" + t.id + "?"))) return;
+        delBtn.disabled = true;
+        try {
+          const dr = await fetch(WORKER_URL + "/v1/support?id=" + encodeURIComponent(t.id), {
+            method: "DELETE",
+            headers: { Authorization: "Bearer " + LINKED_USER.token },
+          });
+          if (dr.ok) loadAdminTickets();
+          else delBtn.disabled = false;
+        } catch (_) { delBtn.disabled = false; }
+      });
+      top.append(meta, delBtn);
+      const msgEl = el("div", "", t.message || "");
+      msgEl.style.whiteSpace = "pre-wrap"; msgEl.style.lineHeight = "1.5";
+      card.append(top, msgEl);
+      if (t.contact) {
+        const cEl = el("div", "", (ko ? "회신 연락처: " : "Contact: ") + t.contact);
+        cEl.style.fontSize = "12px"; cEl.style.color = "var(--accent)";
+        card.appendChild(cEl);
+      }
+      body.appendChild(card);
+    });
+  } catch (_) {
+    if (sub) sub.textContent = "";
+    body.appendChild(el("div", "", ko ? "서버 연결 실패" : "Failed to reach server."));
+  }
+}
+document.getElementById("admin-refresh-btn").addEventListener("click", loadAdminTickets);
 
 // Restore summoner match history on page refresh or shared URL (#history?region=kr&riot_id=...)
 function restoreHistoryFromHash() {

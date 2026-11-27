@@ -51,7 +51,7 @@ export async function handleOAuthStart(provider, request, env, headers) {
     authUrl.searchParams.set("client_id", env.GOOGLE_CLIENT_ID);
     authUrl.searchParams.set("redirect_uri", callbackUrl);
     authUrl.searchParams.set("response_type", "code");
-    authUrl.searchParams.set("scope", "openid profile");
+    authUrl.searchParams.set("scope", "openid profile email");
     authUrl.searchParams.set("state", state);
     authUrl.searchParams.set("prompt", "select_account");
     return Response.redirect(authUrl.toString(), 302);
@@ -65,7 +65,7 @@ export async function handleOAuthStart(provider, request, env, headers) {
     authUrl.searchParams.set("client_id", env.DISCORD_CLIENT_ID);
     authUrl.searchParams.set("redirect_uri", callbackUrl);
     authUrl.searchParams.set("response_type", "code");
-    authUrl.searchParams.set("scope", "identify");
+    authUrl.searchParams.set("scope", "identify email");
     authUrl.searchParams.set("state", state);
     return Response.redirect(authUrl.toString(), 302);
   }
@@ -88,6 +88,7 @@ export async function handleOAuthCallback(provider, request, env, headers) {
   const callbackUrl = `${url.origin}/v1/auth/oauth/${provider}/callback`;
   let providerSub = "";
   let avatarUrl = "";
+  let verifiedEmail = "";
 
   try {
     if (provider === "google") {
@@ -111,6 +112,7 @@ export async function handleOAuthCallback(provider, request, env, headers) {
       const u = await userRes.json();
       providerSub = String(u.sub || "");
       avatarUrl = String(u.picture || "");
+      if (u.email_verified === true && u.email) verifiedEmail = String(u.email).trim().toLowerCase();
     } else if (provider === "discord") {
       const tokRes = await fetch("https://discord.com/api/oauth2/token", {
         method: "POST",
@@ -132,6 +134,7 @@ export async function handleOAuthCallback(provider, request, env, headers) {
       const u = await userRes.json();
       providerSub = String(u.id || "");
       avatarUrl = u.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=128` : "";
+      if (u.verified === true && u.email) verifiedEmail = String(u.email).trim().toLowerCase();
     }
   } catch {
     return Response.redirect(`${state.return_to}#auth_error=oauth_failed`, 302);
@@ -165,9 +168,11 @@ export async function handleOAuthCallback(provider, request, env, headers) {
     await env.DB.prepare("UPDATE users SET avatar_url = ? WHERE user_id = ?").bind(avatarUrl, userId).run();
   }
 
+  const emailHash = verifiedEmail ? await sha256Hex(`admin_email:${verifiedEmail}:${env.SUPPORT_SALT || ""}`) : "";
   const sessionToken = await signToken({
     user_id: userId,
     provider,
+    email_hash: emailHash,
     exp: Math.floor(Date.now() / 1000) + 30 * 24 * 3600,
   }, env);
 
