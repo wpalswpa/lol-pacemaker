@@ -826,7 +826,7 @@
             <option value="las">LAS</option>
             <option value="sea">SEA</option>
           </select>
-          <input id="riot-id-input" type="text" value="사모예드#1021" placeholder="GameName#Tag" required>
+          <input id="riot-id-input" type="text" placeholder="GameName#KR1" required>
           <button type="submit" data-i18n="hist_btn">Search</button>
         </form>
         <div class="match-status" id="match-status"></div>
@@ -2663,7 +2663,8 @@ document.getElementById("riot-search-form").addEventListener("submit", e => {
 document.getElementById("hdr-search-form").addEventListener("submit", e => {
   e.preventDefault();
   const reg = document.getElementById("hdr-region").value;
-  const val = document.getElementById("hdr-riot-input").value.trim() || document.getElementById("riot-id-input").value;
+  const val = document.getElementById("hdr-riot-input").value.trim() || document.getElementById("riot-id-input").value.trim();
+  if (!val) { document.getElementById("hdr-riot-input").focus(); return; }
   setRegion(reg);
   document.getElementById("riot-id-input").value = val;
   location.hash = "#history";
