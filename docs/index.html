@@ -814,7 +814,7 @@
     <div class="panel">
       <div class="panel-head">
         <h2 class="panel-title" data-i18n="hist_head">Global Riot Match Lookup</h2>
-        <span class="panel-sub" data-i18n="hist_desc">KR · NA · EUW · JP · BR · LAN</span>
+        <button type="button" class="m-btn" id="rankers-toggle-btn" data-i18n="hist_rankers" style="padding:5px 11px;">🏆 Top Rankers</button>
       </div>
       <div class="region-bar" id="region-bar" role="group" aria-label="Region">
         <button type="button" class="region-btn active" data-region="kr">KR</button>
@@ -842,6 +842,13 @@
           <button type="submit" data-i18n="hist_btn">Search</button>
         </form>
         <div class="match-status" id="match-status"></div>
+        <div id="rankers-panel" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <strong id="rankers-title" style="font-size:13px;color:var(--accent);"></strong>
+            <span id="rankers-sub" style="font-size:11.5px;color:var(--sub);"></span>
+          </div>
+          <div id="rankers-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;"></div>
+        </div>
       </div>
     </div>
 
@@ -1021,7 +1028,7 @@ const I18N = {
     game_lol: "League of Legends",
     nav_overview: "Product", nav_history: "Match History", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download App",
     live_panel_title: "Intro video",
-    hist_head: "Global Riot Match Lookup", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
+    hist_head: "Global Riot Match Lookup", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_rankers: "🏆 Top Rankers", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
     b_head: "Key Features", feat_sample: "Example",
     b1_t: "Live win rate",
     b1_d: "Calculates win probability every 2 seconds from 16 live scoreboard stats (kills, CS, levels, dragons, voidgrubs, towers) locally in under 1ms with zero FPS drop.",
@@ -1119,7 +1126,7 @@ const I18N = {
     game_lol: "리그 오브 레전드",
     nav_overview: "서비스 소개", nav_history: "전적 검색", nav_setup: "설치 · 적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
     live_panel_title: "소개 영상",
-    hist_head: "전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "검색", hist_loading: "불러오는 중...", hist_err: "소환사를 찾을 수 없습니다. (예: Hide on bush#KR1)", hist_win: "승리", hist_loss: "패배",
+    hist_head: "전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_rankers: "🏆 랭커 보기", hist_btn: "검색", hist_loading: "불러오는 중...", hist_err: "소환사를 찾을 수 없습니다. (예: Hide on bush#KR1)", hist_win: "승리", hist_loss: "패배",
     b_head: "핵심 기능", feat_sample: "예시",
     b1_t: "실시간 승률 예측",
     b1_d: "킬·어시·CS·레벨·드래곤·공허 유충·포탑·억제기 등 16개 공식 점수판 지표로 2초마다 실시간 승률을 계산합니다. 내 PC에서 1ms 미만으로 돌아가 프레임 저하가 없습니다.",
@@ -1217,7 +1224,7 @@ const I18N = {
     game_lol: "リーグ・オブ・レジェンド",
     nav_overview: "製品紹介", nav_history: "戦績検索", nav_setup: "導入手順", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
     live_panel_title: "紹介動画",
-    hist_head: "グローバル Riot 戦績検索", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "検索", hist_loading: "戦績を取得中...", hist_err: "サモナーが見つかりません（GameName#Tag形式で入力してください）。", hist_win: "勝利", hist_loss: "敗北",
+    hist_head: "グローバル Riot 戦績検索", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_rankers: "🏆 ランカー一覧", hist_btn: "検索", hist_loading: "戦績を取得中...", hist_err: "サモナーが見つかりません（GameName#Tag形式で入力してください）。", hist_win: "勝利", hist_loss: "敗北",
     b_head: "機能", feat_sample: "例",
     b1_t: "リアルタイム勝率",
     b1_d: "チームのゴールド・キル・オブジェクト差から計算します。",
@@ -1315,7 +1322,7 @@ const I18N = {
     game_lol: "League of Legends",
     nav_overview: "Producto", nav_history: "Historial", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
     live_panel_title: "Video de presentación",
-    hist_head: "Búsqueda Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Cargando partidas...", hist_err: "Invocador no encontrado (usa el formato Nombre#Tag).", hist_win: "VICTORIA", hist_loss: "DERROTA",
+    hist_head: "Búsqueda Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_rankers: "🏆 Top 10", hist_btn: "Buscar", hist_loading: "Cargando partidas...", hist_err: "Invocador no encontrado (usa el formato Nombre#Tag).", hist_win: "VICTORIA", hist_loss: "DERROTA",
     b_head: "Funciones", feat_sample: "Ejemplo",
     b1_t: "Probabilidad de victoria en vivo",
     b1_d: "Calculada con el oro, las kills y los objetivos del equipo.",
@@ -1413,7 +1420,7 @@ const I18N = {
     game_lol: "League of Legends",
     nav_overview: "Produto", nav_history: "Histórico", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar App",
     live_panel_title: "Vídeo de apresentação",
-    hist_head: "Busca Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Carregando partidas...", hist_err: "Invocador não encontrado (use o formato Nome#Tag).", hist_win: "VITÓRIA", hist_loss: "DERROTA",
+    hist_head: "Busca Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_rankers: "🏆 Top 10", hist_btn: "Buscar", hist_loading: "Carregando partidas...", hist_err: "Invocador não encontrado (use o formato Nome#Tag).", hist_win: "VITÓRIA", hist_loss: "DERROTA",
     b_head: "Recursos", feat_sample: "Exemplo",
     b1_t: "Chance de vitória ao vivo",
     b1_d: "Calculada com ouro, abates e objetivos do time.",
@@ -2984,6 +2991,84 @@ async function loadAdminTickets() {
   }
 }
 document.getElementById("admin-refresh-btn").addEventListener("click", loadAdminTickets);
+
+const RANKER_L = {
+  en: { title: r => r + " Challenger Top 10", sub: "Click a player to view matches", loading: "Loading Challenger Top 10...", err: "Could not load rankers.", wl: (w, l, wr) => w + "W " + l + "L (" + wr + "%)" },
+  ko: { title: r => r + " 챌린저 TOP 10", sub: "소환사를 누르면 전적이 바로 열립니다", loading: "챌린저 TOP 10 불러오는 중...", err: "랭커 목록을 불러오지 못했습니다.", wl: (w, l, wr) => w + "승 " + l + "패 (" + wr + "%)" },
+  ja: { title: r => r + " チャレンジャー TOP 10", sub: "クリックすると戦績が開きます", loading: "チャレンジャーTOP 10を取得中...", err: "ランカー一覧を取得できませんでした。", wl: (w, l, wr) => w + "勝 " + l + "敗 (" + wr + "%)" },
+  es: { title: r => r + " Challenger Top 10", sub: "Pulsa un jugador para ver su historial", loading: "Cargando Challenger Top 10...", err: "No se pudo cargar el Top 10.", wl: (w, l, wr) => w + "V " + l + "D (" + wr + "%)" },
+  pt: { title: r => r + " Desafiante Top 10", sub: "Clique em um jogador para ver o histórico", loading: "Carregando Desafiante Top 10...", err: "Não foi possível carregar o Top 10.", wl: (w, l, wr) => w + "V " + l + "D (" + wr + "%)" },
+};
+let RANKERS_CACHE = {};
+async function loadRankers(reg) {
+  const panel = document.getElementById("rankers-panel");
+  const titleEl = document.getElementById("rankers-title");
+  const subEl = document.getElementById("rankers-sub");
+  const listEl = document.getElementById("rankers-list");
+  if (!panel || !listEl) return;
+  const L = RANKER_L[document.documentElement.lang] || RANKER_L.en;
+  const r = String(reg || document.getElementById("riot-region").value || "kr").toLowerCase();
+  titleEl.textContent = L.title(r.toUpperCase());
+  subEl.textContent = L.sub;
+  listEl.replaceChildren();
+
+  const renderRows = (players) => {
+    listEl.replaceChildren();
+    if (!players.length) {
+      listEl.appendChild(el("div", "", L.err));
+      return;
+    }
+    players.forEach(p => {
+      const btn = el("button", "rev-bench-row");
+      btn.type = "button";
+      btn.style.cursor = "pointer";
+      btn.style.width = "100%";
+      btn.style.textAlign = "left";
+      const left = el("div", "rev-bench-txt");
+      const rk = el("strong", "", "#" + p.rank + " ");
+      rk.style.color = p.rank <= 3 ? "var(--accent)" : "var(--text)";
+      left.append(rk, el("strong", "", p.riot_id));
+      const right = el("div", "rev-bench-mine");
+      const lp = el("span", "", p.lp.toLocaleString("en-US") + " LP");
+      lp.style.color = "var(--accent)";
+      const wl = el("span", "", L.wl(p.wins, p.losses, p.win_rate));
+      wl.style.color = "var(--sub)"; wl.style.fontWeight = "600";
+      right.append(lp, wl);
+      btn.append(left, right);
+      btn.addEventListener("click", () => {
+        setRegion(r);
+        document.getElementById("riot-id-input").value = p.riot_id;
+        document.getElementById("hdr-riot-input").value = p.riot_id;
+        panel.hidden = true;
+        runMatchLookup(r, p.riot_id);
+      });
+      listEl.appendChild(btn);
+    });
+  };
+
+  if (RANKERS_CACHE[r]) { renderRows(RANKERS_CACHE[r]); return; }
+  listEl.appendChild(el("div", "", L.loading));
+  try {
+    const res = await fetch(WORKER_URL + "/v1/rankers?region=" + encodeURIComponent(r));
+    const d = await res.json();
+    if (!res.ok || !Array.isArray(d.players)) { listEl.replaceChildren(el("div", "", L.err)); return; }
+    RANKERS_CACHE[r] = d.players;
+    renderRows(d.players);
+  } catch (_) {
+    listEl.replaceChildren(el("div", "", L.err));
+  }
+}
+document.getElementById("rankers-toggle-btn").addEventListener("click", () => {
+  const panel = document.getElementById("rankers-panel");
+  panel.hidden = !panel.hidden;
+  if (!panel.hidden) loadRankers(document.getElementById("riot-region").value);
+});
+document.querySelectorAll("#region-bar .region-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const panel = document.getElementById("rankers-panel");
+    if (panel && !panel.hidden) loadRankers(btn.getAttribute("data-region"));
+  });
+});
 
 // Restore summoner match history on page refresh or shared URL (#history?region=kr&riot_id=...)
 function restoreHistoryFromHash() {

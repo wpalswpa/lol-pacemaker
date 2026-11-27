@@ -74,6 +74,7 @@ export default {
     if (path === "/v1/auth/me") return handleAuthMe(request, env, headers);
     if (path === "/v1/account") return handleAccount(request, env, headers);
     if (path === "/v1/review") return handleReview(request, env, headers);
+    if (path === "/v1/rankers") return handleRankers(request, env, headers);
 
     if (request.method !== "GET") {
       return new Response(JSON.stringify({ error: "method_not_allowed" }), { status: 405, headers });
@@ -193,3 +194,69 @@ export default {
     );
   },
 };
+
+async function handleRankers(request, env, headers) {
+  if (request.method !== "GET") {
+    return new Response(JSON.stringify({ error: "method_not_allowed" }), { status: 405, headers });
+  }
+  if (!env.RIOT_API_KEY) {
+    return new Response(JSON.stringify({ error: "riot_key_not_configured" }), { status: 503, headers });
+  }
+  const url = new URL(request.url);
+  const region = (url.searchParams.get("region") || "kr").toLowerCase();
+  const host = REGION_HOST[region] || REGION_HOST.kr;
+  const plat = PLATFORM_HOST[region] || PLATFORM_HOST.kr;
+  const riotHeaders = { "X-Riot-Token": env.RIOT_API_KEY };
+
+  try {
+    const lgRes = await fetch(
+      `https://${plat}/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5`,
+      { headers: riotHeaders, cf: { cacheTtl: 600 } },
+    );
+    if (!lgRes.ok) {
+      return new Response(JSON.stringify({ error: "league_lookup_failed", status: lgRes.status }), { status: lgRes.status, headers });
+    }
+    const lg = await lgRes.json();
+    const top10 = (lg.entries || [])
+      .slice()
+      .sort((a, b) => (b.leaguePoints || 0) - (a.leaguePoints || 0))
+      .slice(0, 10);
+
+    const players = await Promise.all(top10.map(async (e, idx) => {
+      let puuid = e.puuid || "";
+      if (!puuid && e.summonerId) {
+        const sr = await fetch(
+          `https://${plat}/lol/summoner/v4/summoners/${encodeURIComponent(e.summonerId)}`,
+          { headers: riotHeaders, cf: { cacheTtl: 1800 } },
+        );
+        if (sr.ok) puuid = (await sr.json()).puuid || "";
+      }
+      let riotId = "";
+      if (puuid) {
+        const ar = await fetch(
+          `https://${host}/riot/account/v1/accounts/by-puuid/${encodeURIComponent(puuid)}`,
+          { headers: riotHeaders, cf: { cacheTtl: 1800 } },
+        );
+        if (ar.ok) {
+          const a = await ar.json();
+          if (a.gameName && a.tagLine) riotId = `${a.gameName}#${a.tagLine}`;
+        }
+      }
+      const w = e.wins || 0;
+      const l = e.losses || 0;
+      const wr = w + l > 0 ? Math.round((w * 100) / (w + l)) : 0;
+      return { rank: idx + 1, riot_id: riotId, lp: e.leaguePoints || 0, wins: w, losses: l, win_rate: wr };
+    }));
+
+    return new Response(JSON.stringify({
+      region: region.toUpperCase(),
+      tier: "CHALLENGER",
+      players: players.filter((p) => p.riot_id),
+    }), {
+      status: 200,
+      headers: { ...headers, "Cache-Control": "public, max-age=600" },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: "rankers_error", detail: String(err) }), { status: 502, headers });
+  }
+}
