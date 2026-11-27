@@ -1662,6 +1662,21 @@ const WORKER_URL = "https://api.lol-pacemaker.workers.dev";
 /* Three menus + dedicated downloads & mypage views (AGENTS §15/§17) */
 const VIEW_OF = { "": "home", "#home": "home", "#overview": "home", "#setup": "home",
   "#downloads": "downloads", "#mypage": "mypage", "#history": "history", "#support": "support", "#faq": "support", "#contact": "support", "#admin": "admin" };
+function clearHistoryInputs() {
+  const hdrInp = document.getElementById("hdr-riot-input");
+  const mainInp = document.getElementById("riot-id-input");
+  if (hdrInp) hdrInp.value = "";
+  if (mainInp) mainInp.value = "";
+  const st = document.getElementById("match-status");
+  const ml = document.getElementById("match-list");
+  if (st) st.textContent = "";
+  if (ml) ml.replaceChildren();
+  ["profile-panel", "pos-panel", "sum-panel", "rankers-panel"].forEach(id => {
+    const p = document.getElementById(id);
+    if (p) p.hidden = true;
+  });
+  if (typeof LAST_SEARCHED_ID !== "undefined") LAST_SEARCHED_ID = "";
+}
 function showView() {
   const baseHash = (location.hash || "").split("?")[0];
   const view = VIEW_OF[baseHash] || "home";
@@ -1670,6 +1685,7 @@ function showView() {
     a.setAttribute("aria-current", a.getAttribute("data-view-link") === view ? "true" : "false"));
   const na = document.getElementById("nav-admin");
   if (na) na.setAttribute("aria-current", view === "admin" ? "true" : "false");
+  if (view !== "history") clearHistoryInputs();
   const rawId = baseHash.length > 1 ? baseHash.slice(1) : "";
   const target = rawId && /^[a-zA-Z0-9_-]+$/.test(rawId) ? document.getElementById(rawId) : null;
   if (target && !["#home", "#history", "#support", "#downloads", "#mypage", "#admin"].includes(baseHash)) target.scrollIntoView();
@@ -2908,6 +2924,7 @@ document.getElementById("hdr-search-form").addEventListener("submit", e => {
   if (!val) { document.getElementById("hdr-riot-input").focus(); return; }
   setRegion(reg);
   document.getElementById("riot-id-input").value = val;
+  document.getElementById("hdr-riot-input").value = "";
   location.hash = "#history?region=" + encodeURIComponent(reg) + "&riot_id=" + encodeURIComponent(val);
   runMatchLookup(reg, val);
 });
@@ -3038,7 +3055,6 @@ async function loadRankers(reg) {
       btn.addEventListener("click", () => {
         setRegion(r);
         document.getElementById("riot-id-input").value = p.riot_id;
-        document.getElementById("hdr-riot-input").value = p.riot_id;
         panel.hidden = true;
         runMatchLookup(r, p.riot_id);
       });
@@ -3080,7 +3096,6 @@ function restoreHistoryFromHash() {
   if (!id.includes("#")) return;
   setRegion(reg);
   document.getElementById("riot-id-input").value = id;
-  document.getElementById("hdr-riot-input").value = id;
   runMatchLookup(reg, id);
 }
 restoreHistoryFromHash();
