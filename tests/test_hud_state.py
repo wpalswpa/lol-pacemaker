@@ -51,7 +51,7 @@ def test_panels_default_toggle_position_and_sanitize():
     from src.hud_state import PANELS, HudSettings
 
     s = HudSettings()
-    assert s.panels_on == {"win": True, "calls": True, "brief": False, "rank": False}
+    assert s.panels_on == {"win": True, "calls": True, "brief": False, "rank": False, "items": False, "timers": False}
     s = s.with_panel_toggled("brief").with_panel_pos("calls", 120, 300).toggled_collapsed()
     assert s.panels_on["brief"] is True and s.panels_pos["calls"] == [120, 300] and s.collapsed
     bad = HudSettings(panels_on={"win": "yes", "evil": True}, panels_pos={"win": [99999, -9], "evil": [1, 1], "rank": "x"}).sanitized()

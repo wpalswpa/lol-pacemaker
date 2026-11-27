@@ -20,33 +20,48 @@ from src.autostart import is_autostart_enabled, set_autostart
 from src.contribute import CONSENT_VERSION, new_install_id, request_deletion
 from src.engine import Engine
 from src.hud_state import PANELS, HudSettings, save_settings
+from src.icon_cache import IconCache
 
-# PACE MAKER dark orange-black palette (AGENTS §0: orange is fixed)
+# LoL-harmonized dark navy + PACE MAKER orange palette (AGENTS §0 & §27)
 BORDER = "#FF5A1F"
-BG = "#0E1117"
-SURFACE = "#151A24"
-SURFACE_PRI = "#102420"
-PILL_BG = "#161B26"
-PILL_GREEN_BG = "#0F2922"
+LINE = "#243244"
+BG = "#0F1722"
+SURFACE = "#152030"
+SURFACE_PRI = "#122628"
+PILL_BG = "#1B2838"
+PILL_GREEN_BG = "#0F2F28"
+PILL_RED_BG = "#3A1A24"
+PILL_GOLD_BG = "#332914"
 FG = "#F8FAFC"
 FG_SUB = "#CBD5E1"
 MUTED = "#94A3B8"
 ACCENT = "#FF5A1F"
 ACCENT_SOFT = "#FF7A45"
+CYAN = "#22D3EE"
 EMERALD = "#34D399"
+CORAL = "#F87171"
+GOLD = "#FACC15"
+VIOLET = "#A78BFA"
+BLUE_TEAM = "#60A5FA"
 KEY_COLOR = "#010203"  # never used by a visible widget; keyed out on Windows for the round logo corners
 BUBBLE_PNG = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)) / "assets" / "branding" / "hud_bubble.png"
 PRIVACY_URL = "https://wpalswpa.github.io/lol-pacemaker/privacy.html?lang={lang}"
 
+# OS-native crisp sans + fixed-width tabular numbers (no copyrighted LoL fonts bundled)
+UI_FONT = "Apple SD Gothic Neo" if sys.platform == "darwin" else ("Malgun Gothic" if sys.platform == "win32" else "Helvetica")
+MONO_FONT = "Menlo" if sys.platform == "darwin" else ("Consolas" if sys.platform == "win32" else "Courier")
+
 # Default layout: top-left corner, away from LoL's scoreboard (top centre), KDA/time (top right),
 # ability bar (bottom centre), minimap (bottom right) and chat (bottom left). Unverified in a real game.
 MARGIN, LOGO = 16, 64
-PANEL_W = {"win": 240, "calls": 300, "brief": 300, "rank": 300}
+PANEL_W = {"win": 276, "calls": 324, "brief": 324, "rank": 300, "items": 348, "timers": 220}
 DEFAULT_POS = {
     "win": (MARGIN + LOGO + 8, MARGIN),
-    "calls": (MARGIN, MARGIN + LOGO + 10),
-    "brief": (MARGIN + 300 + 10, MARGIN + LOGO + 10),
-    "rank": (MARGIN + LOGO + 8 + 240 + 10, MARGIN),
+    "calls": (MARGIN, MARGIN + LOGO + 12),
+    "brief": (MARGIN + 334, MARGIN + LOGO + 12),
+    "rank": (MARGIN + LOGO + 8 + 286, MARGIN),
+    "items": (MARGIN, MARGIN + LOGO + 210),
+    "timers": (MARGIN + LOGO + 8 + 286, MARGIN + LOGO + 12),
 }
 
 
@@ -112,6 +127,7 @@ class Overlay:
         self._hotkeys_global = False
         self._press = (0, 0)
         self._drag = (0, 0)
+        self.icons = IconCache()
 
         self.root = tk.Tk()  # the root window IS the logo button
         self.root.title("PACE MAKER")
@@ -177,40 +193,159 @@ class Overlay:
 
     def _build_panels(self) -> None:
         w = PANEL_W
-        p = self.panels["win"] = self._panel_window("win")
-        self.win_lbl = tk.Label(p.inner, text="--%", fg=ACCENT, bg=BG, font=("Helvetica", 19, "bold"), anchor="w")
-        self.win_lbl.pack(fill="x", padx=12, pady=(8, 0))
-        self.phase_lbl = tk.Label(p.inner, text="", fg=FG_SUB, bg=BG, font=("Helvetica", 9, "bold"),
-                                  anchor="w", wraplength=w["win"] - 24, justify="left")
-        self.phase_lbl.pack(fill="x", padx=12, pady=(0, 8))
 
+        # 1. Win chance panel: big tabular %, state pill, live clock, gold/deaths pills, dual-color gauge bar
+        p = self.panels["win"] = self._panel_window("win")
+        top_row = tk.Frame(p.inner, bg=BG)
+        top_row.pack(fill="x", padx=11, pady=(8, 3))
+        self.win_lbl = tk.Label(top_row, text="--%", fg=FG, bg=BG, font=(MONO_FONT, 19, "bold"), anchor="w")
+        self.win_lbl.pack(side="left")
+        self.state_pill = tk.Label(top_row, text="", fg=EMERALD, bg=PILL_GREEN_BG, font=(UI_FONT, 9, "bold"), padx=7, pady=2)
+        self.state_pill.pack(side="left", padx=(8, 0))
+        self.clock_lbl = tk.Label(top_row, text="", fg=MUTED, bg=BG, font=(MONO_FONT, 9, "bold"), anchor="e")
+        self.clock_lbl.pack(side="right")
+
+        meta_row = tk.Frame(p.inner, bg=BG)
+        meta_row.pack(fill="x", padx=11, pady=(0, 6))
+        self.phase_lbl = tk.Label(meta_row, text="", fg=FG_SUB, bg=PILL_BG, font=(UI_FONT, 8, "bold"), padx=6, pady=1)
+        self.phase_lbl.pack(side="left")
+        self.gold_pill = tk.Label(meta_row, text="", fg=GOLD, bg=PILL_GOLD_BG, font=(MONO_FONT, 8, "bold"), padx=6, pady=1)
+        self.gold_pill.pack(side="left", padx=(5, 0))
+        self.deaths_pill = tk.Label(meta_row, text="", fg=FG_SUB, bg=PILL_BG, font=(MONO_FONT, 8), padx=6, pady=1)
+        self.deaths_pill.pack(side="right")
+
+        self.win_gauge = tk.Canvas(p.inner, width=w["win"] - 22, height=7, bg=BG, highlightthickness=0)
+        self.win_gauge.pack(padx=11, pady=(0, 9))
+        self._draw_win_gauge(50.0)
+
+        # 2. Calls panel: numbered circular priority badges (1/2/3) + crisp bold title & muted detail
         p = self.panels["calls"] = self._panel_window("calls")
         self.call_cards: list[tuple[tk.Frame, tk.Label, tk.Label]] = []
         box = tk.Frame(p.inner, bg=BG)
         box.pack(fill="x", padx=8, pady=8)
+        badge_cols = (GOLD, CYAN, VIOLET)
         for idx in range(3):
             c_bg = SURFACE_PRI if idx == 0 else SURFACE
-            outer = tk.Frame(box, bg=c_bg)
-            tk.Frame(outer, bg=EMERALD if idx == 0 else ACCENT, width=3).pack(side="left", fill="y")
+            accent_c = badge_cols[idx]
+            outer = tk.Frame(box, bg=c_bg, highlightbackground=LINE, highlightthickness=1)
+            tk.Frame(outer, bg=accent_c, width=3).pack(side="left", fill="y")
+            badge_cv = tk.Canvas(outer, width=22, height=22, bg=c_bg, highlightthickness=0)
+            badge_cv.pack(side="left", padx=(7, 2), pady=7, anchor="n")
+            badge_cv.create_oval(2, 2, 20, 20, fill=accent_c, outline="")
+            badge_cv.create_text(11, 11, text=str(idx + 1), fill="#0B0F16", font=(MONO_FONT, 9, "bold"))
             body = tk.Frame(outer, bg=c_bg)
-            body.pack(side="left", fill="both", expand=True, padx=8, pady=6)
-            t = tk.Label(body, text="", fg=EMERALD if idx == 0 else ACCENT_SOFT, bg=c_bg, font=("Helvetica", 10, "bold"),
-                         anchor="w", justify="left", wraplength=w["calls"] - 44)
-            d = tk.Label(body, text="", fg=FG_SUB, bg=c_bg, font=("Helvetica", 9), anchor="w", justify="left",
-                         wraplength=w["calls"] - 44)
+            body.pack(side="left", fill="both", expand=True, padx=(4, 8), pady=6)
+            t = tk.Label(body, text="", fg=accent_c, bg=c_bg, font=(UI_FONT, 10, "bold"),
+                         anchor="w", justify="left", wraplength=w["calls"] - 64)
+            d = tk.Label(body, text="", fg=FG_SUB, bg=c_bg, font=(UI_FONT, 9), anchor="w", justify="left",
+                         wraplength=w["calls"] - 64)
             t.pack(fill="x")
             d.pack(fill="x", pady=(2, 0))
             self.call_cards.append((outer, t, d))
 
+        # 3. Briefing panel
         p = self.panels["brief"] = self._panel_window("brief")
-        self.brief_lbl = tk.Label(p.inner, text="", fg=FG_SUB, bg=BG, font=("Helvetica", 9), anchor="w",
-                                  justify="left", wraplength=w["brief"] - 24)
-        self.brief_lbl.pack(fill="x", padx=12, pady=8)
+        bh = tk.Frame(p.inner, bg=BG)
+        bh.pack(fill="x", padx=11, pady=(8, 2))
+        tk.Label(bh, text="●", fg=ACCENT, bg=BG, font=(UI_FONT, 8)).pack(side="left")
+        self.brief_hdr = tk.Label(bh, text="", fg=MUTED, bg=BG, font=(UI_FONT, 8, "bold"))
+        self.brief_hdr.pack(side="left", padx=(4, 0))
+        self.brief_lbl = tk.Label(p.inner, text="", fg=FG, bg=BG, font=(UI_FONT, 9), anchor="w",
+                                  justify="left", wraplength=w["brief"] - 22)
+        self.brief_lbl.pack(fill="x", padx=11, pady=(2, 9))
 
+        # 4. Tier check panel
         p = self.panels["rank"] = self._panel_window("rank")
-        self.rank_lbl = tk.Label(p.inner, text="", fg=EMERALD, bg=BG, font=("Helvetica", 9, "bold"), anchor="w",
-                                 justify="left", wraplength=w["rank"] - 24)
-        self.rank_lbl.pack(fill="x", padx=12, pady=8)
+        rh = tk.Frame(p.inner, bg=BG)
+        rh.pack(fill="x", padx=11, pady=(8, 2))
+        tk.Label(rh, text="◆", fg=EMERALD, bg=BG, font=(UI_FONT, 8)).pack(side="left")
+        self.rank_hdr = tk.Label(rh, text="", fg=MUTED, bg=BG, font=(UI_FONT, 8, "bold"))
+        self.rank_hdr.pack(side="left", padx=(4, 0))
+        self.rank_lbl = tk.Label(p.inner, text="", fg=EMERALD, bg=BG, font=(UI_FONT, 9, "bold"), anchor="w",
+                                 justify="left", wraplength=w["rank"] - 22)
+        self.rank_lbl.pack(fill="x", padx=11, pady=(2, 9))
+
+        # 5. Item gold comparison panel (AGENTS §27: public 2999 allPlayers items + Data Dragon champ icons)
+        p = self.panels["items"] = self._panel_window("items")
+        ih = tk.Frame(p.inner, bg=BG)
+        ih.pack(fill="x", padx=10, pady=(8, 3))
+        coin = tk.Canvas(ih, width=16, height=16, bg=BG, highlightthickness=0)
+        coin.pack(side="left")
+        coin.create_oval(1, 1, 15, 15, fill=GOLD, outline="")
+        coin.create_text(8, 8, text="G", fill="#0B0F16", font=(MONO_FONT, 8, "bold"))
+        self.items_title = tk.Label(ih, text="", fg=FG, bg=BG, font=(UI_FONT, 9, "bold"))
+        self.items_title.pack(side="left", padx=(5, 0))
+        self.items_totals = tk.Label(ih, text="", fg=MUTED, bg=BG, font=(MONO_FONT, 8, "bold"))
+        self.items_totals.pack(side="right")
+        tk.Frame(p.inner, bg=LINE, height=1).pack(fill="x", padx=10, pady=(2, 4))
+
+        self.item_rows: list[dict[str, Any]] = []
+        rows_box = tk.Frame(p.inner, bg=BG)
+        rows_box.pack(fill="x", padx=8, pady=(0, 8))
+        for lane_tag in ("TOP", "JGL", "MID", "ADC", "SUP"):
+            rf = tk.Frame(rows_box, bg=BG)
+            rf.pack(fill="x", pady=1)
+            role_l = tk.Label(rf, text=lane_tag, fg=MUTED, bg=BG, font=(MONO_FONT, 8, "bold"), width=3, anchor="w")
+            role_l.pack(side="left", padx=(2, 3))
+            b_ic = tk.Label(rf, text="", fg=FG, bg=PILL_BG, font=(MONO_FONT, 7, "bold"), width=2)
+            b_ic.pack(side="left")
+            b_nm = tk.Label(rf, text="-", fg=FG, bg=BG, font=(UI_FONT, 8), width=7, anchor="w")
+            b_nm.pack(side="left", padx=(3, 2))
+            b_g = tk.Label(rf, text="0G", fg=MUTED, bg=BG, font=(MONO_FONT, 8), width=6, anchor="e")
+            b_g.pack(side="left")
+            r_ic = tk.Label(rf, text="", fg=FG, bg=PILL_BG, font=(MONO_FONT, 7, "bold"), width=2)
+            r_ic.pack(side="left", padx=(6, 0))
+            r_nm = tk.Label(rf, text="-", fg=FG, bg=BG, font=(UI_FONT, 8), width=7, anchor="w")
+            r_nm.pack(side="left", padx=(3, 2))
+            diff_l = tk.Label(rf, text="+0G", fg=EMERALD, bg=BG, font=(MONO_FONT, 8, "bold"), width=6, anchor="e")
+            diff_l.pack(side="right", padx=(2, 2))
+            self.item_rows.append({"frame": rf, "b_ic": b_ic, "b_nm": b_nm, "b_g": b_g, "r_ic": r_ic, "r_nm": r_nm, "diff": diff_l})
+
+        # 6. Objective respawn timers panel (AGENTS §27: public 2999 DragonKill/BaronKill events only)
+        p = self.panels["timers"] = self._panel_window("timers")
+        th = tk.Frame(p.inner, bg=BG)
+        th.pack(fill="x", padx=10, pady=(8, 4))
+        self.timers_title = tk.Label(th, text="", fg=MUTED, bg=BG, font=(UI_FONT, 8, "bold"), anchor="w")
+        self.timers_title.pack(side="left")
+        t_row = tk.Frame(p.inner, bg=BG)
+        t_row.pack(fill="x", padx=10, pady=(0, 9))
+
+        # Dragon emblem + timer
+        d_box = tk.Frame(t_row, bg=SURFACE, padx=7, pady=5)
+        d_box.pack(side="left", fill="x", expand=True, padx=(0, 4))
+        d_cv = tk.Canvas(d_box, width=16, height=16, bg=SURFACE, highlightthickness=0)
+        d_cv.pack(side="left")
+        d_cv.create_polygon(8, 1, 15, 8, 8, 15, 1, 8, fill=CYAN, outline="")
+        self.dragon_lbl = tk.Label(d_box, text="05:00", fg=FG, bg=SURFACE, font=(MONO_FONT, 10, "bold"))
+        self.dragon_lbl.pack(side="right")
+
+        # Baron emblem + timer
+        b_box = tk.Frame(t_row, bg=SURFACE, padx=7, pady=5)
+        b_box.pack(side="left", fill="x", expand=True, padx=(4, 0))
+        b_cv = tk.Canvas(b_box, width=16, height=16, bg=SURFACE, highlightthickness=0)
+        b_cv.pack(side="left")
+        b_cv.create_polygon(2, 13, 4, 4, 8, 9, 12, 4, 14, 13, fill=VIOLET, outline="")
+        self.baron_lbl = tk.Label(b_box, text="20:00", fg=FG, bg=SURFACE, font=(MONO_FONT, 10, "bold"))
+        self.baron_lbl.pack(side="right")
+
+    def _draw_win_gauge(self, pct: float) -> None:
+        cv = self.win_gauge
+        cv.delete("all")
+        gw = PANEL_W["win"] - 22
+        ratio = max(0.05, min(0.95, pct / 100.0))
+        fill_w = int(gw * ratio)
+        bar_c = CYAN if pct >= 55 else (CORAL if pct <= 45 else ACCENT)
+        cv.create_rectangle(0, 1, gw, 6, fill="#3D1C26", outline="")
+        cv.create_rectangle(0, 1, fill_w, 6, fill=bar_c, outline="")
+        cv.create_line(gw // 2, 0, gw // 2, 7, fill="#64748B", width=1)
+
+    def _set_champ_icon(self, lbl: tk.Label, key: str, name: str, team_color: str) -> None:
+        img = self.icons.get_tk_image("champ", key, size=18, on_ready=lambda: self.root.after(0, self._render_once)) if key else None
+        if img is not None:
+            lbl.config(image=img, text="", width=18, height=18, bg=BG)
+            lbl._img_ref = img  # type: ignore[attr-defined]
+        else:
+            lbl.config(image="", text=(name[:1] or "?").upper(), fg=team_color, bg=PILL_BG, width=2, height=1)
 
     # -- the logo menu ----------------------------------------------------------------------
     def _logo_press(self, e: Any) -> None:
@@ -423,13 +558,43 @@ class Overlay:
         tr = self.engine.tr
         self._in_game = "win_pct" in st
         if not self._in_game:
-            self.win_lbl.config(text="PACE MAKER")
-            self.phase_lbl.config(text=tr.t("consent_ready"))
+            self.win_lbl.config(text="PACE MAKER", fg=ACCENT)
+            self.state_pill.config(text="", bg=BG)
+            self.clock_lbl.config(text="")
+            self.phase_lbl.config(text=tr.t("consent_ready"), bg=BG)
+            self.gold_pill.config(text="", bg=BG)
+            self.deaths_pill.config(text="", bg=BG)
+            self._draw_win_gauge(50.0)
         else:
-            self.win_lbl.config(text=f"{st['win_pct']}% · {st['state']}")
-            self.phase_lbl.config(text=st.get("phase", ""))
-            self.rank_lbl.config(text=st.get("rank_summary", ""))
+            pct = float(st.get("win_pct", 50.0))
+            self.win_lbl.config(text=f"{pct:.1f}%", fg=FG)
+            good = pct >= 52.0
+            bad = pct <= 48.0
+            self.state_pill.config(
+                text=str(st.get("state", "")),
+                fg=EMERALD if good else (CORAL if bad else GOLD),
+                bg=PILL_GREEN_BG if good else (PILL_RED_BG if bad else PILL_GOLD_BG),
+            )
+            self.phase_lbl.config(text=str(st.get("phase", "")), bg=PILL_BG)
+            self._draw_win_gauge(pct)
+
+            ex = st.get("hud_extras") or {}
+            gsec = int(ex.get("game_time_sec", 0))
+            self.clock_lbl.config(text=f"{gsec // 60:02d}:{gsec % 60:02d}" if gsec > 0 else "")
+            gdiff = int(ex.get("team_item_gold_diff", 0))
+            self.gold_pill.config(
+                text=f"{'+' if gdiff >= 0 else ''}{gdiff:,}G",
+                fg=EMERALD if gdiff >= 0 else CORAL,
+                bg=PILL_GREEN_BG if gdiff >= 0 else PILL_RED_BG,
+            )
+            ad, ed = int(ex.get("ally_dead", 0)), int(ex.get("enemy_dead", 0))
+            self.deaths_pill.config(text=f"☠ {ad}:{ed}", bg=PILL_BG)
+
+            self.brief_hdr.config(text=tr.t("hud_panel_brief"))
             self.brief_lbl.config(text=st.get("smart_briefing", ""))
+            self.rank_hdr.config(text=tr.t("hud_panel_rank"))
+            self.rank_lbl.config(text=st.get("rank_summary", ""))
+
             calls = st.get("calls", [])
             for i, (outer, t, d) in enumerate(self.call_cards):
                 if i < len(calls):
@@ -438,6 +603,39 @@ class Overlay:
                     outer.pack(fill="x", pady=(0, 6))
                 else:
                     outer.pack_forget()
+
+            # Item gold comparison panel
+            self.items_title.config(text=tr.t("hud_panel_items"))
+            cmp_data = ex.get("item_compare") or {}
+            bt, rt = int(cmp_data.get("blue_total", 0)), int(cmp_data.get("red_total", 0))
+            self.items_totals.config(text=f"{tr.t('hud_team_blue')} {bt:,}G  vs  {rt:,}G")
+            for idx, row_w in enumerate(self.item_rows):
+                rows_d = cmp_data.get("rows") or []
+                if idx < len(rows_d):
+                    rd = rows_d[idx]
+                    b, r = rd["blue"], rd["red"]
+                    self._set_champ_icon(row_w["b_ic"], b.get("key", ""), b.get("name", ""), BLUE_TEAM)
+                    self._set_champ_icon(row_w["r_ic"], r.get("key", ""), r.get("name", ""), CORAL)
+                    row_w["b_nm"].config(text=str(b.get("name", "-"))[:7])
+                    row_w["b_g"].config(text=f"{int(b.get('gold', 0)):,}G")
+                    row_w["r_nm"].config(text=str(r.get("name", "-"))[:7])
+                    df = int(rd.get("diff", 0))
+                    row_w["diff"].config(text=f"{'+' if df >= 0 else ''}{df:,}G", fg=EMERALD if df >= 0 else CORAL)
+                    hl = SURFACE if (b.get("is_me") or r.get("is_me")) else BG
+                    row_w["frame"].config(bg=hl)
+
+            # Objective timers panel
+            self.timers_title.config(text=tr.t("hud_panel_timers"))
+            tm = ex.get("obj_timers") or {}
+            ds, bs = int(tm.get("dragon_sec", 0)), int(tm.get("baron_sec", 0))
+            self.dragon_lbl.config(
+                text=tr.t("hud_live_ready") if ds == 0 else f"{ds // 60:02d}:{ds % 60:02d}",
+                fg=EMERALD if ds == 0 else FG,
+            )
+            self.baron_lbl.config(
+                text=tr.t("hud_live_ready") if bs == 0 else f"{bs // 60:02d}:{bs % 60:02d}",
+                fg=EMERALD if bs == 0 else FG,
+            )
         self._sync_windows()
 
     def refresh_once(self) -> None:

@@ -13,9 +13,9 @@ LANGS = ("en", "ko", "ja", "es", "pt")
 TIERS = ("low", "mid", "high")
 OPACITY_MIN, OPACITY_MAX, OPACITY_STEP = 0.3, 1.0, 0.1
 HUD_WIDTH = 340
-# AGENTS §17-1: separate in-game panels; briefing and tier diagnosis start off to keep the screen clear
-PANELS = ("win", "calls", "brief", "rank")
-PANEL_DEFAULT_ON = {"win": True, "calls": True, "brief": False, "rank": False}
+# AGENTS §17-1 / §27: separate in-game panels; optional panels start off to keep the screen clear
+PANELS = ("win", "calls", "brief", "rank", "items", "timers")
+PANEL_DEFAULT_ON = {"win": True, "calls": True, "brief": False, "rank": False, "items": False, "timers": False}
 _UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 
 

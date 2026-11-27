@@ -8,6 +8,7 @@ import urllib.request
 from typing import Any, Callable
 
 from src.i18n import Translator
+from src.icon_cache import normalize_champ_key
 from src.predictor import LocalOnnxPredictor, ScoreboardState
 from src.strategy_core import (
     BARON_FIRST_SPAWN_SEC,
@@ -252,6 +253,89 @@ def parse_liveclient_data(raw: dict[str, Any], tier: str = "mid") -> LiveSnapsho
     )
 
 
+def extract_hud_extras(raw: dict[str, Any]) -> dict[str, Any]:
+    """Extract read-only 2999 UI extras: per-lane item gold diff, live timers, and gold/deaths."""
+    game_data = raw.get("gameData") or {}
+    game_time = _safe_float(game_data.get("gameTime"), 0.0)
+    players = raw.get("allPlayers") or []
+    active = raw.get("activePlayer") or {}
+    active_names = _names(active)
+
+    my_side = "blue"
+    for p in players:
+        if active_names & _names(p):
+            my_side = "red" if p.get("team") == "CHAOS" else "blue"
+            break
+
+    lanes = ("TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY")
+    blue_by_lane: dict[str, dict[str, Any]] = {}
+    red_by_lane: dict[str, dict[str, Any]] = {}
+    blue_fallback: list[dict[str, Any]] = []
+    red_fallback: list[dict[str, Any]] = []
+    blue_total = red_total = ally_dead = enemy_dead = 0
+
+    for p in players:
+        is_blue = p.get("team", "ORDER") == "ORDER"
+        is_ally = (is_blue and my_side == "blue") or ((not is_blue) and my_side == "red")
+        if bool(p.get("isDead")):
+            if is_ally:
+                ally_dead += 1
+            else:
+                enemy_dead += 1
+        gold = 0
+        for it in (p.get("items") or []):
+            if isinstance(it, dict):
+                gold += max(0, _safe_int(it.get("price"), 0)) * max(1, _safe_int(it.get("count"), 1))
+        if is_blue:
+            blue_total += gold
+        else:
+            red_total += gold
+        entry = {
+            "name": str(p.get("championName") or ""),
+            "key": normalize_champ_key(str(p.get("rawChampionName") or p.get("championName") or "")),
+            "gold": gold,
+            "is_me": bool(active_names & _names(p)),
+        }
+        pos = str(p.get("position") or "").upper()
+        target = blue_by_lane if is_blue else red_by_lane
+        if pos in lanes and pos not in target:
+            target[pos] = entry
+        else:
+            (blue_fallback if is_blue else red_fallback).append(entry)
+
+    rows = []
+    for lane in lanes:
+        b = blue_by_lane.get(lane) or (blue_fallback.pop(0) if blue_fallback else {"name": "-", "key": "", "gold": 0, "is_me": False})
+        r = red_by_lane.get(lane) or (red_fallback.pop(0) if red_fallback else {"name": "-", "key": "", "gold": 0, "is_me": False})
+        rows.append({"lane": lane, "blue": b, "red": r, "diff": b["gold"] - r["gold"]})
+
+    last_dragon_t: float | None = None
+    last_baron_t: float | None = None
+    for ev in ((raw.get("events") or {}).get("Events") or []):
+        en = ev.get("EventName")
+        et = _safe_float(ev.get("EventTime"), 0.0)
+        if en == "DragonKill":
+            last_dragon_t = max(last_dragon_t or 0.0, et)
+        elif en == "BaronKill":
+            last_baron_t = max(last_baron_t or 0.0, et)
+
+    dragon_next = DRAGON_FIRST_SPAWN_SEC if last_dragon_t is None else last_dragon_t + DRAGON_RESPAWN_SEC
+    baron_next = BARON_FIRST_SPAWN_SEC if last_baron_t is None else last_baron_t + BARON_RESPAWN_SEC
+    my_team_diff = (blue_total - red_total) if my_side == "blue" else (red_total - blue_total)
+    return {
+        "game_time_sec": int(game_time),
+        "my_gold": int(_safe_float(active.get("currentGold"), 0.0)),
+        "team_item_gold_diff": my_team_diff,
+        "ally_dead": ally_dead,
+        "enemy_dead": enemy_dead,
+        "item_compare": {"blue_total": blue_total, "red_total": red_total, "rows": rows},
+        "obj_timers": {
+            "dragon_sec": max(0, int(dragon_next - game_time)),
+            "baron_sec": max(0, int(baron_next - game_time)),
+        },
+    }
+
+
 def fetch_liveclient() -> dict[str, Any]:
     """Read Riot's local Live Client API (self-signed cert on 127.0.0.1 only)."""
     ctx = ssl.create_default_context()
@@ -279,18 +363,23 @@ class Engine:
         self._on_poll = on_poll  # AGENTS §14: opt-in contribution recorder (never raises into the loop)
         self._lock = threading.Lock()
         self._snap: LiveSnapshot | None = None
+        self._extras: dict[str, Any] = {}
         self.latest: dict[str, Any] = {"status": "waiting"}
         self._misses = 0  # consecutive failed polls (AGENTS §24)
 
     def _render(self) -> None:
         if self._snap is not None:
-            self.latest = evaluate_snapshot(self._snap, self.predictor, self.tr)
+            out = evaluate_snapshot(self._snap, self.predictor, self.tr)
+            if self._extras:
+                out["hud_extras"] = self._extras
+            self.latest = out
 
     def step(self) -> bool:
         """One poll cycle. Returns True when a game was read, False when LoL is not running."""
         try:
             raw = self._fetch()
             snap = parse_liveclient_data(raw, self.tier)
+            extras = extract_hud_extras(raw)
         except Exception:
             self._misses += 1
             if self._misses >= MISSES_TO_WAIT:
@@ -303,6 +392,7 @@ class Engine:
             return False
         with self._lock:
             self._snap = snap
+            self._extras = extras
             self._render()
         self._notify(raw, snap)
         return True
@@ -318,6 +408,7 @@ class Engine:
         """Back to 'no match': the HUD hides instead of showing the last game's numbers (AGENTS §24)."""
         with self._lock:
             self._snap = None
+            self._extras = {}
             self.latest = {"status": "waiting"}
 
     def set_lang(self, lang: str) -> None:
