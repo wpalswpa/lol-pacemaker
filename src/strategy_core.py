@@ -128,7 +128,10 @@ def _rank_block(snap: LiveSnapshot, predictor: LocalOnnxPredictor, tr: Translato
             if m in pct
         ]
         approx = tr.t("rank_approx", tier=f"key:tier_{sb.tier}", minute=found["minute"])
-        return {"mode": "distribution", "tier": sb.tier, "pct": pct, "summary": " · ".join(items) + " " + approx}
+        return {
+            "mode": "distribution", "tier": sb.tier, "pct": pct, "summary": " · ".join(items) + " " + approx,
+            "value": {m: found["value"][m] for m in pct}, "mean": {m: found["mean"][m] for m in pct}, "fmt": fmt,
+        }
 
     # Legacy: team CS/level lead against a fixed spread (no tier data available)
     sign = 1.0 if sb.my_side == "blue" else -1.0
@@ -145,29 +148,60 @@ def _causes(snap: LiveSnapshot, predictor: LocalOnnxPredictor) -> list[tuple[str
     return predictor.explain(snap.scoreboard)
 
 
-def _smart_briefing(rank: dict[str, Any], causes: list[tuple[str, float]], calls: list[dict[str, Any]], tr: Translator) -> str:
-    """(Top-% weakness/strength) + (largest win-rate drag) + (top live call)."""
+# AGENTS §26: features that have a plain-language "why_/fix_" sentence (all extended, non-masked, non-context ones).
+PLAIN_FEATURES = (
+    "kills_diff", "assists_diff", "cs_diff", "avg_level_diff", "dragons_diff", "heralds_diff", "towers_diff",
+    "voidgrubs_diff", "barons_diff", "elder_diff", "inhibitors_diff", "recent_3m_kill_diff", "lane_cs_diff",
+)
+CAUSE_MIN_PP = 1.0  # a cause must cost at least this many win-% points to be mentioned
+ME_GAP_MIN = 0.10  # my metric must differ from the tier average by at least 10% of the average
+
+
+def _my_gap(snap: LiveSnapshot, feature: str) -> float:
+    """Feature difference from my team's side (positive = my team ahead)."""
+    sign = 1.0 if snap.scoreboard.my_side == "blue" else -1.0
+    return sign * snap.scoreboard.to_feature_dict().get(feature, 0.0)
+
+
+def _smart_briefing(
+    snap: LiveSnapshot,
+    win_pct: float,
+    rank: dict[str, Any],
+    causes: list[tuple[str, float]],
+    calls: list[dict[str, Any]],
+    calls_are_fallback: bool,
+    tr: Translator,
+) -> str:
+    """Plain-language briefing (AGENTS §26): what happened + the number behind it + what to do now."""
     parts: list[str] = []
-    pct: dict[str, int] = rank["pct"]
-    if rank["mode"] == "distribution" and pct:
-        weakest = max(pct, key=lambda m: pct[m])
-        strongest = min(pct, key=lambda m: pct[m])
-        tier_key = "key:tier_" + rank.get("tier", "mid")
-        if pct[weakest] > 50:
-            parts.append(tr.t("briefing_rank_weak", tier=tier_key, metric=f"key:metric_{weakest}", pct=pct[weakest]))
-        if pct[strongest] <= 35 and strongest != weakest:
-            parts.append(tr.t("briefing_rank_strong", metric=f"key:metric_{strongest}", pct=pct[strongest]))
-    else:
-        cs_pct = pct.get("cs_per_min", 50)
-        parts.append(tr.t("briefing_lead" if cs_pct <= 35 else "briefing_lag", cs_pct=cs_pct))
-    if causes and causes[0][1] <= -1.0:
+    cause = None
+    if causes and causes[0][1] <= -CAUSE_MIN_PP and causes[0][0] in PLAIN_FEATURES:
         feature, delta = causes[0]
-        parts.append(tr.t("briefing_cause", feature=f"key:feat_{feature}", delta=f"{delta:+.1f}"))
-    else:
+        gap = _my_gap(snap, feature)
+        if gap < 0:  # never blame a gap my team is actually winning (§26 rule 5)
+            cause = feature
+            n = f"{abs(gap):.1f}" if feature == "avg_level_diff" else str(int(round(abs(gap))))
+            parts.append(tr.t(f"why_{feature}", n=n))
+            even = min(99.0, max(1.0, win_pct - delta))
+            parts.append(tr.t("why_impact", now=f"{win_pct:.0f}", even=f"{even:.0f}"))
+    if cause is None:
         parts.append(tr.t("briefing_cause_none"))
-    if calls:
+
+    if rank["mode"] == "distribution" and rank.get("mean"):
+        rel = {m: (rank["value"][m] - rank["mean"][m]) / rank["mean"][m] for m in rank["mean"] if rank["mean"][m] > 0}
+        below = [m for m in rel if rel[m] <= -ME_GAP_MIN]
+        above = [m for m in rel if rel[m] >= ME_GAP_MIN]
+        pick, key = (min(below, key=lambda m: rel[m]), "me_below") if below else (
+            (max(above, key=lambda m: rel[m]), "me_above") if above else (None, ""))
+        if pick:
+            fmt = rank["fmt"]
+            parts.append(tr.t(key, metric=f"key:metric_{pick}", value=fmt(pick, rank["value"][pick]), mean=fmt(pick, rank["mean"][pick])))
+
+    if calls and not (calls_are_fallback and cause):
         parts.append(tr.t("briefing_action", title=calls[0]["title"]))
-    return " ".join(parts)
+    elif cause:
+        parts.append(tr.t("briefing_action", title=tr.t(f"fix_{cause}")))
+    return ("" if tr.lang == "ja" else " ").join(parts)  # Japanese runs sentences together without spaces
 
 
 def evaluate_snapshot(
@@ -356,6 +390,7 @@ def evaluate_snapshot(
     if any(c.kind == "defense" for c in calls):
         calls = [c for c in calls if c.kind != "offense"]
 
+    calls_are_fallback = not calls
     if not calls:
         calls.append(
             Shotcall(
@@ -373,7 +408,7 @@ def evaluate_snapshot(
     rank_info = _rank_block(snap, predictor, tr)
     causes = _causes(snap, predictor)
     calls_out = [c.render(tr) for c in calls[:max_calls]]
-    smart_briefing = _smart_briefing(rank_info, causes, calls_out, tr)
+    smart_briefing = _smart_briefing(snap, win_pct, rank_info, causes, calls_out, calls_are_fallback, tr)
 
     return {
         "lang": tr.lang,
