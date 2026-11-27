@@ -929,19 +929,25 @@
         <form class="contact" id="contact-form" novalidate>
           <h3 data-i18n="ct_t">Contact the operator</h3>
           <p class="contact-d" data-i18n="ct_d"></p>
-          <label for="ct-cat" data-i18n="ct_cat">Topic</label>
-          <select id="ct-cat">
-            <option value="install" data-i18n="ct_c_install">Install / launch</option>
-            <option value="error" data-i18n="ct_c_error">Error</option>
-            <option value="idea" data-i18n="ct_c_idea">Suggestion</option>
-            <option value="delete" data-i18n="ct_c_delete">Delete my data</option>
-          </select>
-          <label for="ct-msg" data-i18n="ct_msg">Message</label>
-          <textarea id="ct-msg" maxlength="2000" rows="5"></textarea>
-          <label for="ct-contact" data-i18n="ct_contact">Email or Discord (optional)</label>
-          <input id="ct-contact" type="text" maxlength="120" autocomplete="email">
-          <button type="submit" data-i18n="ct_send">Send</button>
-          <p class="contact-status" id="ct-status" role="status"></p>
+          <div id="ct-login-gate" style="display:grid;gap:8px;padding:12px;border-radius:8px;background:var(--panel-alt);border:1px solid var(--line);">
+            <div id="ct-gate-msg" style="font-size:12.5px;color:var(--sub);"></div>
+            <button type="button" id="ct-login-btn" class="m-btn ai" style="padding:9px 12px;"></button>
+          </div>
+          <div id="ct-fields" hidden style="display:grid;gap:8px;">
+            <label for="ct-cat" data-i18n="ct_cat">Topic</label>
+            <select id="ct-cat">
+              <option value="install" data-i18n="ct_c_install">Install / launch</option>
+              <option value="error" data-i18n="ct_c_error">Error</option>
+              <option value="idea" data-i18n="ct_c_idea">Suggestion</option>
+              <option value="delete" data-i18n="ct_c_delete">Delete my data</option>
+            </select>
+            <label for="ct-msg" data-i18n="ct_msg">Message</label>
+            <textarea id="ct-msg" maxlength="2000" rows="5"></textarea>
+            <label for="ct-contact" data-i18n="ct_contact">Email or Discord (optional)</label>
+            <input id="ct-contact" type="text" maxlength="120" autocomplete="email">
+            <button type="submit" data-i18n="ct_send">Send</button>
+            <p class="contact-status" id="ct-status" role="status"></p>
+          </div>
         </form>
         <div class="sup-row">
           <div>
@@ -1624,7 +1630,46 @@ function pickOs(os) {
 document.querySelectorAll(".os-tab").forEach(b => b.addEventListener("click", () => pickOs(b.getAttribute("data-os"))));
 pickOs(/Mac/i.test(navigator.userAgent) ? "mac" : "win");
 
-/* Support assistant (AGENTS §16): answers only how to use the app; the Worker filters before and after the model */
+/* Support assistant: routes questions directly to verified FAQ/Help Center articles */
+function openHelpArticle(catIdx, subId, articleId) {
+  helpState.cat = catIdx;
+  helpState.sub = subId;
+  helpState.q = "";
+  const qEl = document.getElementById("help-q");
+  if (qEl) qEl.value = "";
+  renderHelp();
+  const target = document.getElementById("help-" + articleId);
+  if (target) {
+    target.open = true;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
+
+function findHelpMatches(query, lang) {
+  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const scored = [];
+  HELP.forEach((cat, ci) => {
+    cat.subs.forEach(sub => {
+      sub.items.forEach(a => {
+        const hay = [
+          cat.t[lang] || "", sub.t[lang] || "", a.t[lang] || "", a.s[lang] || "",
+          ...(a.st[lang] || []), a.n ? (a.n[lang] || "") : "", a.id,
+        ].join(" ").toLowerCase();
+        let score = 0;
+        if (hay.includes(query.toLowerCase())) score += 10;
+        tokens.forEach(tk => {
+          if ((a.t[lang] || "").toLowerCase().includes(tk)) score += 4;
+          else if ((a.s[lang] || "").toLowerCase().includes(tk)) score += 2;
+          else if (hay.includes(tk)) score += 1;
+        });
+        if (score > 0) scored.push({ score, ci, subId: sub.id, subTitle: sub.t[lang] || sub.t.en, item: a });
+      });
+    });
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 3);
+}
+
 function chatBubble(cls, text) {
   const d = document.createElement("div");
   d.className = "chat-msg " + cls;
@@ -1633,46 +1678,58 @@ function chatBubble(cls, text) {
   d.scrollIntoView({ block: "nearest" });
   return d;
 }
-document.getElementById("chat-form").addEventListener("submit", async e => {
+document.getElementById("chat-form").addEventListener("submit", e => {
   e.preventDefault();
-  const dict = I18N[document.documentElement.lang] || I18N.en;
+  const lang = document.documentElement.lang || "en";
+  const ko = lang === "ko";
   const input = document.getElementById("chat-input");
   const q = input.value.trim();
   if (!q) return;
   input.value = "";
   chatBubble("me", q);
-  const btn = e.target.querySelector("button");
-  btn.disabled = true;
-  try {
-    const res = await fetch(WORKER_URL + "/v1/chat", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: q, lang: document.documentElement.lang }) });
-    const data = await res.json();
-    chatBubble("bot", res.ok && data.reply ? data.reply : dict.chat_err);
-    if (!res.ok || data.handoff) {
-      const h = document.createElement("button");
-      h.type = "button"; h.className = "chat-handoff"; h.textContent = dict.chat_handoff;
-      h.addEventListener("click", () => { const m = document.getElementById("ct-msg"); m.value = q; m.focus(); });
-      document.getElementById("chat-log").appendChild(h);
-    }
-  } catch (_) {
-    chatBubble("bot", dict.chat_err);
-  } finally {
-    btn.disabled = false;
+
+  const hits = findHelpMatches(q, lang);
+  if (hits.length) {
+    const b = chatBubble("bot", ko
+      ? "관련된 자주 묻는 질문 · 오류 해결 항목을 찾았습니다. 아래 항목을 누르면 바로 열립니다."
+      : "Found matching Help Center articles. Click one to open it directly:");
+    const wrap = document.createElement("div");
+    wrap.style.display = "grid"; wrap.style.gap = "6px"; wrap.style.marginTop = "8px";
+    hits.forEach(h => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "chat-handoff";
+      btn.style.textAlign = "left";
+      btn.textContent = h.subTitle + " › " + (h.item.t[lang] || h.item.t.en) + " →";
+      btn.addEventListener("click", () => openHelpArticle(h.ci, h.subId, h.item.id));
+      wrap.appendChild(btn);
+    });
+    b.appendChild(wrap);
+  } else {
+    chatBubble("bot", ko
+      ? "일치하는 도움말 항목이 없습니다. 로그인 후 아래 직접 문의로 내용을 남겨 주세요."
+      : "No matching FAQ article found. Sign in and use Direct Contact below.");
   }
 });
 
-/* In-site contact (AGENTS §16): goes to the operator through our Worker, never GitHub */
+/* In-site contact (login-only): goes to the operator through our Worker */
+document.getElementById("ct-login-btn").addEventListener("click", () => openAuthModal(""));
 document.getElementById("contact-form").addEventListener("submit", async e => {
   e.preventDefault();
   const dict = I18N[document.documentElement.lang] || I18N.en;
   const status = document.getElementById("ct-status");
+  if (!LINKED_USER || !LINKED_USER.token) {
+    openAuthModal("");
+    return;
+  }
   const msg = document.getElementById("ct-msg").value.trim();
   if (!msg) { status.textContent = dict.ct_empty; return; }
-  const btn = e.target.querySelector("button");
+  const btn = e.target.querySelector('button[type="submit"]');
   btn.disabled = true;
   try {
     const res = await fetch(WORKER_URL + "/v1/support", {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + LINKED_USER.token },
       body: JSON.stringify({ category: document.getElementById("ct-cat").value, message: msg,
         contact: document.getElementById("ct-contact").value.trim(), lang: document.documentElement.lang }),
     });
@@ -1868,6 +1925,19 @@ function renderAuthUI() {
     hdrBtn.append(av, el("span", "", LINKED_USER.display_name || LINKED_USER.riot_id || (ko ? "내 계정" : "Account")));
   } else {
     hdrBtn.textContent = ko ? "로그인" : "Sign In";
+  }
+
+  // Gate Direct Contact behind login (AGENTS §16/§28)
+  const ctGate = document.getElementById("ct-login-gate");
+  const ctFields = document.getElementById("ct-fields");
+  if (ctGate && ctFields) {
+    const loggedIn = Boolean(LINKED_USER);
+    ctGate.hidden = loggedIn;
+    ctFields.hidden = !loggedIn;
+    const gm = document.getElementById("ct-gate-msg");
+    const gb = document.getElementById("ct-login-btn");
+    if (gm) gm.textContent = ko ? "직접 문의는 로그인한 사용자만 이용할 수 있습니다." : "Please sign in to send a direct message to the operator.";
+    if (gb) gb.textContent = ko ? "로그인하고 문의하기" : "Sign In to Contact";
   }
 
   // Render My Page

@@ -61,7 +61,7 @@ def test_three_menus_english_default_and_contact_inside_the_site():
     assert links == ["home", "history", "support"]
     assert "navigator.language" not in html and 'return "en";' in html
     assert "github.com/wpalswpa/lol-pacemaker/issues" not in html
-    assert 'WORKER_URL + "/v1/support"' in html and 'WORKER_URL + "/v1/chat"' in html
+    assert 'WORKER_URL + "/v1/support"' in html and "openHelpArticle" in html
     assert "guide_step" not in html  # mock-up guide images were replaced by real captures
     for img in ("app_consent.png", "app_hud.png", "app_hud_folded.png"):
         assert f"./images/{img}" in html

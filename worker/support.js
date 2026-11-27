@@ -5,6 +5,8 @@
  * No raw IP is stored: a SHA-256 of (IP + today + SUPPORT_SALT) only rate-limits 5 messages / hour.
  */
 
+import { verifyToken } from "./review.js";
+
 const CATEGORIES = new Set(["install", "error", "idea", "delete"]);
 const LANGS = new Set(["en", "ko", "ja", "es", "pt"]);
 const PER_HOUR = 5;
@@ -40,6 +42,9 @@ export async function handleSupport(request, env, headers) {
     return json({ tickets: rows.results || [] });
   }
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
+  const session = await verifyToken(request, env);
+  if (!session) return json({ error: "auth_required" }, 401);
 
   const text = await request.text();
   if (text.length > 6000) return json({ error: "too_large" }, 413);
