@@ -261,8 +261,13 @@
     overflow: hidden; display: flex; flex-direction: column;
   }
   .feat-shot-box {
-    background: #0B0D12; border-bottom: 1px solid var(--line); padding: 14px 16px;
+    position: relative; background: #0B0D12; border-bottom: 1px solid var(--line); padding: 14px 16px;
     min-height: 118px; display: grid; place-items: center;
+  }
+  .feat-sample-tag {
+    position: absolute; top: 8px; right: 10px; font-size: 10.5px; font-weight: 800;
+    color: var(--topbar-muted); background: rgba(15, 23, 34, 0.86); border: 1px solid rgba(148, 163, 184, 0.25);
+    padding: 1px 7px; border-radius: 999px; letter-spacing: 0.02em; pointer-events: none;
   }
   .feat-shot-box img { max-width: 100%; max-height: 132px; width: auto; height: auto; border-radius: 6px; display: block; }
   .feat-shot-box img.feat-icon { max-height: 76px; }
@@ -589,6 +594,9 @@
     select#lang-select { padding: 0 6px; font-size: 11px; max-width: 84px; }
     .nav-cta { padding: 0 9px; font-size: 11.5px; }
   }
+  @media (max-width: 460px) {
+    .brand span { display: none; }
+  }
   details.faq { border-bottom: 1px solid var(--line); padding: 13px 16px; }
   details.faq:last-of-type { border-bottom: 0; }
   details.faq summary {
@@ -727,15 +735,15 @@
       <h2 class="benefits-head" data-i18n="b_head">Features</h2>
       <ul class="benefit-list">
         <li>
-          <div class="feat-shot-box"><img src="./images/feat_winrate.png" alt="Real-time win rate panel" loading="lazy"></div>
+          <div class="feat-shot-box"><span class="feat-sample-tag" data-i18n="feat_sample">Example</span><img src="./images/feat_winrate.png" alt="Real-time win rate panel" loading="lazy"></div>
           <div class="feat-copy"><h3 data-i18n="b1_t">Live win rate</h3><p data-i18n="b1_d">Calculates win probability every 2 seconds from 16 live scoreboard stats (kills, CS, levels, dragons, voidgrubs, towers) locally in under 1ms with zero FPS drop.</p></div>
         </li>
         <li>
-          <div class="feat-shot-box"><img src="./images/feat_calls.png" alt="Real-time macro call card" loading="lazy"></div>
+          <div class="feat-shot-box"><span class="feat-sample-tag" data-i18n="feat_sample">Example</span><img src="./images/feat_calls.png" alt="Real-time macro call card" loading="lazy"></div>
           <div class="feat-copy"><h3 data-i18n="b2_t">Live macro calls</h3><p data-i18n="b2_d">Tracks enemy jungler death (no Smite), 5v3 windows, Dragon Soul/Baron/Grubs timings, recall gold, and anti-heal/penetration counters — showing up to 3 top calls (auto-switches for ARAM).</p></div>
         </li>
         <li>
-          <div class="feat-shot-box"><img src="./images/feat_briefing.png" alt="Tier rank and weakness briefing panel" loading="lazy"></div>
+          <div class="feat-shot-box"><span class="feat-sample-tag" data-i18n="feat_sample">Example</span><img src="./images/feat_briefing.png" alt="Tier rank and weakness briefing panel" loading="lazy"></div>
           <div class="feat-copy"><h3 data-i18n="b3_t">Tier rank &amp; weakness briefing</h3><p data-i18n="b3_d">Shows your live CS/min, level, and kill participation percentile against your tier curve and highlights the #1 factor dragging down your win rate (%p).</p></div>
         </li>
         <li>
@@ -982,7 +990,7 @@ const I18N = {
     nav_overview: "Product", nav_history: "Match History", nav_setup: "How to Use", nav_faq: "Troubleshooting", nav_support: "Support", nav_cta: "Download App",
     live_panel_title: "Intro video",
     hist_head: "Global Riot Match Lookup", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Search", hist_loading: "Loading matches...", hist_err: "Summoner not found or invalid Riot ID (use GameName#Tag).", hist_win: "WIN", hist_loss: "LOSS",
-    b_head: "Key Features",
+    b_head: "Key Features", feat_sample: "Example",
     b1_t: "Live win rate",
     b1_d: "Calculates win probability every 2 seconds from 16 live scoreboard stats (kills, CS, levels, dragons, voidgrubs, towers) locally in under 1ms with zero FPS drop.",
     b2_t: "Live macro calls",
@@ -1080,7 +1088,7 @@ const I18N = {
     nav_overview: "서비스 소개", nav_history: "전적 검색", nav_setup: "설치 · 적용 방법", nav_faq: "오류 해결", nav_support: "고객 지원", nav_cta: "앱 다운로드",
     live_panel_title: "소개 영상",
     hist_head: "전적 검색", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "검색", hist_loading: "불러오는 중...", hist_err: "소환사를 찾을 수 없습니다. (예: Hide on bush#KR1)", hist_win: "승리", hist_loss: "패배",
-    b_head: "핵심 기능",
+    b_head: "핵심 기능", feat_sample: "예시",
     b1_t: "실시간 승률 예측",
     b1_d: "킬·어시·CS·레벨·드래곤·공허 유충·포탑·억제기 등 16개 공식 점수판 지표로 2초마다 실시간 승률을 계산합니다. 내 PC에서 1ms 미만으로 돌아가 프레임 저하가 없습니다.",
     b2_t: "실시간 운영 오더",
@@ -1178,7 +1186,7 @@ const I18N = {
     nav_overview: "製品紹介", nav_history: "戦績検索", nav_setup: "導入手順", nav_faq: "トラブル解決", nav_support: "サポート", nav_cta: "ダウンロード",
     live_panel_title: "紹介動画",
     hist_head: "グローバル Riot 戦績検索", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "検索", hist_loading: "戦績を取得中...", hist_err: "サモナーが見つかりません（GameName#Tag形式で入力してください）。", hist_win: "勝利", hist_loss: "敗北",
-    b_head: "機能",
+    b_head: "機能", feat_sample: "例",
     b1_t: "リアルタイム勝率",
     b1_d: "チームのゴールド・キル・オブジェクト差から計算します。",
     b2_t: "コール",
@@ -1276,7 +1284,7 @@ const I18N = {
     nav_overview: "Producto", nav_history: "Historial", nav_setup: "Cómo Usar", nav_faq: "Soluciones", nav_support: "Soporte", nav_cta: "Descargar",
     live_panel_title: "Video de presentación",
     hist_head: "Búsqueda Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Cargando partidas...", hist_err: "Invocador no encontrado (usa el formato Nombre#Tag).", hist_win: "VICTORIA", hist_loss: "DERROTA",
-    b_head: "Funciones",
+    b_head: "Funciones", feat_sample: "Ejemplo",
     b1_t: "Probabilidad de victoria en vivo",
     b1_d: "Calculada con el oro, las kills y los objetivos del equipo.",
     b2_t: "Calls",
@@ -1374,7 +1382,7 @@ const I18N = {
     nav_overview: "Produto", nav_history: "Histórico", nav_setup: "Como Usar", nav_faq: "Soluções", nav_support: "Suporte", nav_cta: "Baixar App",
     live_panel_title: "Vídeo de apresentação",
     hist_head: "Busca Global de Partidas Riot", hist_desc: "KR · NA · EUW · JP · BR · LAN", hist_btn: "Buscar", hist_loading: "Carregando partidas...", hist_err: "Invocador não encontrado (use o formato Nome#Tag).", hist_win: "VITÓRIA", hist_loss: "DERROTA",
-    b_head: "Recursos",
+    b_head: "Recursos", feat_sample: "Exemplo",
     b1_t: "Chance de vitória ao vivo",
     b1_d: "Calculada com ouro, abates e objetivos do time.",
     b2_t: "Calls",
