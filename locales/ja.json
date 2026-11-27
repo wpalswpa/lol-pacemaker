@@ -116,6 +116,7 @@
   "hud_menu_data": "匿名数値の提供",
   "hud_menu_reset": "位置をリセット",
   "hud_menu_lock": "位置を固定",
+  "hud_menu_quit": "アプリを終了",
   "why_kills_diff": "キル数が相手より{n}少ないです。",
   "fix_kills_diff": "一人で戦わず味方のそばで動きましょう。",
   "why_assists_diff": "アシスト数が相手より{n}少ないです。",

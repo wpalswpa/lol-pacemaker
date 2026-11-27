@@ -116,6 +116,7 @@
   "hud_menu_data": "익명 수치 제공",
   "hud_menu_reset": "위치 초기화",
   "hud_menu_lock": "위치 고정",
+  "hud_menu_quit": "앱 종료",
   "why_kills_diff": "킬이 상대보다 {n}개 적어요.",
   "fix_kills_diff": "혼자 싸우지 말고 아군 곁에서 움직이세요.",
   "why_assists_diff": "어시스트가 상대보다 {n}개 적어요.",

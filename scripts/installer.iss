@@ -40,11 +40,11 @@ Name: "autostart"; Description: "Start automatically with Windows (auto-popup wh
 Source: "..\dist\LoLPacemaker.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\LoL Pacemaker"; Filename: "{app}\LoLPacemaker.exe"
-Name: "{autodesktop}\LoL Pacemaker"; Filename: "{app}\LoLPacemaker.exe"; Tasks: desktopicon
+Name: "{autoprograms}\LoL Pacemaker"; Filename: "{app}\LoLPacemaker.exe"; IconFilename: "{app}\LoLPacemaker.exe"
+Name: "{autodesktop}\LoL Pacemaker"; Filename: "{app}\LoLPacemaker.exe"; IconFilename: "{app}\LoLPacemaker.exe"; Tasks: desktopicon
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "LoLPacemaker"; ValueData: """{app}\LoLPacemaker.exe"" --background"; Flags: uninsdeletevalue; Tasks: autostart
 
 [Run]
-Filename: "{app}\LoLPacemaker.exe"; Parameters: "--background"; Description: "{cm:LaunchProgram,LoL Pacemaker}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\LoLPacemaker.exe"; Description: "{cm:LaunchProgram,LoL Pacemaker}"; Flags: nowait postinstall skipifsilent

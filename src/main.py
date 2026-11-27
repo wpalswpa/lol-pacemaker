@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import socket
 import threading
 
 from src.contribute import ContributionRecorder
@@ -10,6 +11,41 @@ from src.hud_state import TIERS, load_settings, save_settings
 from src.i18n import Translator
 from src.predictor import LocalOnnxPredictor
 from src.updater import check_for_update
+
+INSTANCE_PORT = 47291
+
+
+def acquire_single_instance(port: int = INSTANCE_PORT) -> socket.socket | None:
+    """Bind 127.0.0.1:<port> as a single-instance lock; if already running, send WAKE and return None."""
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        srv.bind(("127.0.0.1", port))
+        srv.listen(4)
+        return srv
+    except OSError:
+        srv.close()
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.5) as c:
+                c.sendall(b"WAKE")
+        except OSError:
+            pass
+        return None
+
+
+def start_wake_listener(srv: socket.socket, on_wake: callable) -> None:
+    """Background listener that invokes `on_wake` whenever a second desktop launch pings WAKE."""
+    def _loop() -> None:
+        while True:
+            try:
+                conn, _ = srv.accept()
+                with conn:
+                    data = conn.recv(16)
+                    if b"WAKE" in data:
+                        on_wake()
+            except OSError:
+                break
+
+    threading.Thread(target=_loop, daemon=True).start()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -49,13 +85,21 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     save_settings(settings)
+    lock_sock = acquire_single_instance()
+    if lock_sock is None:
+        return 0  # already running; WAKE was sent so the existing app pops up its status/menu
+
     from src.overlay import Overlay  # imports tkinter only when the GUI is requested
 
-    # AGENTS §17: the HUD only shows during a match, however it was launched.
-    # A manual launch (no --background) shows a 3-second "waiting" notice first.
+    # AGENTS §17/§28: the HUD only shows during a match, however it was launched.
+    # A manual desktop launch (no --background) shows a 5-second waiting notice so the user can open settings or quit.
     overlay = Overlay(engine, settings, background_mode=True, announce=not args.background)
+    start_wake_listener(lock_sock, overlay.wake)
     current["settings"] = lambda: overlay.settings
-    overlay.run()
+    try:
+        overlay.run()
+    finally:
+        lock_sock.close()
     return 0
 
 

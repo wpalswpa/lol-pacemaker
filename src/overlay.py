@@ -142,7 +142,25 @@ class Overlay:
             self.root.bind_all(seq, lambda _e, f=fn: f())
         self.root.withdraw()
         if announce:
-            self._announce_until = time.monotonic() + 3.0
+            self._announce_until = time.monotonic() + 5.0
+
+    def wake(self) -> None:
+        """AGENTS §28: second desktop launch pings WAKE -> show logo & waiting card for 5 s."""
+        def _do() -> None:
+            self._announce_until = time.monotonic() + 5.0
+            self._sync_windows()
+        try:
+            self.root.after(0, _do)
+        except Exception:
+            pass
+
+    def quit_app(self) -> None:
+        """AGENTS §28: clean 1-click exit from the logo menu."""
+        if self.menu is not None:
+            self.menu.destroy()
+            self.menu = None
+        self.root.quit()
+        self.root.destroy()
 
     # -- building -------------------------------------------------------------------------
     def _build_logo(self) -> None:
@@ -396,8 +414,13 @@ class Overlay:
             b = tk.Label(op, text=sym, fg=FG, bg=PILL_BG, font=("Helvetica", 11, "bold"), padx=8, cursor="hand2")
             b.pack(side="right", padx=(4, 0))
             b.bind("<Button-1>", lambda _e, dd=d: (self.step_opacity(dd), self._toggle_menu(), self._toggle_menu()))
-        tk.Label(inner, text=tr.t("hud_hint_keys"), fg=MUTED, bg=BG, font=("Helvetica", 8), wraplength=250,
-                 justify="left", anchor="w").pack(fill="x", padx=12, pady=(4, 10))
+        tk.Label(inner, text=tr.t("hud_hint_keys"), fg=MUTED, bg=BG, font=(UI_FONT, 8), wraplength=250,
+                 justify="left", anchor="w").pack(fill="x", padx=12, pady=(4, 6))
+        tk.Frame(inner, bg=LINE, height=1).pack(fill="x", padx=12, pady=(2, 4))
+        q_lbl = tk.Label(inner, text="     " + tr.t("hud_menu_quit"), fg=CORAL, bg=BG,
+                         font=(UI_FONT, 10, "bold"), anchor="w", padx=12, pady=6, cursor="hand2")
+        q_lbl.pack(fill="x", pady=(0, 6))
+        q_lbl.bind("<Button-1>", lambda _e: self.quit_app())
         self._show(m)
         self._sync_windows()
 

@@ -116,6 +116,7 @@
   "hud_menu_data": "Compartir datos anónimos",
   "hud_menu_reset": "Restablecer posición",
   "hud_menu_lock": "Fijar posición",
+  "hud_menu_quit": "Salir de la app",
   "why_kills_diff": "Tu equipo tiene {n} asesinatos menos.",
   "fix_kills_diff": "No pelees solo; muévete junto a tu equipo.",
   "why_assists_diff": "Tu equipo tiene {n} asistencias menos.",

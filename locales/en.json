@@ -116,6 +116,7 @@
   "hud_menu_data": "Share anonymous stats",
   "hud_menu_reset": "Reset position",
   "hud_menu_lock": "Lock position",
+  "hud_menu_quit": "Quit LoL Pacemaker",
   "why_kills_diff": "Your team has {n} fewer kills.",
   "fix_kills_diff": "Don't fight alone; move next to your team.",
   "why_assists_diff": "Your team has {n} fewer assists.",

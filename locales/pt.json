@@ -116,6 +116,7 @@
   "hud_menu_data": "Compartilhar dados anônimos",
   "hud_menu_reset": "Redefinir posição",
   "hud_menu_lock": "Travar posição",
+  "hud_menu_quit": "Sair do app",
   "why_kills_diff": "Seu time tem {n} abates a menos.",
   "fix_kills_diff": "Não lute sozinho; ande perto do seu time.",
   "why_assists_diff": "Seu time tem {n} assistências a menos.",

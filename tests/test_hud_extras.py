@@ -44,3 +44,19 @@ def test_extract_hud_extras_computes_lane_gold_and_timers():
     assert ex["obj_timers"]["baron_sec"] == 580  # 1200 - 620
     mid = next(r for r in ex["item_compare"]["rows"] if r["lane"] == "MIDDLE")
     assert mid["blue"]["key"] == "Ahri" and mid["red"]["key"] == "Zed" and mid["diff"] == 1300
+
+
+def test_single_instance_lock_wakes_existing_app():
+    import threading
+    from src.main import acquire_single_instance, start_wake_listener
+
+    woken = threading.Event()
+    srv = acquire_single_instance(port=47299)
+    assert srv is not None
+    try:
+        start_wake_listener(srv, woken.set)
+        second = acquire_single_instance(port=47299)
+        assert second is None
+        assert woken.wait(timeout=1.5)
+    finally:
+        srv.close()
