@@ -471,21 +471,39 @@ export async function handleAccount(request, env, headers) {
 // ---------------------------------------------------------------------------------------------
 
 // Classify Summoner's Rift (0..15000) coordinates into human-readable map zone
+const ZONES = {
+  skirmish: { en: "Skirmish", ko: "교전 지역", ja: "交戦エリア", es: "Escaramuza", pt: "Escaramuça" },
+  baron: { en: "Baron/Herald River", ko: "바론·전령 강가", ja: "バロン・ヘラルド川", es: "Río de Barón/Heraldo", pt: "Rio do Barão/Arauto" },
+  dragon: { en: "Dragon River", ko: "드래곤 강가", ja: "ドラゴン川", es: "Río del Dragón", pt: "Rio do Dragão" },
+  mid_river: { en: "Mid River", ko: "중앙 강가", ja: "ミッド川", es: "Río central", pt: "Rio central" },
+  top: { en: "Top Lane", ko: "탑 라인", ja: "トップレーン", es: "Carril superior", pt: "Rota superior" },
+  bot: { en: "Bot Lane", ko: "바텀 라인", ja: "ボットレーン", es: "Carril inferior", pt: "Rota inferior" },
+  mid: { en: "Mid Lane", ko: "미드 라인", ja: "ミッドレーン", es: "Carril central", pt: "Rota do meio" },
+  ally_jg: { en: "Ally Jungle", ko: "아군 정글", ja: "味方ジャングル", es: "Jungla aliada", pt: "Selva aliada" },
+  enemy_jg: { en: "Enemy Jungle", ko: "상대 정글", ja: "敵ジャングル", es: "Jungla enemiga", pt: "Selva inimiga" },
+  aram: { en: "ARAM bridge", ko: "칼바람 다리", ja: "ARAMの橋", es: "Puente de ARAM", pt: "Ponte de ARAM" },
+};
+function normLang(lang) {
+  const l = String(lang || "en").toLowerCase().slice(0, 2);
+  return ["en", "ko", "ja", "es", "pt"].includes(l) ? l : "en";
+}
+function pickL(map, lang) { return map[normLang(lang)] || map.en; }
+
 function classifyZone(x, y, teamId, lang) {
-  const ko = lang === "ko";
-  if (typeof x !== "number" || typeof y !== "number") return ko ? "교전 지역" : "Skirmish";
+  const L = normLang(lang);
+  if (typeof x !== "number" || typeof y !== "number") return ZONES.skirmish[L];
   const inRiver = Math.abs((x + y) - 14800) < 1700 && x > 2800 && x < 12000 && y > 2800 && y < 12000;
   if (inRiver) {
-    if (x < 6800 && y > 7800) return ko ? "바론·전령 강가" : "Baron/Herald River";
-    if (x > 7800 && y < 6800) return ko ? "드래곤 강가" : "Dragon River";
-    return ko ? "중앙 강가" : "Mid River";
+    if (x < 6800 && y > 7800) return ZONES.baron[L];
+    if (x > 7800 && y < 6800) return ZONES.dragon[L];
+    return ZONES.mid_river[L];
   }
-  if (x < 2800 || y > 12200) return ko ? "탑 라인" : "Top Lane";
-  if (y < 2800 || x > 12200) return ko ? "바텀 라인" : "Bot Lane";
-  if (Math.abs(x - y) < 1500) return ko ? "미드 라인" : "Mid Lane";
+  if (x < 2800 || y > 12200) return ZONES.top[L];
+  if (y < 2800 || x > 12200) return ZONES.bot[L];
+  if (Math.abs(x - y) < 1500) return ZONES.mid[L];
   const isBlueSide = (x + y) < 14800;
   const isAllySide = (teamId === 100 && isBlueSide) || (teamId === 200 && !isBlueSide);
-  return isAllySide ? (ko ? "아군 정글" : "Ally Jungle") : (ko ? "상대 정글" : "Enemy Jungle");
+  return isAllySide ? ZONES.ally_jg[L] : ZONES.enemy_jg[L];
 }
 
 function fmtTime(ms) {
@@ -590,6 +608,9 @@ function profile(key, label, metric, value, unit, cell) {
 const GRADE_LABEL = {
   ko: { elite: "최상", high: "높음", avg: "보통", low: "낮음", risk: "위험" },
   en: { elite: "Elite", high: "High", avg: "Avg", low: "Low", risk: "Risk" },
+  ja: { elite: "最高", high: "高い", avg: "平均", low: "低い", risk: "注意" },
+  es: { elite: "Élite", high: "Alto", avg: "Medio", low: "Bajo", risk: "Riesgo" },
+  pt: { elite: "Elite", high: "Alto", avg: "Médio", low: "Baixo", risk: "Risco" },
 };
 
 /**
@@ -732,20 +753,45 @@ export function playerMetrics(match, timeline, pid) {
   return { m, pat, me, opp, events };
 }
 
-function objName(o, ko) {
-  if (o.type === "BUILDING_KILL") return o.buildingType === "INHIBITOR_BUILDING" ? (ko ? "억제기" : "Inhibitor") : (ko ? "포탑" : "Tower");
-  const names = { BARON_NASHOR: ["바론", "Baron"], DRAGON: ["드래곤", "Dragon"], RIFTHERALD: ["전령", "Herald"], HORDE: ["공허 유충", "Voidgrubs"], ATAKHAN: ["아타칸", "Atakhan"] };
-  return (names[o.monsterType] || [o.monsterType || "오브젝트", o.monsterType || "Objective"])[ko ? 0 : 1];
+function objName(o, lang) {
+  const L = normLang(lang);
+  if (o.type === "BUILDING_KILL") {
+    return o.buildingType === "INHIBITOR_BUILDING"
+      ? pickL({ en: "Inhibitor", ko: "억제기", ja: "インヒビター", es: "Inhibidor", pt: "Inibidor" }, L)
+      : pickL({ en: "Tower", ko: "포탑", ja: "タワー", es: "Torre", pt: "Torre" }, L);
+  }
+  const names = {
+    BARON_NASHOR: { en: "Baron", ko: "바론", ja: "バロン", es: "Barón", pt: "Barão" },
+    DRAGON: { en: "Dragon", ko: "드래곤", ja: "ドラゴン", es: "Dragón", pt: "Dragão" },
+    RIFTHERALD: { en: "Herald", ko: "전령", ja: "ヘラルド", es: "Heraldo", pt: "Arauto" },
+    HORDE: { en: "Voidgrubs", ko: "공허 유충", ja: "ヴォイドグラブ", es: "Larvas del Vacío", pt: "Vastilarvas" },
+    ATAKHAN: { en: "Atakhan", ko: "아타칸", ja: "アタカン", es: "Atakhan", pt: "Atakhan" },
+  };
+  return names[o.monsterType]?.[L] || o.monsterType || pickL({ en: "Objective", ko: "오브젝트", ja: "オブジェクト", es: "Objetivo", pt: "Objetivo" }, L);
 }
 
 const LABELS = {
-  lane: ["라인전", "Laning"], economy: ["경제", "Economy"], farm: ["파밍", "Farming"], combat: ["교전", "Combat"],
-  vision: ["시야", "Vision"], frontline: ["탱킹", "Frontline"], survival: ["생존", "Survival"], damage: ["딜 기여", "Damage"],
+  lane: { en: "Laning", ko: "라인전", ja: "レーン戦", es: "Línea", pt: "Rota" },
+  economy: { en: "Economy", ko: "경제", ja: "経済", es: "Economía", pt: "Economia" },
+  farm: { en: "Farming", ko: "파밍", ja: "ファーム", es: "Farmeo", pt: "Farm" },
+  combat: { en: "Combat", ko: "교전", ja: "交戦", es: "Combate", pt: "Combate" },
+  vision: { en: "Vision", ko: "시야", ja: "視界", es: "Visión", pt: "Visão" },
+  frontline: { en: "Frontline", ko: "탱킹", ja: "耐久", es: "Vanguardia", pt: "Linha de frente" },
+  survival: { en: "Survival", ko: "생존", ja: "生存", es: "Supervivencia", pt: "Sobrevivência" },
+  damage: { en: "Damage", ko: "딜 기여", ja: "ダメージ", es: "Daño", pt: "Dano" },
+};
+
+const PAT_LABELS = {
+  lvl6_lead_sec: { en: "Level 6 timing", ko: "6레벨 타이밍", ja: "Lv6タイミング", es: "Nivel 6", pt: "Nível 6" },
+  gank_deaths: { en: "Early gank deaths", ko: "초반 갱킹 주의", ja: "序盤ガンク警戒", es: "Gankeos tempranos", pt: "Ganks iniciais" },
+  obj_vision_rate: { en: "Objective vision", ko: "오브젝트 시야", ja: "オブジェクト視界", es: "Visión de objetivos", pt: "Visão de objetivos" },
+  power_play_rate: { en: "Baron/inhib conversion", ko: "바론·억제기 활용", ja: "バロン・インヒビ活用", es: "Aprovechar Barón", pt: "Aproveitar Barão" },
+  first_death_fights: { en: "First death in fights", ko: "한타 첫 데스", ja: "集団戦の先落ち", es: "Primera muerte en peleas", pt: "Primeira morte em lutas" },
 };
 
 /** Pure analysis. `baseline` = REVIEW_BASELINE (worker/review_baseline.js). */
 export function analyzeMatch(match, timeline, puuid, lang, baseline) {
-  const ko = lang === "ko";
+  const Lc = normLang(lang);
   const info = match?.info || {};
   const me0 = (info.participants || []).find((p) => p.puuid === puuid);
   if (!me0) return { error: "player_not_in_match" };
@@ -756,12 +802,25 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
   };
   if (isRemake(info) || group === "unsupported") {
     const remake = group !== "unsupported";
+    const tStr = fmtTime((info.gameDuration || 0) * 1000);
     return {
       ...base, status: remake ? "remake" : "unsupported", metrics: [], overall_perf: null, costly_deaths: [], patterns: {}, turning_point: null,
       coaching: {
         summary: remake
-          ? (ko ? `다시하기·조기 항복 경기(${fmtTime((info.gameDuration || 0) * 1000)})라 분석에서 제외했습니다.` : `Remake / early surrender (${fmtTime((info.gameDuration || 0) * 1000)}): excluded from analysis.`)
-          : (ko ? "이 모드는 복기 지표를 지원하지 않습니다." : "This mode is not supported by the review metrics."),
+          ? pickL({
+            en: `Remake / early surrender (${tStr}): excluded from analysis.`,
+            ko: `다시하기·조기 항복 경기(${tStr})라 분석에서 제외했습니다.`,
+            ja: `リメイク・早期降伏の試合（${tStr}）のため分析対象外です。`,
+            es: `Remake / rendición temprana (${tStr}): excluida del análisis.`,
+            pt: `Remake / rendição antecipada (${tStr}): excluída da análise.`,
+          }, Lc)
+          : pickL({
+            en: "This mode is not supported by the analysis metrics.",
+            ko: "이 모드는 AI 분석 지표를 지원하지 않습니다.",
+            ja: "このモードはAI分析の指標に対応していません。",
+            es: "Este modo no es compatible con las métricas de análisis.",
+            pt: "Este modo não é compatível com as métricas de análise.",
+          }, Lc),
         strengths: [], improvements: [], evidence: [],
       },
       findings: [], limitation: "",
@@ -772,7 +831,7 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
   const { m, pat, me, opp, events } = pm;
   const bucket = durationBucket(m.durMin, baseline?.duration_edges?.[group === "other" ? "rift" : group]);
   const cell = (metric) => baselineCell(baseline, group, m.position, bucket, metric);
-  const L = (k) => LABELS[k][ko ? 0 : 1];
+  const L = (k) => LABELS[k]?.[Lc] || LABELS[k]?.en || k;
 
   const laneMetric = group === "aram" || m.lane_gd15 === null ? "gold_per_min" : "lane_gd15";
   const defs = group === "aram"
@@ -782,7 +841,7 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
       ["vision", "vision_per_min", "/m"], ["survival", "deaths_per10", "/10m"], ["damage", "dmg_share", "%"]];
   const metrics = defs.map(([key, metric, unit]) => {
     const p = profile(key, L(key), metric, m[metric], unit, cell(metric));
-    p.grade = GRADE_LABEL[ko ? "ko" : "en"][p.grade_code];
+    p.grade = (GRADE_LABEL[Lc] || GRADE_LABEL.en)[p.grade_code];
     return p;
   });
 
@@ -790,10 +849,10 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
   // (scripts/build_review_baseline.mjs stores it as `composite_z`), so its percentile is not compressed.
   const metricZ = metrics.filter((p) => p.z !== null).map((p) => p.z);
   const meanZ = metricZ.length ? metricZ.reduce((a, b) => a + b, 0) / metricZ.length : null;
-  const ovp = profile("overall", ko ? "종합" : "Overall", "composite_z", meanZ, "z", cell("composite_z"));
+  const ovp = profile("overall", pickL({ en: "Overall", ko: "종합", ja: "総合", es: "General", pt: "Geral" }, Lc), "composite_z", meanZ, "z", cell("composite_z"));
   const overall = ovp.baseline && meanZ !== null
     ? { t_score: ovp.t_score, percentile: ovp.percentile, top_pct: Number((100 - ovp.percentile).toFixed(1)),
-      grade: GRADE_LABEL[ko ? "ko" : "en"][ovp.grade_code], grade_code: ovp.grade_code, mean_z: Number(meanZ.toFixed(3)), metrics_used: metricZ.length, baseline: ovp.baseline }
+      grade: (GRADE_LABEL[Lc] || GRADE_LABEL.en)[ovp.grade_code], grade_code: ovp.grade_code, mean_z: Number(meanZ.toFixed(3)), metrics_used: metricZ.length, baseline: ovp.baseline }
     : null;
 
   // Costly deaths (existing §15 evidence)
@@ -805,11 +864,11 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
   const costly = [];
   for (const d of events.filter((e) => e.type === "CHAMPION_KILL" && e.victimId === myPid)) {
     const ts = d.timestamp || 0;
-    const lost = [...new Set(enemyObjectives.filter((o) => o.timestamp >= ts && o.timestamp <= ts + 60000).map((o) => objName(o, ko)))];
+    const lost = [...new Set(enemyObjectives.filter((o) => o.timestamp >= ts && o.timestamp <= ts + 60000).map((o) => objName(o, Lc)))];
     const wardsPrior3m = myWards.filter((w) => w.timestamp >= ts - 180000 && w.timestamp <= ts).length;
     const attackers = 1 + (d.assistingParticipantIds?.length || 0);
     costly.push({
-      time: fmtTime(ts), zone: group === "aram" ? (ko ? "칼바람 다리" : "ARAM bridge") : classifyZone(d.position?.x, d.position?.y, myTeam, lang),
+      time: fmtTime(ts), zone: group === "aram" ? ZONES.aram[Lc] : classifyZone(d.position?.x, d.position?.y, myTeam, Lc),
       attackers, objectives_lost_60s: lost, wards_prior_3m: wardsPrior3m, bounty: d.shutdownBounty || 0,
       _score: lost.length * 100 + (ts > 900000 ? 30 : 10) + (group !== "aram" && wardsPrior3m === 0 ? 15 : 0) + attackers * 5 + (d.shutdownBounty || 0) / 50,
     });
@@ -837,8 +896,8 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
     const objs = events.filter((e) => inWin(e) && ((e.type === "ELITE_MONSTER_KILL" && e.killerTeamId)
       || e.type === "BUILDING_KILL"));
     const tally = (names) => Object.entries(names.reduce((a, n) => ({ ...a, [n]: (a[n] || 0) + 1 }), {})).map(([n, c]) => (c > 1 ? `${n} ${c}` : n));
-    const ours = tally(objs.filter((e) => (e.type === "ELITE_MONSTER_KILL" ? e.killerTeamId === myTeam : e.teamId !== myTeam)).map((e) => objName(e, ko)));
-    const theirs = tally(objs.filter((e) => (e.type === "ELITE_MONSTER_KILL" ? e.killerTeamId !== myTeam : e.teamId === myTeam)).map((e) => objName(e, ko)));
+    const ours = tally(objs.filter((e) => (e.type === "ELITE_MONSTER_KILL" ? e.killerTeamId === myTeam : e.teamId !== myTeam)).map((e) => objName(e, Lc)));
+    const theirs = tally(objs.filter((e) => (e.type === "ELITE_MONSTER_KILL" ? e.killerTeamId !== myTeam : e.teamId === myTeam)).map((e) => objName(e, Lc)));
     turning = {
       from: fmtTime(swing.from), to: fmtTime(swing.to), team_gold_swing: swing.delta, team_gold_before: swing.before,
       my_deaths: myDeaths.map((e) => fmtTime(e.timestamp)), objectives_taken: ours, objectives_lost: theirs, favorable: swing.delta > 0,
@@ -852,24 +911,67 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
     const sign = p.unit === "G" && p.raw > 0 ? "+" : "";
     const ref = `${p.baseline.mean.toFixed(p.metric === "lane_gd15" ? 0 : 2)}`;
     const valTxt = `${sign}${p.raw}${p.unit}`;
+    const topP = Math.max(1, Math.round(100 - p.percentile));
+    const botP = Math.max(1, Math.round(p.percentile));
     if (p.t_score >= REVIEW_RULES.strengthT) {
-      ev.push({ side: "strength", key: p.key, z: (p.t_score - 50) / 10, value: valTxt, text: ko
-        ? `${p.label} ${valTxt} — 같은 포지션 평균(${ref}${p.unit})보다 좋아요 (상위 ${Math.max(1, Math.round(100 - p.percentile))}%).`
-        : `${p.label} ${valTxt} beat the same-role average (${ref}${p.unit}, top ${Math.max(1, Math.round(100 - p.percentile))}%).` });
+      ev.push({ side: "strength", key: p.key, z: (p.t_score - 50) / 10, value: valTxt, text: pickL({
+        en: `${p.label} ${valTxt} beat the same-role average (${ref}${p.unit}, top ${topP}%).`,
+        ko: `${p.label} ${valTxt} — 같은 포지션 평균(${ref}${p.unit})보다 좋아요 (상위 ${topP}%).`,
+        ja: `${p.label} ${valTxt} — 同じロールの平均（${ref}${p.unit}）を上回りました（上位${topP}%）。`,
+        es: `${p.label} ${valTxt} superó el promedio del rol (${ref}${p.unit}, top ${topP}%).`,
+        pt: `${p.label} ${valTxt} superou a média da função (${ref}${p.unit}, top ${topP}%).`,
+      }, Lc) });
     } else if (p.t_score < REVIEW_RULES.weaknessT) {
-      ev.push({ side: "improvement", key: p.key, z: (p.t_score - 50) / 10, value: valTxt, text: ko
-        ? `${p.label} ${valTxt} — 같은 포지션 평균(${ref}${p.unit})보다 아쉬워요 (하위 ${Math.max(1, Math.round(p.percentile))}%).`
-        : `${p.label} ${valTxt} fell short of the same-role average (${ref}${p.unit}, bottom ${Math.max(1, Math.round(p.percentile))}%).` });
+      ev.push({ side: "improvement", key: p.key, z: (p.t_score - 50) / 10, value: valTxt, text: pickL({
+        en: `${p.label} ${valTxt} fell short of the same-role average (${ref}${p.unit}, bottom ${botP}%).`,
+        ko: `${p.label} ${valTxt} — 같은 포지션 평균(${ref}${p.unit})보다 아쉬워요 (하위 ${botP}%).`,
+        ja: `${p.label} ${valTxt} — 同じロールの平均（${ref}${p.unit}）を下回りました（下位${botP}%）。`,
+        es: `${p.label} ${valTxt} quedó por debajo del promedio del rol (${ref}${p.unit}, inferior ${botP}%).`,
+        pt: `${p.label} ${valTxt} ficou abaixo da média da função (${ref}${p.unit}, inferior ${botP}%).`,
+      }, Lc) });
     }
   }
   const zs = REVIEW_RULES.strengthT / 10 - 5; // +0.5
   const zw = REVIEW_RULES.weaknessT / 10 - 5; // -0.5
   const patText = {
-    lvl6_lead_sec: (v, good) => ko ? `레벨 6을 맞라인 상대보다 ${Math.abs(v).toFixed(0)}초 ${good ? "먼저" : "늦게"} 찍었습니다.` : `Hit level 6 ${Math.abs(v).toFixed(0)}s ${good ? "before" : "after"} your lane opponent.`,
-    gank_deaths: (v) => ko ? `14분 전 상대 정글이 관여한 데스 ${v}회 — 정글 위치를 모를 때 라인 앞쪽에 섰던 시간이 길었습니다.` : `${v} deaths before 14:00 involving the enemy jungler.`,
-    obj_vision_rate: (v, good) => ko ? `오브젝트 처치 60초 전 내 와드 설치율 ${v.toFixed(0)}%${good ? " — 오브젝트 시야 준비가 좋았습니다." : " — 오브젝트 전 시야 준비가 부족했습니다."}` : `Placed a ward in the 60s before ${v.toFixed(0)}% of epic objectives.`,
-    power_play_rate: (v, good) => ko ? `바론·억제기 뒤 3분 안 포탑 전환율 ${v.toFixed(0)}%${good ? "." : " — 이득을 구조물로 바꾸지 못했습니다."}` : `${v.toFixed(0)}% of baron/inhibitor leads became structures within 3 min.`,
-    first_death_fights: (v) => ko ? `진 한타 ${v}회에서 첫 데스였습니다 — 아군보다 먼저 들어가거나 먼저 잡혔습니다.` : `First to die in ${v} lost teamfight(s).`,
+    lvl6_lead_sec: (v, good) => {
+      const s = Math.abs(v).toFixed(0);
+      return pickL({
+        en: `Hit level 6 ${s}s ${good ? "before" : "after"} your lane opponent.`,
+        ko: `레벨 6을 맞라인 상대보다 ${s}초 ${good ? "먼저" : "늦게"} 찍었습니다.`,
+        ja: `対面より${s}秒${good ? "早く" : "遅く"}レベル6に到達しました。`,
+        es: `Llegaste a nivel 6 ${s}s ${good ? "antes" : "después"} que tu rival de línea.`,
+        pt: `Pegou nível 6 ${s}s ${good ? "antes" : "depois"} do oponente de rota.`,
+      }, Lc);
+    },
+    gank_deaths: (v) => pickL({
+      en: `${v} death(s) before 14:00 involving the enemy jungler.`,
+      ko: `14분 전 상대 정글이 관여한 데스 ${v}회 — 정글 위치를 모를 때 라인 앞쪽에 섰던 시간이 길었습니다.`,
+      ja: `14分前に敵ジャングラー関与のデスが${v}回 — 位置不明時の押しすぎに注意。`,
+      es: `${v} muerte(s) antes del 14:00 con participación del jungla enemigo.`,
+      pt: `${v} morte(s) antes dos 14:00 com participação do caçador inimigo.`,
+    }, Lc),
+    obj_vision_rate: (v, good) => pickL({
+      en: `Placed a ward in the 60s before ${v.toFixed(0)}% of epic objectives.`,
+      ko: `오브젝트 처치 60초 전 내 와드 설치율 ${v.toFixed(0)}%${good ? " — 오브젝트 시야 준비가 좋았습니다." : " — 오브젝트 전 시야 준비가 부족했습니다."}`,
+      ja: `オブジェクト60秒前のワード設置率 ${v.toFixed(0)}%${good ? " — 視界準備が良好でした。" : " — 事前の視界確保が不足していました。"}`,
+      es: `Colocaste centinela 60s antes en el ${v.toFixed(0)}% de los objetivos épicos.`,
+      pt: `Colocou sentinela 60s antes em ${v.toFixed(0)}% dos objetivos épicos.`,
+    }, Lc),
+    power_play_rate: (v, good) => pickL({
+      en: `${v.toFixed(0)}% of baron/inhibitor leads became structures within 3 min.`,
+      ko: `바론·억제기 뒤 3분 안 포탑 전환율 ${v.toFixed(0)}%${good ? "." : " — 이득을 구조물로 바꾸지 못했습니다."}`,
+      ja: `バロン・インヒビ後の3分以内タワー破壊率 ${v.toFixed(0)}%${good ? "。" : " — 有利をオブジェクトに繋げられませんでした。"}`,
+      es: `${v.toFixed(0)}% de las ventajas de Barón/inhibidor se tradujeron en estructuras en 3 min.`,
+      pt: `${v.toFixed(0)}% das vantagens de Barão/inibidor viraram estruturas em 3 min.`,
+    }, Lc),
+    first_death_fights: (v) => pickL({
+      en: `First to die in ${v} lost teamfight(s).`,
+      ko: `진 한타 ${v}회에서 첫 데스였습니다 — 아군보다 먼저 들어가거나 먼저 잡혔습니다.`,
+      ja: `負けた集団戦${v}回で最初にデスしました — 立ち位置が前寄りでした。`,
+      es: `Fuiste el primero en morir en ${v} pelea(s) perdida(s).`,
+      pt: `Foi o primeiro a morrer em ${v} luta(s) perdida(s).`,
+    }, Lc),
   };
   for (const [k, z] of Object.entries(patternZ)) {
     if (!patText[k]) continue;
@@ -878,17 +980,43 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
   }
   if (turning) {
     const amt = Math.abs(turning.team_gold_swing).toLocaleString("en-US");
-    const deaths = turning.my_deaths.length ? (ko ? ` 이 구간 내 데스 ${turning.my_deaths.join("·")}.` : ` Your deaths: ${turning.my_deaths.join(", ")}.`) : "";
-    const lostTxt = turning.objectives_lost.length ? (ko ? ` 잃은 것: ${turning.objectives_lost.join("·")}.` : ` Lost: ${turning.objectives_lost.join(", ")}.`) : "";
-    const tookTxt = turning.objectives_taken.length ? (ko ? ` 얻은 것: ${turning.objectives_taken.join("·")}.` : ` Took: ${turning.objectives_taken.join(", ")}.`) : "";
+    const deaths = turning.my_deaths.length ? pickL({
+      en: ` Your deaths: ${turning.my_deaths.join(", ")}.`,
+      ko: ` 이 구간 내 데스 ${turning.my_deaths.join("·")}.`,
+      ja: ` この区間のデス: ${turning.my_deaths.join("・")}。`,
+      es: ` Tus muertes: ${turning.my_deaths.join(", ")}.`,
+      pt: ` Suas mortes: ${turning.my_deaths.join(", ")}.`,
+    }, Lc) : "";
+    const lostTxt = turning.objectives_lost.length ? pickL({
+      en: ` Lost: ${turning.objectives_lost.join(", ")}.`,
+      ko: ` 잃은 것: ${turning.objectives_lost.join("·")}.`,
+      ja: ` 失ったもの: ${turning.objectives_lost.join("・")}。`,
+      es: ` Perdido: ${turning.objectives_lost.join(", ")}.`,
+      pt: ` Perdido: ${turning.objectives_lost.join(", ")}.`,
+    }, Lc) : "";
+    const tookTxt = turning.objectives_taken.length ? pickL({
+      en: ` Took: ${turning.objectives_taken.join(", ")}.`,
+      ko: ` 얻은 것: ${turning.objectives_taken.join("·")}.`,
+      ja: ` 獲得: ${turning.objectives_taken.join("・")}。`,
+      es: ` Obtenido: ${turning.objectives_taken.join(", ")}.`,
+      pt: ` Obtido: ${turning.objectives_taken.join(", ")}.`,
+    }, Lc) : "";
     if (turning.favorable) {
-      ev.push({ side: "strength", key: "turning_point", z: swingZ === undefined ? null : swingZ, basis: swing.flip ? "lead_flip" : "swing_size", value: String(turning.team_gold_swing), text: ko
-        ? `${turning.from}~${turning.to} 구간에 팀 골드를 +${amt}G 벌리며 승기를 잡았어요.${tookTxt}`
-        : `Key swing ${turning.from}-${turning.to}: team gold grew by +${amt}G in 3 min.${tookTxt}` });
+      ev.push({ side: "strength", key: "turning_point", z: swingZ === undefined ? null : swingZ, basis: swing.flip ? "lead_flip" : "swing_size", value: String(turning.team_gold_swing), text: pickL({
+        en: `Key swing ${turning.from}-${turning.to}: team gold grew by +${amt}G in 3 min.${tookTxt}`,
+        ko: `${turning.from}~${turning.to} 구간에 팀 골드를 +${amt}G 벌리며 승기를 잡았어요.${tookTxt}`,
+        ja: `${turning.from}〜${turning.to}の3分間でチームゴールドを+${amt}G広げ、主導権を握りました。${tookTxt}`,
+        es: `Tramo clave ${turning.from}-${turning.to}: el oro del equipo subió +${amt}G en 3 min.${tookTxt}`,
+        pt: `Trecho decisivo ${turning.from}-${turning.to}: o ouro da equipe subiu +${amt}G em 3 min.${tookTxt}`,
+      }, Lc) });
     } else {
-      ev.push({ side: "improvement", key: "turning_point", z: swingZ === undefined ? null : -swingZ, basis: swing.flip ? "lead_flip" : "swing_size", value: String(turning.team_gold_swing), text: ko
-        ? `${turning.from}~${turning.to} 구간에 팀 골드가 -${amt}G 밀리며 승기가 기울었어요.${deaths}${lostTxt}`
-        : `Key swing ${turning.from}-${turning.to}: team gold dropped by -${amt}G in 3 min.${deaths}${lostTxt}` });
+      ev.push({ side: "improvement", key: "turning_point", z: swingZ === undefined ? null : -swingZ, basis: swing.flip ? "lead_flip" : "swing_size", value: String(turning.team_gold_swing), text: pickL({
+        en: `Key swing ${turning.from}-${turning.to}: team gold dropped by -${amt}G in 3 min.${deaths}${lostTxt}`,
+        ko: `${turning.from}~${turning.to} 구간에 팀 골드가 -${amt}G 밀리며 승기가 기울었어요.${deaths}${lostTxt}`,
+        ja: `${turning.from}〜${turning.to}の3分間でチームゴールドが-${amt}G離され、試合が傾きました。${deaths}${lostTxt}`,
+        es: `Tramo clave ${turning.from}-${turning.to}: el oro del equipo cayó -${amt}G en 3 min.${deaths}${lostTxt}`,
+        pt: `Trecho decisivo ${turning.from}-${turning.to}: o ouro da equipe caiu -${amt}G em 3 min.${deaths}${lostTxt}`,
+      }, Lc) });
     }
   }
   const strengthsEv = ev.filter((e) => e.side === "strength").sort((a, b) => (b.z ?? 0) - (a.z ?? 0)).slice(0, REVIEW_RULES.maxItems);
@@ -896,32 +1024,61 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
   const improvEv = ev.filter((e) => e.side === "improvement")
     .sort((a, b) => (b.key === "turning_point") - (a.key === "turning_point") || (a.z ?? 0) - (b.z ?? 0)).slice(0, REVIEW_RULES.maxItems);
   const strengths = strengthsEv.length ? strengthsEv.map((e) => e.text)
-    : [ko ? "같은 포지션 평균보다 크게 앞선 항목은 없었어요." : "No metric clearly above the role average."];
+    : [pickL({
+      en: "No metric clearly above the role average.",
+      ko: "같은 포지션 평균보다 크게 앞선 항목은 없었어요.",
+      ja: "同じロールの平均を大きく上回る項目はありませんでした。",
+      es: "Ninguna métrica estuvo claramente por encima del promedio.",
+      pt: "Nenhuma métrica ficou claramente acima da média.",
+    }, Lc)];
   const improvements = improvEv.length ? improvEv.map((e) => e.text)
-    : [ko ? "같은 포지션 평균보다 크게 뒤처진 항목은 없었어요." : "No metric clearly below the role average."];
+    : [pickL({
+      en: "No metric clearly below the role average.",
+      ko: "같은 포지션 평균보다 크게 뒤처진 항목은 없었어요.",
+      ja: "同じロールの平均を大きく下回る項目はありませんでした。",
+      es: "Ninguna métrica estuvo claramente por debajo del promedio.",
+      pt: "Nenhuma métrica ficou claramente abaixo da média.",
+    }, Lc)];
 
-  const PAT_LABELS = {
-    lvl6_lead_sec: ["6레벨 타이밍", "Level 6 timing"],
-    gank_deaths: ["초반 갱킹 주의", "Early gank deaths"],
-    obj_vision_rate: ["오브젝트 시야", "Objective vision"],
-    power_play_rate: ["바론·억제기 활용", "Baron/inhib conversion"],
-    first_death_fights: ["한타 첫 데스", "First death in fights"],
-  };
-  const labelOf = (k) => (LABELS[k] || PAT_LABELS[k])?.[ko ? 0 : 1] || (ko ? "플레이 흐름" : "play pattern");
+  const labelOf = (k) => (LABELS[k] || PAT_LABELS[k])?.[Lc] || (LABELS[k] || PAT_LABELS[k])?.en || pickL({ en: "play", ko: "플레이", ja: "プレイ", es: "juego", pt: "jogo" }, Lc);
 
-  const oppName = opp?.championName || (ko ? "맞라인 상대 없음" : "no lane opponent");
+  const oppName = opp?.championName || pickL({ en: "no lane opponent", ko: "맞라인 상대 없음", ja: "対面なし", es: "sin rival", pt: "sem oponente" }, Lc);
   const durTxt = fmtTime((info.gameDuration || 0) * 1000);
+  const winTxt = me.win
+    ? pickL({ en: "Win", ko: "승리", ja: "勝利", es: "Victoria", pt: "Vitória" }, Lc)
+    : pickL({ en: "Loss", ko: "패배", ja: "敗北", es: "Derrota", pt: "Derrota" }, Lc);
   const top = strengthsEv[0];
   const low = improvEv[0];
-  const head = `${me.championName}${group === "aram" ? "" : ` vs ${oppName}`} (${me.win ? (ko ? "승리" : "Win") : (ko ? "패배" : "Loss")}, ${durTxt})`;
+  const head = `${me.championName}${group === "aram" ? "" : ` vs ${oppName}`} (${winTxt}, ${durTxt})`;
   let tail = "";
-  if (ko) {
+  if (Lc === "ko") {
     const goodTxt = top ? (top.key === "turning_point" ? `${turning.from}~${turning.to} 구간 주도권` : labelOf(top.key)) : "";
     const fixTxt = low ? (low.key === "turning_point" ? `${turning.from}~${turning.to} 구간에 격차가 크게 벌어졌어요` : `${labelOf(low.key)} 쪽을 먼저 보완해 보세요`) : "";
     if (goodTxt && fixTxt) tail = ` — ${goodTxt}은(는) 좋았지만, ${fixTxt}.`;
     else if (goodTxt) tail = ` — 전반적으로 무난했고, 특히 ${goodTxt}이(가) 좋았어요.`;
     else if (fixTxt) tail = ` — ${fixTxt}.`;
     else tail = " — 전체적으로 평균 수준의 무난한 경기였어요.";
+  } else if (Lc === "ja") {
+    const goodTxt = top ? (top.key === "turning_point" ? `${turning.from}〜${turning.to}の主導権` : labelOf(top.key)) : "";
+    const fixTxt = low ? (low.key === "turning_point" ? `${turning.from}〜${turning.to}で差が広がりました` : `次は${labelOf(low.key)}を意識してみましょう`) : "";
+    if (goodTxt && fixTxt) tail = ` — ${goodTxt}は良かったですが、${fixTxt}。`;
+    else if (goodTxt) tail = ` — 全体的に安定しており、特に${goodTxt}が優秀でした。`;
+    else if (fixTxt) tail = ` — ${fixTxt}。`;
+    else tail = " — 全体的に平均的な安定した試合でした。";
+  } else if (Lc === "es") {
+    const goodTxt = top ? (top.key === "turning_point" ? `el impulso de ${turning.from}-${turning.to}` : labelOf(top.key)) : "";
+    const fixTxt = low ? (low.key === "turning_point" ? `la partida se escapó entre ${turning.from} y ${turning.to}` : `mejora ${labelOf(low.key)} en la próxima`) : "";
+    if (goodTxt && fixTxt) tail = ` — buen nivel en ${goodTxt}, pero ${fixTxt}.`;
+    else if (goodTxt) tail = ` — partida sólida, destacando en ${goodTxt}.`;
+    else if (fixTxt) tail = ` — ${fixTxt}.`;
+    else tail = " — rendimiento estable dentro del promedio.";
+  } else if (Lc === "pt") {
+    const goodTxt = top ? (top.key === "turning_point" ? `o ritmo em ${turning.from}-${turning.to}` : labelOf(top.key)) : "";
+    const fixTxt = low ? (low.key === "turning_point" ? `o jogo escapou entre ${turning.from} e ${turning.to}` : `foque em ${labelOf(low.key)} na próxima`) : "";
+    if (goodTxt && fixTxt) tail = ` — bom destaque em ${goodTxt}, mas ${fixTxt}.`;
+    else if (goodTxt) tail = ` — partida consistente, com destaque em ${goodTxt}.`;
+    else if (fixTxt) tail = ` — ${fixTxt}.`;
+    else tail = " — desempenho estável dentro da média.";
   } else {
     const goodTxt = top ? (top.key === "turning_point" ? `${turning.from}-${turning.to} momentum` : labelOf(top.key)) : "";
     const fixTxt = low ? (low.key === "turning_point" ? `the game slipped during ${turning.from}-${turning.to}` : `focus on ${labelOf(low.key)} next game`) : "";
@@ -935,20 +1092,61 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
   const findings = [];
   const csm = m.cs_per_min.toFixed(1);
   const kpTxt = m.kp === null ? "-" : `${Math.round(m.kp)}%`;
+  const gdStr = m.lane_gd15 !== null ? `${m.lane_gd15 >= 0 ? "+" : ""}${m.lane_gd15}G` : "";
   findings.push(m.lane_gd15 !== null
-    ? (ko ? `15분 맞라인 골드 차이: ${m.lane_gd15 >= 0 ? "+" : ""}${m.lane_gd15}G (분당 CS ${csm}, 킬관여 ${kpTxt}, 시야 점수 ${me.visionScore || 0}).`
-      : `15m lane gold diff: ${m.lane_gd15 >= 0 ? "+" : ""}${m.lane_gd15}G (${csm} CS/m, ${kpTxt} KP, ${me.visionScore || 0} vision).`)
-    : (ko ? `경기 요약: 분당 CS ${csm}, 킬관여 ${kpTxt}, 시야 점수 ${me.visionScore || 0}.` : `Match summary: ${csm} CS/m, ${kpTxt} KP, ${me.visionScore || 0} vision.`));
+    ? pickL({
+      en: `15m lane gold diff: ${gdStr} (${csm} CS/m, ${kpTxt} KP, ${me.visionScore || 0} vision).`,
+      ko: `15분 맞라인 골드 차이: ${gdStr} (분당 CS ${csm}, 킬관여 ${kpTxt}, 시야 점수 ${me.visionScore || 0}).`,
+      ja: `15分対面ゴールド差: ${gdStr}（CS/分 ${csm}、キル関与 ${kpTxt}、視界スコア ${me.visionScore || 0}）。`,
+      es: `Diferencia de oro al 15m: ${gdStr} (${csm} CS/m, ${kpTxt} KP, ${me.visionScore || 0} visión).`,
+      pt: `Diferença de ouro aos 15m: ${gdStr} (${csm} CS/m, ${kpTxt} KP, ${me.visionScore || 0} visão).`,
+    }, Lc)
+    : pickL({
+      en: `Match summary: ${csm} CS/m, ${kpTxt} KP, ${me.visionScore || 0} vision.`,
+      ko: `경기 요약: 분당 CS ${csm}, 킬관여 ${kpTxt}, 시야 점수 ${me.visionScore || 0}.`,
+      ja: `試合サマリー: CS/分 ${csm}、キル関与 ${kpTxt}、視界スコア ${me.visionScore || 0}。`,
+      es: `Resumen: ${csm} CS/m, ${kpTxt} KP, ${me.visionScore || 0} visión.`,
+      pt: `Resumo: ${csm} CS/m, ${kpTxt} KP, ${me.visionScore || 0} visão.`,
+    }, Lc));
   for (const d of topDeaths) {
-    const objTxt = d.objectives_lost_60s.length ? (ko ? ` → 사망 후 60초 내 ${d.objectives_lost_60s.join("·")} 손실` : ` → lost ${d.objectives_lost_60s.join(", ")} within 60s`) : "";
-    const wardTxt = group === "aram" ? "" : (ko ? ` (직전 3분 와드 ${d.wards_prior_3m}개)` : ` (${d.wards_prior_3m} wards in prior 3m)`);
-    findings.push(ko ? `${d.time} ${d.zone}에서 ${d.attackers}명에게 사망${objTxt}${wardTxt}.` : `${d.time} died in ${d.zone} vs ${d.attackers}${objTxt}${wardTxt}.`);
+    const objTxt = d.objectives_lost_60s.length ? pickL({
+      en: ` → lost ${d.objectives_lost_60s.join(", ")} within 60s`,
+      ko: ` → 사망 후 60초 내 ${d.objectives_lost_60s.join("·")} 손실`,
+      ja: ` → デス後60秒以内に${d.objectives_lost_60s.join("・")}を喪失`,
+      es: ` → se perdió ${d.objectives_lost_60s.join(", ")} en 60s`,
+      pt: ` → perdeu ${d.objectives_lost_60s.join(", ")} em 60s`,
+    }, Lc) : "";
+    const wardTxt = group === "aram" ? "" : pickL({
+      en: ` (${d.wards_prior_3m} wards in prior 3m)`,
+      ko: ` (직전 3분 와드 ${d.wards_prior_3m}개)`,
+      ja: `（直前3分のワード${d.wards_prior_3m}個）`,
+      es: ` (${d.wards_prior_3m} centinelas en los 3m previos)`,
+      pt: ` (${d.wards_prior_3m} sentinelas nos 3m anteriores)`,
+    }, Lc);
+    findings.push(pickL({
+      en: `${d.time} died in ${d.zone} vs ${d.attackers}${objTxt}${wardTxt}.`,
+      ko: `${d.time} ${d.zone}에서 ${d.attackers}명에게 사망${objTxt}${wardTxt}.`,
+      ja: `${d.time} ${d.zone}で${d.attackers}人にデス${objTxt}${wardTxt}。`,
+      es: `${d.time} muerte en ${d.zone} contra ${d.attackers}${objTxt}${wardTxt}.`,
+      pt: `${d.time} morte em ${d.zone} contra ${d.attackers}${objTxt}${wardTxt}.`,
+    }, Lc));
   }
-  if (!topDeaths.length) findings.push(ko ? "기록된 사망이 없거나 타임라인 데이터가 없는 경기입니다." : "No deaths recorded or timeline unavailable.");
+  if (!topDeaths.length) {
+    findings.push(pickL({
+      en: "No deaths recorded or timeline unavailable.",
+      ko: "기록된 사망이 없거나 타임라인 데이터가 없는 경기입니다.",
+      ja: "デス記録がないか、タイムラインデータがありません。",
+      es: "Sin muertes registradas o sin datos de línea de tiempo.",
+      pt: "Sem mortes registradas ou sem dados de linha do tempo.",
+    }, Lc));
+  }
 
   const { _drop, _rise, ...patterns } = pat;
   const sample = metrics.find((p) => p.baseline)?.baseline;
   const afk = afkParticipants(timeline);
+  const modeTxt = group === "aram"
+    ? pickL({ en: "ARAM", ko: "칼바람", ja: "ARAM", es: "ARAM", pt: "ARAM" }, Lc)
+    : pickL({ en: "ranked Summoner's Rift", ko: "솔로 랭크", ja: "ランク戦", es: "clasificatorias", pt: "ranqueadas" }, Lc);
   return {
     ...base, status: "ok",
     data_quality: { afk: afk.length, me_afk: afk.includes(me0.participantId), ally_afk: afk.filter((pid) => (pid <= 5) === (me0.participantId <= 5) && pid !== me0.participantId).length },
@@ -958,9 +1156,13 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
     baseline: { queue: group === "other" ? "rift" : group, position: m.position, duration_bucket: bucket, source: baseline?.source || null },
     coaching: { summary, strengths, improvements, evidence: [...strengthsEv, ...improvEv].map(({ text, ...rest }) => rest) },
     findings,
-    limitation: ko
-      ? `비교 기준: Riot 공식 경기 기록을 같은 ${group === "aram" ? "칼바람" : "솔로 랭크"} 포지션·경기 길이 평균${sample ? `(표본 ${sample.n}명)` : ""}과 비교했습니다. 스킬 적중·상대 와드·팀 콜은 기록에 없어 제외됩니다.`
-      : `Basis: compared against real ${group === "aram" ? "ARAM" : "ranked Summoner's Rift"} matches of the same role and game length${sample ? ` (n=${sample.n})` : ""}. Skillshots, enemy wards, and comms are not in match data.`,
+    limitation: pickL({
+      en: `Basis: compared against real ${modeTxt} matches of the same role and game length${sample ? ` (n=${sample.n})` : ""}. Skillshots, enemy wards, and comms are not in match data.`,
+      ko: `비교 기준: Riot 공식 경기 기록을 같은 ${modeTxt} 포지션·경기 길이 평균${sample ? `(표본 ${sample.n}명)` : ""}과 비교했습니다. 스킬 적중·상대 와드·팀 콜은 기록에 없어 제외됩니다.`,
+      ja: `比較基準: Riot公式の${modeTxt}試合記録を同じロール・試合時間の平均${sample ? `（標本${sample.n}件）` : ""}と比較しました。スキル命中・敵ワード・コールは含まれません。`,
+      es: `Base: comparado con partidas reales de ${modeTxt} del mismo rol y duración${sample ? ` (n=${sample.n})` : ""}. Habilidades, centinelas enemigos y comunicación no están en los datos.`,
+      pt: `Base: comparado com partidas reais de ${modeTxt} da mesma função e duração${sample ? ` (n=${sample.n})` : ""}. Habilidades, sentinelas inimigas e comunicação não entram nos dados.`,
+    }, Lc),
   };
 }
 
