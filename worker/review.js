@@ -840,12 +840,12 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
     const valTxt = `${sign}${p.raw}${p.unit}`;
     if (p.t_score >= REVIEW_RULES.strengthT) {
       ev.push({ side: "strength", key: p.key, z: (p.t_score - 50) / 10, value: valTxt, text: ko
-        ? `${p.label} ${valTxt} — 같은 포지션 기준 평균 ${ref}${p.unit}보다 좋습니다(T ${p.t_score}, 상위 ${Math.max(1, Math.round(100 - p.percentile))}%).`
-        : `${p.label} ${valTxt} beat the same-role average ${ref}${p.unit} (T ${p.t_score}, top ${Math.max(1, Math.round(100 - p.percentile))}%).` });
+        ? `${p.label} ${valTxt} — 같은 포지션 평균(${ref}${p.unit})보다 좋아요 (상위 ${Math.max(1, Math.round(100 - p.percentile))}%).`
+        : `${p.label} ${valTxt} beat the same-role average (${ref}${p.unit}, top ${Math.max(1, Math.round(100 - p.percentile))}%).` });
     } else if (p.t_score < REVIEW_RULES.weaknessT) {
       ev.push({ side: "improvement", key: p.key, z: (p.t_score - 50) / 10, value: valTxt, text: ko
-        ? `${p.label} ${valTxt} — 같은 포지션 기준 평균 ${ref}${p.unit}에 못 미쳤습니다(T ${p.t_score}, 하위 ${Math.max(1, Math.round(p.percentile))}%).`
-        : `${p.label} ${valTxt} fell short of the same-role average ${ref}${p.unit} (T ${p.t_score}, bottom ${Math.max(1, Math.round(p.percentile))}%).` });
+        ? `${p.label} ${valTxt} — 같은 포지션 평균(${ref}${p.unit})보다 아쉬워요 (하위 ${Math.max(1, Math.round(p.percentile))}%).`
+        : `${p.label} ${valTxt} fell short of the same-role average (${ref}${p.unit}, bottom ${Math.max(1, Math.round(p.percentile))}%).` });
     }
   }
   const zs = REVIEW_RULES.strengthT / 10 - 5; // +0.5
@@ -869,12 +869,12 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
     const tookTxt = turning.objectives_taken.length ? (ko ? ` 얻은 것: ${turning.objectives_taken.join("·")}.` : ` Took: ${turning.objectives_taken.join(", ")}.`) : "";
     if (turning.favorable) {
       ev.push({ side: "strength", key: "turning_point", z: swingZ === undefined ? null : swingZ, basis: swing.flip ? "lead_flip" : "swing_size", value: String(turning.team_gold_swing), text: ko
-        ? `분수령 ${turning.from}~${turning.to}: 팀 골드 차가 3분 동안 +${amt} 벌어졌습니다.${tookTxt}`
-        : `Turning point ${turning.from}-${turning.to}: team gold lead grew by ${amt} in 3 min.${tookTxt}` });
+        ? `${turning.from}~${turning.to} 구간에 팀 골드를 +${amt}G 벌리며 승기를 잡았어요.${tookTxt}`
+        : `Key swing ${turning.from}-${turning.to}: team gold grew by +${amt}G in 3 min.${tookTxt}` });
     } else {
       ev.push({ side: "improvement", key: "turning_point", z: swingZ === undefined ? null : -swingZ, basis: swing.flip ? "lead_flip" : "swing_size", value: String(turning.team_gold_swing), text: ko
-        ? `분수령 ${turning.from}~${turning.to}: 팀 골드 차가 3분 동안 -${amt} 무너졌습니다.${deaths}${lostTxt}`
-        : `Turning point ${turning.from}-${turning.to}: team gold fell by ${amt} in 3 min.${deaths}${lostTxt}` });
+        ? `${turning.from}~${turning.to} 구간에 팀 골드가 -${amt}G 밀리며 승기가 기울었어요.${deaths}${lostTxt}`
+        : `Key swing ${turning.from}-${turning.to}: team gold dropped by -${amt}G in 3 min.${deaths}${lostTxt}` });
     }
   }
   const strengthsEv = ev.filter((e) => e.side === "strength").sort((a, b) => (b.z ?? 0) - (a.z ?? 0)).slice(0, REVIEW_RULES.maxItems);
@@ -882,17 +882,41 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
   const improvEv = ev.filter((e) => e.side === "improvement")
     .sort((a, b) => (b.key === "turning_point") - (a.key === "turning_point") || (a.z ?? 0) - (b.z ?? 0)).slice(0, REVIEW_RULES.maxItems);
   const strengths = strengthsEv.length ? strengthsEv.map((e) => e.text)
-    : [ko ? "기준 분포에서 평균보다 뚜렷하게(T 55 이상) 앞선 지표가 없습니다." : "No metric clearly above the baseline (T >= 55)."];
+    : [ko ? "같은 포지션 평균보다 크게 앞선 항목은 없었어요." : "No metric clearly above the role average."];
   const improvements = improvEv.length ? improvEv.map((e) => e.text)
-    : [ko ? "기준 분포에서 평균보다 뚜렷하게(T 45 미만) 뒤처진 지표가 없습니다." : "No metric clearly below the baseline (T < 45)."];
+    : [ko ? "같은 포지션 평균보다 크게 뒤처진 항목은 없었어요." : "No metric clearly below the role average."];
+
+  const PAT_LABELS = {
+    lvl6_lead_sec: ["6레벨 타이밍", "Level 6 timing"],
+    gank_deaths: ["초반 갱킹 주의", "Early gank deaths"],
+    obj_vision_rate: ["오브젝트 시야", "Objective vision"],
+    power_play_rate: ["바론·억제기 활용", "Baron/inhib conversion"],
+    first_death_fights: ["한타 첫 데스", "First death in fights"],
+  };
+  const labelOf = (k) => (LABELS[k] || PAT_LABELS[k])?.[ko ? 0 : 1] || (ko ? "플레이 흐름" : "play pattern");
 
   const oppName = opp?.championName || (ko ? "맞라인 상대 없음" : "no lane opponent");
   const durTxt = fmtTime((info.gameDuration || 0) * 1000);
   const top = strengthsEv[0];
   const low = improvEv[0];
-  const summary = ko
-    ? `${me.championName}${group === "aram" ? "" : ` vs ${oppName}`} (${me.win ? "승리" : "패배"}, ${durTxt})${top ? ` — 강점: ${LABELS[top.key]?.[0] || "패턴"}` : ""}${low ? ` · 우선 고칠 점: ${low.key === "turning_point" ? `${turning.from}~${turning.to} 분수령` : (LABELS[low.key]?.[0] || "패턴")}` : ""}.`
-    : `${me.championName}${group === "aram" ? "" : ` vs ${oppName}`} (${me.win ? "Win" : "Loss"}, ${durTxt})${top ? ` — strength: ${LABELS[top.key]?.[1] || "pattern"}` : ""}${low ? ` · fix first: ${low.key === "turning_point" ? `${turning.from}-${turning.to} turning point` : (LABELS[low.key]?.[1] || "pattern")}` : ""}.`;
+  const head = `${me.championName}${group === "aram" ? "" : ` vs ${oppName}`} (${me.win ? (ko ? "승리" : "Win") : (ko ? "패배" : "Loss")}, ${durTxt})`;
+  let tail = "";
+  if (ko) {
+    const goodTxt = top ? (top.key === "turning_point" ? `${turning.from}~${turning.to} 구간 주도권` : labelOf(top.key)) : "";
+    const fixTxt = low ? (low.key === "turning_point" ? `${turning.from}~${turning.to} 구간에 격차가 크게 벌어졌어요` : `${labelOf(low.key)} 쪽을 먼저 보완해 보세요`) : "";
+    if (goodTxt && fixTxt) tail = ` — ${goodTxt}은(는) 좋았지만, ${fixTxt}.`;
+    else if (goodTxt) tail = ` — 전반적으로 무난했고, 특히 ${goodTxt}이(가) 좋았어요.`;
+    else if (fixTxt) tail = ` — ${fixTxt}.`;
+    else tail = " — 전체적으로 평균 수준의 무난한 경기였어요.";
+  } else {
+    const goodTxt = top ? (top.key === "turning_point" ? `${turning.from}-${turning.to} momentum` : labelOf(top.key)) : "";
+    const fixTxt = low ? (low.key === "turning_point" ? `the game slipped during ${turning.from}-${turning.to}` : `focus on ${labelOf(low.key)} next game`) : "";
+    if (goodTxt && fixTxt) tail = ` — strong ${goodTxt}, but ${fixTxt}.`;
+    else if (goodTxt) tail = ` — solid game overall, especially ${goodTxt}.`;
+    else if (fixTxt) tail = ` — ${fixTxt}.`;
+    else tail = " — steady average performance overall.";
+  }
+  const summary = head + tail;
 
   const findings = [];
   const csm = m.cs_per_min.toFixed(1);
@@ -921,8 +945,8 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
     coaching: { summary, strengths, improvements, evidence: [...strengthsEv, ...improvEv].map(({ text, ...rest }) => rest) },
     findings,
     limitation: ko
-      ? `근거 범위: Riot 공식 경기·1분 타임라인 수치를 ${group === "aram" ? "칼바람" : "솔로 랭크 협곡"} 실제 경기 분포(포지션·경기 길이별${sample ? `, 표본 ${sample.n}명` : ""})와 비교한 T점수(50+10z)입니다. 티어별 분포가 아니며, 스킬 적중·상대 와드·팀 콜은 데이터에 없어 단정하지 않습니다.`
-      : `Scope: T-scores (50+10z) against real ${group === "aram" ? "ARAM" : "ranked Summoner's Rift"} matches by role and game length${sample ? ` (n=${sample.n})` : ""}. Not tier-specific; skillshots, enemy wards and comms are not in the data.`,
+      ? `비교 기준: Riot 공식 경기 기록을 같은 ${group === "aram" ? "칼바람" : "솔로 랭크"} 포지션·경기 길이 평균${sample ? `(표본 ${sample.n}명)` : ""}과 비교했습니다. 스킬 적중·상대 와드·팀 콜은 기록에 없어 제외됩니다.`
+      : `Basis: compared against real ${group === "aram" ? "ARAM" : "ranked Summoner's Rift"} matches of the same role and game length${sample ? ` (n=${sample.n})` : ""}. Skillshots, enemy wards, and comms are not in match data.`,
   };
 }
 
