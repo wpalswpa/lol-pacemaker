@@ -6,6 +6,8 @@ have zero definition mismatch.
 """
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 
 TIER_BUCKETS: dict[str, int] = {"low": 0, "mid": 1, "high": 2}
@@ -52,3 +54,26 @@ def vectorize_rows(rows: list[dict[str, float | int]]) -> np.ndarray:
 def vectorize_row(row: dict[str, float | int]) -> np.ndarray:
     """Convert a single feature dict into float32 [1, 18] array in contract order."""
     return vectorize_rows([row])
+
+
+# AGENTS §28: per game-time logit scale. Upper edges in minutes; the last bin is open.
+CALIB_EDGES = (7.5, 12.5, 17.5, 22.5, 27.5)
+CALIB_BOUNDS = (0.5, 2.0)
+
+
+def _logit(p: np.ndarray) -> np.ndarray:
+    p = np.clip(np.asarray(p, dtype=np.float64), 1e-6, 1 - 1e-6)
+    return np.log(p / (1 - p))
+
+
+def time_bin(minutes: np.ndarray, edges: tuple[float, ...] | list[float] = CALIB_EDGES) -> np.ndarray:
+    return np.searchsorted(np.asarray(edges, dtype=np.float64), np.asarray(minutes, dtype=np.float64), side="right")
+
+
+def apply_time_calibration(p: np.ndarray, minutes: np.ndarray, calib: dict[str, Any] | None) -> np.ndarray:
+    """p' = sigmoid(a_bin * logit(p)). No intercept: P(even)=0.5, side mirror and monotonicity are preserved."""
+    if not calib:
+        return np.asarray(p, dtype=np.float64)
+    scale = np.asarray(calib["scale"], dtype=np.float64)
+    a = scale[np.clip(time_bin(minutes, calib["edges"]), 0, len(scale) - 1)]
+    return 1.0 / (1.0 + np.exp(-a * _logit(p)))

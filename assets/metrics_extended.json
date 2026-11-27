@@ -1,56 +1,87 @@
 {
   "selected": "logistic",
-  "n_train": 256,
+  "n_train": 576,
   "side_flip_augment": true,
-  "n_eval": 57,
-  "n_matches": 90,
-  "brier": 0.1486,
-  "log_loss": 0.4298,
-  "auc": 0.8687,
-  "onnx_max_diff": 7.018860470608956e-08,
+  "n_eval": 152,
+  "n_matches": 179,
+  "brier": 0.1804,
+  "log_loss": 0.5234,
+  "auc": 0.8054,
+  "onnx_max_diff": 1.1382317022246013e-07,
   "candidates": [
     {
       "model": "logistic",
-      "log_loss": 0.4298,
-      "brier": 0.1486,
-      "auc": 0.8687,
-      "onnx_max_diff": 7.018860470608956e-08,
+      "log_loss": 0.5234,
+      "brier": 0.1804,
+      "auc": 0.8054,
+      "onnx_max_diff": 1.1382317022246013e-07,
       "parity_ok": true,
       "monotone_violations": []
     },
     {
       "model": "gboost",
-      "log_loss": 0.4722,
-      "brier": 0.1645,
-      "auc": 0.8475,
-      "onnx_max_diff": 8.111003491073632e-08,
+      "log_loss": 0.5846,
+      "brier": 0.2022,
+      "auc": 0.7724,
+      "onnx_max_diff": 9.260009325995355e-08,
       "parity_ok": true,
       "monotone_violations": [
-        "avg_level_diff",
-        "inhibitors_diff"
+        "cs_diff"
       ]
     }
   ],
+  "time_calibration": {
+    "schema": 1,
+    "kind": "logit_scale_by_minute",
+    "edges": [
+      7.5,
+      12.5,
+      17.5,
+      22.5,
+      27.5
+    ],
+    "scale": [
+      1.9346,
+      1.0494,
+      0.8782,
+      0.7482,
+      0.5695,
+      1.0
+    ],
+    "n": [
+      68,
+      143,
+      140,
+      112,
+      88,
+      25
+    ],
+    "fit": "5-fold out-of-fold by match on the training split"
+  },
+  "eval_brier_raw_vs_calibrated": [
+    0.1804,
+    0.1781
+  ],
   "top_patterns": [
     {
-      "feature": "cs_diff",
-      "importance": 0.14042
+      "feature": "towers_diff",
+      "importance": 0.06063
     },
     {
       "feature": "assists_diff",
-      "importance": 0.08944
-    },
-    {
-      "feature": "towers_diff",
-      "importance": 0.05599
+      "importance": 0.03437
     },
     {
       "feature": "recent_3m_kill_diff",
-      "importance": 0.03533
+      "importance": 0.02805
+    },
+    {
+      "feature": "cs_diff",
+      "importance": 0.02509
     },
     {
       "feature": "avg_level_diff",
-      "importance": 0.00565
+      "importance": 0.01024
     }
   ],
   "stats_cells": 72

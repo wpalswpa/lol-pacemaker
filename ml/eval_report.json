@@ -1,121 +1,121 @@
 {
  "data": {
-  "matches": 168,
-  "ranked": 124,
-  "aram": 42,
-  "remake": 2,
-  "note": "KR matches collected by ml.pipeline (AGENTS §20); none are in data/*.jsonl"
+  "matches": 160,
+  "ranked": 128,
+  "aram": 29,
+  "remake": 3,
+  "note": "KR matches collected by ml.pipeline (AGENTS §20); none are in data/*.jsonl",
+  "quality": {
+   "season": 16,
+   "kept": 157,
+   "remake": 3,
+   "old_season": 16,
+   "afk": 2
+  }
  },
  "model": {
   "model_dir": "assets",
   "mode": "extended",
   "ranked_heldout": {
    "all": {
-    "n": 592,
-    "brier": 0.1733,
-    "log_loss": 0.5274,
-    "ece": 0.0539,
-    "direction_acc": 0.7534
+    "n": 194,
+    "brier": 0.1795,
+    "log_loss": 0.5236,
+    "ece": 0.0592,
+    "direction_acc": 0.7165
    },
-   "matches": 124,
+   "matches": 39,
    "by_minute": {
     "5": {
-     "n": 124,
-     "brier": 0.2151,
-     "log_loss": 0.6198,
-     "ece": 0.066,
-     "direction_acc": 0.6532
+     "n": 39,
+     "brier": 0.2244,
+     "log_loss": 0.6471,
+     "ece": 0.0885,
+     "direction_acc": 0.641
     },
     "10": {
-     "n": 124,
-     "brier": 0.1843,
-     "log_loss": 0.5447,
-     "ece": 0.0998,
-     "direction_acc": 0.7097
+     "n": 39,
+     "brier": 0.1946,
+     "log_loss": 0.5658,
+     "ece": 0.0976,
+     "direction_acc": 0.6667
     },
     "15": {
-     "n": 123,
-     "brier": 0.157,
-     "log_loss": 0.4829,
-     "ece": 0.0997,
-     "direction_acc": 0.7886
+     "n": 39,
+     "brier": 0.1732,
+     "log_loss": 0.5139,
+     "ece": 0.2013,
+     "direction_acc": 0.7692
     },
     "20": {
-     "n": 101,
-     "brier": 0.1625,
-     "log_loss": 0.4997,
-     "ece": 0.1287,
-     "direction_acc": 0.7921
+     "n": 35,
+     "brier": 0.1907,
+     "log_loss": 0.5422,
+     "ece": 0.1608,
+     "direction_acc": 0.6857
     },
     "25": {
-     "n": 74,
-     "brier": 0.1596,
-     "log_loss": 0.5208,
-     "ece": 0.1448,
-     "direction_acc": 0.8108
+     "n": 27,
+     "brier": 0.131,
+     "log_loss": 0.4041,
+     "ece": 0.1157,
+     "direction_acc": 0.8148
     },
     "30": {
-     "n": 46,
-     "brier": 0.1206,
-     "log_loss": 0.4218,
-     "ece": 0.1335,
-     "direction_acc": 0.8696
+     "n": 15,
+     "brier": 0.1009,
+     "log_loss": 0.2895,
+     "ece": 0.1515,
+     "direction_acc": 0.8
     }
    }
   },
   "mirror_gap_mean": 0.0,
-  "heldout_first_blood_team_win_rate": 0.4983,
-  "heldout_blue_win_rate": 0.5242,
+  "heldout_first_blood_team_win_rate": 0.5361,
+  "heldout_blue_win_rate": 0.4872,
   "aram_heldout": {
    "all": {
-    "n": 125,
-    "brier": 0.202,
-    "log_loss": 0.581,
-    "ece": 0.1572,
-    "direction_acc": 0.696
+    "n": 18,
+    "brier": 0.3909,
+    "log_loss": 1.2478,
+    "ece": 0.4455,
+    "direction_acc": 0.5
    },
-   "matches": 38,
+   "matches": 6,
    "by_minute": {
     "5": {
-     "n": 38,
-     "brier": 0.252,
-     "log_loss": 0.7164,
-     "ece": 0.1678,
-     "direction_acc": 0.6316
+     "n": 6,
+     "brier": 0.573,
+     "log_loss": 2.1214,
+     "ece": 0.6028,
+     "direction_acc": 0.3333
     },
     "10": {
-     "n": 38,
-     "brier": 0.1998,
-     "log_loss": 0.6075,
-     "ece": 0.205,
-     "direction_acc": 0.7368
+     "n": 6,
+     "brier": 0.3038,
+     "log_loss": 0.79,
+     "ece": 0.4116,
+     "direction_acc": 0.5
     },
     "15": {
-     "n": 31,
-     "brier": 0.2118,
-     "log_loss": 0.5563,
-     "ece": 0.2637,
-     "direction_acc": 0.6129
+     "n": 4,
+     "brier": 0.3904,
+     "log_loss": 1.06,
+     "ece": 0.5081,
+     "direction_acc": 0.5
     },
     "20": {
-     "n": 12,
-     "brier": 0.1244,
-     "log_loss": 0.4018,
-     "ece": 0.1205,
-     "direction_acc": 0.8333
-    },
-    "25": {
-     "n": 5,
-     "brier": 0.0046,
-     "log_loss": 0.0498,
-     "ece": 0.0473,
+     "n": 1,
+     "brier": 0.1836,
+     "log_loss": 0.5595,
+     "ece": 0.4285,
      "direction_acc": 1.0
     },
-    "30": {
+    "25": {
      "n": 1,
-     "brier": 0.0,
-     "log_loss": 0.0001,
-     "ece": 0.0001,
+     "brier": 0.0307,
+     "log_loss": 0.1927,
+     "ece": 0.1753,
      "direction_acc": 1.0
     }
    }
@@ -128,20 +128,20 @@
    "25": 0.5,
    "30": 0.5
   },
-  "blue_kill_effect_pp": 1.8,
+  "blue_kill_effect_pp": 2.2,
   "monotone_violations": []
  },
- "model_rows": "all",
+ "model_rows": "eval",
  "strategy": {
   "synthetic": true,
   "cases": 13,
   "failed": [],
   "errors": 0,
-  "evaluate_ms_p95": 0.249
+  "evaluate_ms_p95": 0.242
  },
  "review": {
   "module": "worker/review.js",
-  "cases": 550,
+  "cases": 522,
   "errors": {
    "crash": 0,
    "remake_analyzed": 0,
@@ -149,55 +149,56 @@
    "short_game_gd15": 0,
    "missing_timeline": 0,
    "missing_opponent": 0,
-   "missing_overall": 0
+   "missing_overall": 0,
+   "afk_unflagged": 0
   },
   "contradictions": {
    "metric_side": 0,
    "tier_claim": 0,
-   "checked_lines": 2264
+   "checked_lines": 2093
   },
   "examples": [],
   "categories": {
    "D_jungle_objective_win": {
     "n": 23,
-    "pass": 15
+    "pass": 16
    },
    "C_collapse_deaths": {
     "n": 15,
-    "pass": 5
+    "pass": 4
    },
    "A_lane_lead_then_loss": {
     "n": 29,
     "pass": 29
    },
    "B_vision_carry_support": {
-    "n": 23,
-    "pass": 18
+    "n": 24,
+    "pass": 20
    },
    "E_remake": {
-    "n": 20,
-    "pass": 20
+    "n": 30,
+    "pass": 30
    }
   },
   "calibration": {
    "overall:TOP": {
     "n": 78,
-    "mean_t": 49.1,
+    "mean_t": 49.3,
     "extreme_share": 0.128
    },
    "lane:TOP": {
     "n": 78,
     "mean_t": 50,
-    "extreme_share": 0.179
+    "extreme_share": 0.128
    },
    "farm:TOP": {
     "n": 78,
-    "mean_t": 48.8,
-    "extreme_share": 0.077
+    "mean_t": 49.5,
+    "extreme_share": 0.038
    },
    "combat:TOP": {
     "n": 78,
-    "mean_t": 49.5,
+    "mean_t": 49.2,
     "extreme_share": 0.038
    },
    "vision:TOP": {
@@ -207,18 +208,18 @@
    },
    "survival:TOP": {
     "n": 78,
-    "mean_t": 49.2,
+    "mean_t": 49.3,
     "extreme_share": 0.077
    },
    "damage:TOP": {
     "n": 78,
     "mean_t": 49.2,
-    "extreme_share": 0.064
+    "extreme_share": 0.051
    },
    "overall:JUNGLE": {
     "n": 78,
-    "mean_t": 49.9,
-    "extreme_share": 0.038
+    "mean_t": 50.1,
+    "extreme_share": 0.064
    },
    "lane:JUNGLE": {
     "n": 78,
@@ -228,31 +229,31 @@
    "farm:JUNGLE": {
     "n": 78,
     "mean_t": 49.7,
-    "extreme_share": 0.077
+    "extreme_share": 0.09
    },
    "combat:JUNGLE": {
     "n": 78,
-    "mean_t": 49.2,
+    "mean_t": 49.5,
     "extreme_share": 0
    },
    "vision:JUNGLE": {
     "n": 78,
-    "mean_t": 49.7,
+    "mean_t": 50,
     "extreme_share": 0.051
    },
    "survival:JUNGLE": {
     "n": 78,
-    "mean_t": 51.8,
+    "mean_t": 51.7,
     "extreme_share": 0.038
    },
    "damage:JUNGLE": {
     "n": 78,
-    "mean_t": 49,
-    "extreme_share": 0.038
+    "mean_t": 49.4,
+    "extreme_share": 0.064
    },
    "overall:MIDDLE": {
     "n": 78,
-    "mean_t": 50.7,
+    "mean_t": 50.8,
     "extreme_share": 0.013
    },
    "lane:MIDDLE": {
@@ -262,17 +263,17 @@
    },
    "farm:MIDDLE": {
     "n": 78,
-    "mean_t": 51.1,
+    "mean_t": 51.2,
     "extreme_share": 0.026
    },
    "combat:MIDDLE": {
     "n": 78,
     "mean_t": 49.9,
-    "extreme_share": 0.064
+    "extreme_share": 0.077
    },
    "vision:MIDDLE": {
     "n": 78,
-    "mean_t": 49.4,
+    "mean_t": 49.8,
     "extreme_share": 0.013
    },
    "survival:MIDDLE": {
@@ -287,7 +288,7 @@
    },
    "overall:BOTTOM": {
     "n": 78,
-    "mean_t": 50.2,
+    "mean_t": 50.3,
     "extreme_share": 0.064
    },
    "lane:BOTTOM": {
@@ -297,18 +298,18 @@
    },
    "farm:BOTTOM": {
     "n": 78,
-    "mean_t": 48.5,
+    "mean_t": 48.7,
     "extreme_share": 0.09
    },
    "combat:BOTTOM": {
     "n": 78,
-    "mean_t": 50.8,
+    "mean_t": 50.6,
     "extreme_share": 0.013
    },
    "vision:BOTTOM": {
     "n": 78,
-    "mean_t": 51.3,
-    "extreme_share": 0.103
+    "mean_t": 51.6,
+    "extreme_share": 0.09
    },
    "survival:BOTTOM": {
     "n": 78,
@@ -317,13 +318,13 @@
    },
    "damage:BOTTOM": {
     "n": 78,
-    "mean_t": 49.4,
+    "mean_t": 49.2,
     "extreme_share": 0.051
    },
    "overall:UTILITY": {
     "n": 78,
     "mean_t": 51.1,
-    "extreme_share": 0.103
+    "extreme_share": 0.09
    },
    "lane:UTILITY": {
     "n": 78,
@@ -332,77 +333,80 @@
    },
    "farm:UTILITY": {
     "n": 78,
-    "mean_t": 51.2,
-    "extreme_share": 0.09
+    "mean_t": 50.9,
+    "extreme_share": 0.064
    },
    "combat:UTILITY": {
     "n": 78,
-    "mean_t": 49.4,
-    "extreme_share": 0.038
+    "mean_t": 49.5,
+    "extreme_share": 0.026
    },
    "vision:UTILITY": {
     "n": 78,
-    "mean_t": 50,
+    "mean_t": 50.6,
     "extreme_share": 0.026
    },
    "survival:UTILITY": {
     "n": 78,
-    "mean_t": 50.9,
+    "mean_t": 50.7,
     "extreme_share": 0.051
    },
    "damage:UTILITY": {
     "n": 78,
-    "mean_t": 51.6,
-    "extreme_share": 0.09
+    "mean_t": 51.4,
+    "extreme_share": 0.077
    },
    "aram_economy": {
-    "n": 110,
-    "mean_t": 50.5,
-    "extreme_share": 0.045
+    "n": 70,
+    "mean_t": 50.7,
+    "extreme_share": 0.1
    },
    "aram_farm": {
-    "n": 110,
-    "mean_t": 49.9,
-    "extreme_share": 0.045
+    "n": 70,
+    "mean_t": 50.1,
+    "extreme_share": 0.029
    },
    "aram_combat": {
-    "n": 110,
-    "mean_t": 49.4,
-    "extreme_share": 0.036
+    "n": 70,
+    "mean_t": 49.7,
+    "extreme_share": 0.029
    },
    "aram_frontline": {
-    "n": 110,
+    "n": 70,
     "mean_t": 50,
-    "extreme_share": 0.055
+    "extreme_share": 0.043
    },
    "aram_survival": {
-    "n": 110,
-    "mean_t": 49,
-    "extreme_share": 0.018
+    "n": 70,
+    "mean_t": 48.6,
+    "extreme_share": 0.029
    },
    "aram_damage": {
-    "n": 110,
+    "n": 70,
     "mean_t": 50,
-    "extreme_share": 0.091
+    "extreme_share": 0.1
    }
   },
   "latency_ms": {
-   "n": 520,
-   "p50": 1.129,
-   "p95": 1.75,
-   "max": 21.651,
-   "analyze_p95": 0.373
+   "n": 490,
+   "p50": 0.531,
+   "p95": 0.825,
+   "max": 10.908,
+   "analyze_p95": 0.171
   },
   "calibration_summary": {
    "cells": 35,
-   "mean_abs_t_bias": 0.68,
-   "extreme_share": 0.059,
+   "mean_abs_t_bias": 0.63,
+   "extreme_share": 0.056,
    "expected_extreme_share_normal": 0.046
   },
   "eval_matches": {
-   "total": 52,
-   "remake": 2,
-   "aram": 11,
+   "season": 16,
+   "afk_games": 2,
+   "excluded_dirty": 18,
+   "total": 49,
+   "remake": 3,
+   "aram": 7,
    "ranked": 39
   }
  },

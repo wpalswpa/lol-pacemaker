@@ -533,6 +533,26 @@ export function baselineCell(baseline, group, position, bucket, metric) {
   return null;
 }
 
+// AGENTS §28: the same AFK rule as ml/pipeline.py `afk_participants` (XP stalls 4 minutes after minute 3).
+export const AFK_RULE = { fromFrame: 3, stallFrames: 4, xpEps: 5 };
+export function afkParticipants(timeline) {
+  const frames = timeline?.info?.frames || [];
+  const out = [];
+  for (let pid = 1; pid <= 10; pid++) {
+    const xs = frames.map((f) => Number(f?.participantFrames?.[String(pid)]?.xp || 0));
+    let stall = 0;
+    for (let i = AFK_RULE.fromFrame; i + 1 < xs.length; i++) {
+      stall = xs[i + 1] - xs[i] <= AFK_RULE.xpEps ? stall + 1 : 0;
+      if (stall >= AFK_RULE.stallFrames) { out.push(pid); break; }
+    }
+  }
+  return out;
+}
+export function seasonOf(info) {
+  const n = parseInt(String(info?.gameVersion || "0").split(".")[0], 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
 function zOf(value, cell, metric) {
   if (value === null || value === undefined || !cell) return null;
   const z = (value - cell.mean) / cell.std;
@@ -890,8 +910,10 @@ export function analyzeMatch(match, timeline, puuid, lang, baseline) {
 
   const { _drop, _rise, ...patterns } = pat;
   const sample = metrics.find((p) => p.baseline)?.baseline;
+  const afk = afkParticipants(timeline);
   return {
     ...base, status: "ok",
+    data_quality: { afk: afk.length, me_afk: afk.includes(me0.participantId), ally_afk: afk.filter((pid) => (pid <= 5) === (me0.participantId <= 5) && pid !== me0.participantId).length },
     cs_per_min: Number(m.cs_per_min.toFixed(1)), vision_score: me.visionScore || 0,
     kill_participation: m.kp === null ? 0 : Math.round(m.kp), gold_diff_15m: m.lane_gd15,
     costly_deaths: topDeaths, metrics, overall_perf: overall, patterns, pattern_z: patternZ, turning_point: turning,

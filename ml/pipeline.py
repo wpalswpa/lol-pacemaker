@@ -45,6 +45,7 @@ EVENT_DROP_KEYS = ("victimDamageDealt", "victimDamageReceived", "victimTeamfight
 PF_KEEP = ("totalGold", "currentGold", "level", "xp", "minionsKilled", "jungleMinionsKilled", "position")
 QUEUES = {"ranked": "queue=420&type=ranked", "aram": "queue=450"}
 MAX_PAYLOAD = 64 * 1024
+STORE_SNAPSHOT_MINUTES = (5, 10, 15, 20, 25, 30)  # AGENTS §28: same minutes the HUD serves and eval_patterns scores
 
 
 # ------------------------------------------------------------------ anonymize / encode
@@ -59,6 +60,59 @@ def is_eval_tag(t: str) -> bool:
 def is_remake(match: dict[str, Any]) -> bool:
     info = match.get("info") or {}
     return float(info.get("gameDuration") or 0) < 300 or any(p.get("gameEndedInEarlySurrender") for p in info.get("participants") or [])
+
+
+AFK_FROM_FRAME = 3      # ignore the first minutes (everyone is walking to lane)
+AFK_STALL_FRAMES = 4    # this many consecutive minutes without XP growth ...
+AFK_XP_EPS = 5          # ... of at most this much XP = the player is not in the game
+
+
+def season_of(row: dict[str, Any]) -> int:
+    """Patch major (e.g. 16 for '16.23.731.0'); 0 when unknown."""
+    try:
+        return int(str(row["match"]["info"].get("gameVersion") or "0").split(".")[0])
+    except ValueError:
+        return 0
+
+
+def afk_participants(timeline: dict[str, Any] | None) -> list[int]:
+    """AGENTS §28: participantIds whose XP stalls for AFK_STALL_FRAMES minutes after minute AFK_FROM_FRAME."""
+    frames = ((timeline or {}).get("info") or {}).get("frames") or []
+    out = []
+    for pid in range(1, 11):
+        xs = [float(((f.get("participantFrames") or {}).get(str(pid)) or {}).get("xp") or 0) for f in frames]
+        stall = 0
+        for a, b in zip(xs[AFK_FROM_FRAME:], xs[AFK_FROM_FRAME + 1:]):
+            stall = stall + 1 if b - a <= AFK_XP_EPS else 0
+            if stall >= AFK_STALL_FRAMES:
+                out.append(pid)
+                break
+    return out
+
+
+def quality_issues(row: dict[str, Any], season: int) -> list[str]:
+    """AGENTS §28: reasons a stored match must not train, build baselines or be evaluated on. [] = clean."""
+    bad = []
+    if row.get("remake"):
+        bad.append("remake")
+    if season and season_of(row) != season:
+        bad.append("old_season")
+    if afk_participants(row.get("timeline")):
+        bad.append("afk")
+    return bad
+
+
+def clean_rows(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    """Split the store into clean rows + a count per drop reason (a row can have several)."""
+    season = max((season_of(r) for r in rows), default=0)
+    kept, dropped = [], {"remake": 0, "old_season": 0, "afk": 0}
+    for r in rows:
+        issues = quality_issues(r, season)
+        for i in issues:
+            dropped[i] += 1
+        if not issues:
+            kept.append(r)
+    return kept, {"season": season, "kept": len(kept), **dropped}
 
 
 def slim(match: dict[str, Any], timeline: dict[str, Any] | None, bucket: str) -> dict[str, Any]:
@@ -262,10 +316,11 @@ def build(rows: list[dict[str, Any]], out_dir: Path, store_path: Path) -> dict[s
     import eval_patterns  # noqa: PLC0415
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    train_rows = [r for r in rows if r["queue"] == 420 and not r["remake"] and r["timeline"] and not is_eval_tag(r["match"]["metadata"]["matchId"])]
+    clean, quality = clean_rows(rows)  # AGENTS §28: remake / old season / AFK never train, build or evaluate
+    train_rows = [r for r in clean if r["queue"] == 420 and r["timeline"] and not is_eval_tag(r["match"]["metadata"]["matchId"])]
     snaps, players = load_jsonl(sorted((ROOT / "data").glob("*.jsonl")))
     for r in train_rows:
-        snaps += extract_timeline_snapshots(r["match"], r["timeline"], r["bucket"])
+        snaps += extract_timeline_snapshots(r["match"], r["timeline"], r["bucket"], STORE_SNAPSHOT_MINUTES)
         players += extract_player_stats(r["match"], r["timeline"], r["bucket"])
     metrics = train_and_export_onnx(snaps, out_dir, player_rows=players)
 
@@ -278,12 +333,14 @@ def build(rows: list[dict[str, Any]], out_dir: Path, store_path: Path) -> dict[s
         subprocess.run([node, str(ROOT / "scripts" / "build_review_baseline.mjs"), str(store_path), "--out", str(wdir / "review_baseline.js"),
                         "--module", str(wdir / "review.js")], check=True, capture_output=True, text=True)
 
-    eval_rows = [r for r in rows if is_eval_tag(r["match"]["metadata"]["matchId"]) or r["remake"]]
+    eval_rows = [r for r in clean if is_eval_tag(r["match"]["metadata"]["matchId"])] + [r for r in rows if r["remake"]]
     cand = eval_patterns.model_report(out_dir, eval_rows)
+    cand_raw = eval_patterns.model_report(out_dir, eval_rows, calibrated=False)
     cur = eval_patterns.model_report(ROOT / "assets", eval_rows)
     rep = {
-        "train_matches": {"bundled_90": True, "store": len(train_rows)}, "eval_matches": len(eval_rows),
-        "train_metrics": {k: metrics[k] for k in ("selected", "n_matches", "log_loss", "brier", "auc")},
+        "quality": quality, "train_matches": {"bundled_90": True, "store": len(train_rows)}, "eval_matches": len(eval_rows),
+        "candidate_without_time_calibration": cand_raw.get("ranked_heldout"),
+        "train_metrics": {k: metrics[k] for k in ("selected", "n_matches", "log_loss", "brier", "auc", "time_calibration")},
         "candidate": cand, "current": cur,
         "strategy": eval_patterns.strategy_report(out_dir),
         "review": eval_patterns.review_report(wdir / "review.js", store_path) if node else {"skipped": "node not found"},
@@ -292,8 +349,11 @@ def build(rows: list[dict[str, Any]], out_dir: Path, store_path: Path) -> dict[s
     c, k = cand.get("ranked_heldout", {}).get("all"), cur.get("ranked_heldout", {}).get("all")
     if not c or not k:
         rep["gate_failures"].append("no ranked evaluation matches")
-    elif c["brier"] > k["brier"]:
-        rep["gate_failures"].append(f"candidate Brier {c['brier']} worse than current {k['brier']}")
+    else:
+        if c["brier"] > k["brier"]:
+            rep["gate_failures"].append(f"candidate Brier {c['brier']} worse than current {k['brier']}")
+        if c["ece"] > k["ece"]:
+            rep["gate_failures"].append(f"candidate ECE {c['ece']} worse than current {k['ece']}")
     rep["accepted"] = not rep["gate_failures"]
     (out_dir / "pipeline_report.json").write_text(json.dumps(rep, indent=1, ensure_ascii=False), encoding="utf-8")
     return rep

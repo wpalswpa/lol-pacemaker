@@ -23,7 +23,10 @@ from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from ml.features import CONTEXT_COLUMNS, EXTENDED_FEATURES, MASKED_FEATURES, vectorize_rows
+from ml.features import (CALIB_BOUNDS, CALIB_EDGES, CONTEXT_COLUMNS, EXTENDED_FEATURES, MASKED_FEATURES, _logit,
+                         apply_time_calibration, time_bin, vectorize_rows)
+
+__all__ = ["apply_time_calibration", "fit_time_calibration", "time_bin"]
 
 STATS_METRICS = ("cs_per_min", "level", "kill_participation")
 MIN_N = 30
@@ -142,6 +145,39 @@ def monotone_violations(model: Any, tol: float = 1e-6) -> list[str]:
     return sorted(set(bad))
 
 
+def fit_time_calibration(make_model: Any, X: np.ndarray, y: np.ndarray, groups: list[str], augment: bool,
+                         folds: int = 5, seed: int = 42) -> dict[str, Any] | None:
+    """Out-of-fold (by match) predictions on the training split -> one logit scale per time bin."""
+    from scipy.optimize import minimize_scalar
+
+    ids = sorted(set(groups))
+    if len(ids) < folds * 4:
+        return None
+    random.Random(seed).shuffle(ids)
+    fold_of = {g: i % folds for i, g in enumerate(ids)}
+    fold = np.array([fold_of[g] for g in groups])
+    oof = np.full(len(y), np.nan)
+    for k in range(folds):
+        tr, te = fold != k, fold == k
+        Xk, yk = (side_flip_augment(X[tr], y[tr]) if augment else (X[tr], y[tr]))
+        if len(set(yk.tolist())) < 2:
+            return None
+        oof[te] = make_model().fit(Xk, yk).predict_proba(X[te])[:, 1]
+    z, bins = _logit(oof), time_bin(X[:, 0])
+    scale, counts = [], []
+    for b in range(len(CALIB_EDGES) + 1):
+        m = bins == b
+        counts.append(int(m.sum()))
+        if m.sum() < 30:
+            scale.append(1.0)
+            continue
+        zb, yb = z[m], y[m].astype(np.float64)
+        nll = lambda a, zb=zb, yb=yb: float(np.mean(np.logaddexp(0.0, a * zb) - yb * a * zb))  # noqa: E731
+        scale.append(round(float(minimize_scalar(nll, bounds=CALIB_BOUNDS, method="bounded").x), 4))
+    return {"schema": 1, "kind": "logit_scale_by_minute", "edges": list(CALIB_EDGES), "scale": scale, "n": counts,
+            "fit": f"{folds}-fold out-of-fold by match on the training split"}
+
+
 def _candidates() -> dict[str, Any]:
     return {
         "logistic": MonotoneLogistic(C=1.0),
@@ -165,6 +201,7 @@ def train_and_export_onnx(
     parity_tol: float = 1e-4,
     player_rows: list[dict[str, Any]] | None = None,
     augment_sides: bool = True,
+    time_calibration: bool = True,
 ) -> dict[str, Any]:
     """Compare logistic vs. small boosted trees, export the best ONNX that passes parity."""
     if len(rows) < 20:
@@ -226,7 +263,16 @@ def train_and_export_onnx(
         reverse=True,
     )
 
+    calib = None
+    if time_calibration:
+        groups = [str(rows[i].get("match_id") or f"row{i}") for i in train_idx]
+        calib = fit_time_calibration(lambda: _candidates()[chosen], X[train_idx], y[train_idx], groups, augment_sides)
+    raw_ev = model.predict_proba(X_ev)[:, 1]
+    cal_ev = apply_time_calibration(raw_ev, X_ev[:, 0], calib)
+
     stats = build_distribution_stats(player_rows or [])
+    if calib:
+        stats["win_calibration"] = calib  # AGENTS §28: shipped with the model by the updater, applied by the predictor
     (out_path / "distribution_stats.json").write_text(json.dumps(stats, indent=2), encoding="utf-8")
 
     chosen_entry = next(e for e in scored if e["model"] == chosen)
@@ -241,6 +287,8 @@ def train_and_export_onnx(
         "auc": chosen_entry["auc"],
         "onnx_max_diff": chosen_entry["onnx_max_diff"],
         "candidates": scored,
+        "time_calibration": calib,
+        "eval_brier_raw_vs_calibrated": [round(float(brier_score_loss(y_ev, raw_ev)), 4), round(float(brier_score_loss(y_ev, cal_ev)), 4)],
         "top_patterns": patterns[:5],
         "stats_cells": sum(len(roles) for mins in stats["tiers"].values() for roles in mins.values()),
     }

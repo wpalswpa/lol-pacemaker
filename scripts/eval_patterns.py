@@ -66,10 +66,12 @@ def calib(p: np.ndarray, y: np.ndarray, bins: int = 10) -> dict[str, float]:
     }
 
 
-def model_report(model_dir: Path, rows: list[dict[str, Any]]) -> dict[str, Any]:
+def model_report(model_dir: Path, rows: list[dict[str, Any]], calibrated: bool = True) -> dict[str, Any]:
     from src.predictor import LocalOnnxPredictor, ScoreboardState
 
     pred = LocalOnnxPredictor(assets_dir=model_dir, model_dirs=[])
+    if not calibrated:  # AGENTS §28 ablation: the same ONNX without the per-minute scale
+        pred.calibration = None
     rep: dict[str, Any] = {"model_dir": str(model_dir.relative_to(ROOT)) if model_dir.is_relative_to(ROOT) else model_dir.name, "mode": pred.mode}
     for name, queue in (("ranked_heldout", 420), ("aram_heldout", 450)):
         snaps = snapshots(rows, queue)
@@ -228,11 +230,15 @@ def main(argv: list[str] | None = None) -> int:
     if not args.data.exists():
         print(f"missing {args.data}: run `python -m ml.pipeline collect` first (needs RIOT_API_KEY)", file=sys.stderr)
         return 2
-    rows = load_eval(args.data)
+    from ml.pipeline import clean_rows
+
+    raw_rows = load_eval(args.data)
+    rows, quality = clean_rows(raw_rows)  # AGENTS §28: old season / AFK games are not evaluation material
+    rows += [r for r in raw_rows if r["remake"]]  # remakes stay as review edge cases (models skip them)
     rep = {
         "data": {"matches": len(rows), "ranked": sum(r["queue"] == 420 and not r["remake"] for r in rows),
                  "aram": sum(r["queue"] == 450 and not r["remake"] for r in rows), "remake": sum(r["remake"] for r in rows),
-                 "note": "KR matches collected by ml.pipeline (AGENTS §20); none are in data/*.jsonl"},
+                 "note": "KR matches collected by ml.pipeline (AGENTS §20); none are in data/*.jsonl", "quality": quality},
         "model": model_report(args.model_dir.resolve(), rows if args.model_rows == "all" else
                               [r for r in rows if r["remake"] or int(r["match"]["metadata"]["matchId"][:8], 16) % 3 == 0]),
         "model_rows": args.model_rows,

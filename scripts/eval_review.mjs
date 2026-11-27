@@ -55,13 +55,28 @@ function facts(match, timeline, pid) {
 }
 
 const remake = (info) => info.gameDuration < 300 || info.participants.some((p) => p.gameEndedInEarlySurrender);
-const evalRows = rows.filter((r) => remake(r.match.info) || !isBaselineSplit(r.match.metadata.matchId));
-const baseRows = rows.filter((r) => !remake(r.match.info) && isBaselineSplit(r.match.metadata.matchId) && r.match.info.queueId === 420);
+// AGENTS §28 clean-data rule, written here independently of the module under test (old season / AFK).
+const seasonOf = (info) => parseInt(String(info.gameVersion || "0").split(".")[0], 10) || 0;
+const afkCount = (tl) => {
+  const frames = tl?.info?.frames || [];
+  let n = 0;
+  for (let pid = 1; pid <= 10; pid++) {
+    const xs = frames.map((f) => Number(f?.participantFrames?.[String(pid)]?.xp || 0));
+    let stall = 0;
+    for (let i = 3; i + 1 < xs.length; i++) { stall = xs[i + 1] - xs[i] <= 5 ? stall + 1 : 0; if (stall >= 4) { n += 1; break; } }
+  }
+  return n;
+};
+const season = Math.max(0, ...rows.map((r) => seasonOf(r.match.info)));
+const dirty = (r) => !remake(r.match.info) && (seasonOf(r.match.info) !== season || afkCount(r.timeline) > 0);
+const afkRows = rows.filter((r) => !remake(r.match.info) && afkCount(r.timeline) > 0);
+const evalRows = rows.filter((r) => remake(r.match.info) || (!isBaselineSplit(r.match.metadata.matchId) && !dirty(r)));
+const baseRows = rows.filter((r) => !remake(r.match.info) && !dirty(r) && isBaselineSplit(r.match.metadata.matchId) && r.match.info.queueId === 420);
 const supVis = baseRows.flatMap((r) => r.match.info.participants.filter((p) => p.teamPosition === "UTILITY").map((p) => p.visionScore / (r.match.info.gameDuration / 60))).sort((a, b) => a - b);
 const supVisP75 = supVis[Math.floor(0.75 * supVis.length)] ?? Infinity;
 
 const out = {
-  module: modPath.replace(ROOT + "/", ""), cases: 0, errors: { crash: 0, remake_analyzed: 0, aram_rift_metrics: 0, short_game_gd15: 0, missing_timeline: 0, missing_opponent: 0, missing_overall: 0 },
+  module: modPath.replace(ROOT + "/", ""), cases: 0, errors: { crash: 0, remake_analyzed: 0, aram_rift_metrics: 0, short_game_gd15: 0, missing_timeline: 0, missing_opponent: 0, missing_overall: 0, afk_unflagged: 0 },
   contradictions: { metric_side: 0, tier_claim: 0, checked_lines: 0 }, examples: [],
   categories: {}, calibration: {}, latency_ms: {},
 };
@@ -135,6 +150,13 @@ for (const r of ranked) {
   out.cases += 3;
 }
 
+// AFK games (any split): a review of such a game must say so (AGENTS §28 data_quality).
+for (const r of afkRows) {
+  const res = await review(r.match, r.timeline, r.match.info.participants[0].puuid);
+  if (res.status !== 200 || !(res.body.data_quality && res.body.data_quality.afk > 0)) out.errors.afk_unflagged += 1;
+  out.cases += 1;
+}
+
 for (const [k, ts] of Object.entries(tByKey)) {
   const mean = ts.reduce((a, b) => a + b, 0) / ts.length;
   out.calibration[k] = { n: ts.length, mean_t: Number(mean.toFixed(1)), extreme_share: Number((ts.filter((t) => Math.abs(t - 50) > 20).length / ts.length).toFixed(3)) };
@@ -159,5 +181,5 @@ if (typeof mod.analyzeMatch === "function" && mod.REVIEW_RULES) {
   pure.sort((a, b) => a - b);
   out.latency_ms.analyze_p95 = Number(pure[Math.floor(pure.length * 0.95)].toFixed(3));
 }
-out.eval_matches = { total: evalRows.length, remake: evalRows.filter((r) => remake(r.match.info)).length, aram: evalRows.filter((r) => r.match.info.queueId === 450 && !remake(r.match.info)).length, ranked: evalRows.filter((r) => r.match.info.queueId === 420 && !remake(r.match.info)).length };
+out.eval_matches = { season, afk_games: afkRows.length, excluded_dirty: rows.filter(dirty).length, total: evalRows.length, remake: evalRows.filter((r) => remake(r.match.info)).length, aram: evalRows.filter((r) => r.match.info.queueId === 450 && !remake(r.match.info)).length, ranked: evalRows.filter((r) => r.match.info.queueId === 420 && !remake(r.match.info)).length };
 console.log(JSON.stringify(out, null, 1));

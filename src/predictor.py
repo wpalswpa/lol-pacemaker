@@ -17,7 +17,7 @@ import numpy as np
 import onnxruntime as ort
 from pydantic import BaseModel, ConfigDict, Field
 
-from ml.features import CONTEXT_COLUMNS, EXTENDED_FEATURES, MASKED_FEATURES, TIER_BUCKETS, vectorize_rows
+from ml.features import CONTEXT_COLUMNS, EXTENDED_FEATURES, MASKED_FEATURES, TIER_BUCKETS, apply_time_calibration, vectorize_rows
 
 Side = Literal["blue", "red"]
 Tier = Literal["low", "mid", "high"]
@@ -123,6 +123,17 @@ def _input_width(sess: ort.InferenceSession) -> int | None:
     return shape[1] if len(shape) == 2 and isinstance(shape[1], int) else None
 
 
+def _valid_calibration(c: Any) -> dict[str, Any] | None:
+    """Accept only a well-formed per-minute scale table with positive scales (keeps monotonicity)."""
+    try:
+        edges, scale = [float(e) for e in c["edges"]], [float(a) for a in c["scale"]]
+    except (TypeError, KeyError, ValueError):
+        return None
+    if len(scale) != len(edges) + 1 or edges != sorted(edges) or not all(0.0 < a <= 5.0 for a in scale):
+        return None
+    return {"edges": edges, "scale": scale}
+
+
 class LocalOnnxPredictor:
     """Zero-server ONNX Runtime inference wrapper with extended/legacy fallback."""
 
@@ -139,6 +150,7 @@ class LocalOnnxPredictor:
         self.source: Path | None = None
         self.stats: dict[str, Any] | None = None
         self.load_errors: list[str] = []
+        self.calibration: dict[str, Any] | None = None  # AGENTS §28 per-minute logit scale (from distribution_stats.json)
         self._sess: ort.InferenceSession | None = None
 
         for cand in candidates:
@@ -152,6 +164,7 @@ class LocalOnnxPredictor:
                 self._out_name, self._col = _output_spec(sess)
                 self._sess, self.mode, self.source = sess, "extended", ext
                 self.stats = self._load_stats(cand / "distribution_stats.json")
+                self.calibration = _valid_calibration((self.stats or {}).get("win_calibration"))
                 break
             except Exception as exc:  # corrupted/mismatched model -> try the next candidate
                 self.load_errors.append(f"{ext}: {exc}")
@@ -181,7 +194,10 @@ class LocalOnnxPredictor:
     def _blue_probs(self, matrix: np.ndarray) -> np.ndarray:
         assert self._sess is not None
         out = self._sess.run([self._out_name], {"X": matrix.astype(np.float32)})[0]
-        return np.asarray(out)[:, self._col].astype(np.float64)
+        p = np.asarray(out)[:, self._col].astype(np.float64)
+        if self.calibration is None or self.mode != "extended":
+            return p
+        return apply_time_calibration(p, matrix[:, 0], self.calibration)
 
     def _matrix(self, state: ScoreboardState) -> np.ndarray:
         if self.mode == "extended":

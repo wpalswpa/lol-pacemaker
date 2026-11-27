@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const argOf = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
-const { playerMetrics, queueGroup, isRemake, analyzeMatch } = await import(argOf("--module", join(ROOT, "worker", "review.js")));
+const { playerMetrics, queueGroup, isRemake, analyzeMatch, afkParticipants, seasonOf } = await import(argOf("--module", join(ROOT, "worker", "review.js")));
 
 export const METRICS = [
   "cs_per_min", "gold_per_min", "kp", "vision_per_min", "deaths_per10", "dmg_share", "taken_share", "lane_gd15",
@@ -29,13 +29,29 @@ function stats(vals) {
   const std = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1));
   return { mean: Number(mean.toFixed(4)), std: Number(std.toFixed(4)), n };
 }
+
+// AGENTS §28: the same clean-data rule as ml/pipeline.py `clean_rows` (remake / old season / AFK).
+export function cleanFilter(rows) {
+  const season = Math.max(0, ...rows.map((r) => seasonOf ? seasonOf(r.match.info) : 0));
+  const dropped = { remake: 0, old_season: 0, afk: 0 };
+  const keep = rows.filter((r) => {
+    const bad = [];
+    if (isRemake(r.match.info)) bad.push("remake");
+    if (seasonOf && season && seasonOf(r.match.info) !== season) bad.push("old_season");
+    if (afkParticipants && afkParticipants(r.timeline).length) bad.push("afk");
+    bad.forEach((k) => { dropped[k] += 1; });
+    return !bad.length;
+  });
+  return { keep, quality: { season, kept: keep.length, ...dropped } };
+}
 const tertiles = (xs) => {
   const s = [...xs].sort((a, b) => a - b);
   const q = (p) => s[Math.min(s.length - 1, Math.floor(p * s.length))];
   return [Math.round(q(1 / 3) * 2) / 2, Math.round(q(2 / 3) * 2) / 2];
 };
 
-export function buildBaseline(rows) {
+export function buildBaseline(allRows) {
+  const { keep: rows, quality } = cleanFilter(allRows);
   const players = { rift: [], aram: [] };
   const durations = { rift: [], aram: [] };
   let matches = { rift: 0, aram: 0 };
@@ -98,7 +114,7 @@ export function buildBaseline(rows) {
   return {
     schema: 1, min_n: MIN_N, duration_edges: edges, cells,
     source: { platform: "KR", queues: { rift: 420, aram: 450 }, matches, players: { rift: players.rift.length, aram: players.aram.length },
-      split: "sha256(matchId) tag % 3 != 0", built: new Date().toISOString().slice(0, 10) },
+      split: "sha256(matchId) tag % 3 != 0", quality, built: new Date().toISOString().slice(0, 10) },
   };
 }
 
