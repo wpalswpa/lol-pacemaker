@@ -1621,13 +1621,14 @@ const WORKER_URL = "https://api.lol-pacemaker.workers.dev";
 const VIEW_OF = { "": "home", "#home": "home", "#overview": "home", "#setup": "home",
   "#downloads": "downloads", "#mypage": "mypage", "#history": "history", "#support": "support", "#faq": "support", "#contact": "support" };
 function showView() {
-  const view = VIEW_OF[location.hash] || "home";
+  const baseHash = (location.hash || "").split("?")[0];
+  const view = VIEW_OF[baseHash] || "home";
   document.querySelectorAll("section[data-view]").forEach(sec => { sec.hidden = sec.getAttribute("data-view") !== view; });
   document.querySelectorAll(".nav-links a[data-view-link]").forEach(a =>
     a.setAttribute("aria-current", a.getAttribute("data-view-link") === view ? "true" : "false"));
-  const rawId = location.hash.length > 1 ? location.hash.slice(1) : "";
+  const rawId = baseHash.length > 1 ? baseHash.slice(1) : "";
   const target = rawId && /^[a-zA-Z0-9_-]+$/.test(rawId) ? document.getElementById(rawId) : null;
-  if (target && !["#home", "#history", "#support", "#downloads", "#mypage"].includes(location.hash)) target.scrollIntoView();
+  if (target && !["#home", "#history", "#support", "#downloads", "#mypage"].includes(baseHash)) target.scrollIntoView();
   else window.scrollTo(0, 0);
 }
 window.addEventListener("hashchange", showView);
@@ -2636,12 +2637,17 @@ async function runMatchLookup(region, rawInput) {
   }
   const gameName = parts[0].trim();
   const tagLine = parts[1].trim();
+  const regLow = String(region || "kr").toLowerCase();
+  const cleanId = gameName + "#" + tagLine;
+  try {
+    history.replaceState(null, "", "#history?region=" + encodeURIComponent(regLow) + "&riot_id=" + encodeURIComponent(cleanId));
+  } catch (_) {}
   statusEl.textContent = dict.hist_loading;
   listEl.replaceChildren();
   try {
     // Worker contract (worker/riot-proxy.js): GET /?riot_id=Name#Tag&region=kr
     const url = WORKER_URL + "/?riot_id=" + encodeURIComponent(gameName + "#" + tagLine)
-      + "&region=" + encodeURIComponent(String(region).toLowerCase());
+      + "&region=" + encodeURIComponent(regLow);
     const res = await fetch(url);
     const data = await res.json();
     if (!res.ok || !Array.isArray(data.matches)) {
@@ -2649,7 +2655,10 @@ async function runMatchLookup(region, rawInput) {
       return;
     }
     if (data.ddragonVersion) CURRENT_DD = data.ddragonVersion;
-    LAST_SEARCHED_ID = data.riot_id || "";
+    LAST_SEARCHED_ID = data.riot_id || cleanId;
+    try {
+      history.replaceState(null, "", "#history?region=" + encodeURIComponent(String(data.region || regLow).toLowerCase()) + "&riot_id=" + encodeURIComponent(LAST_SEARCHED_ID));
+    } catch (_) {}
     statusEl.textContent = data.riot_id + " (" + String(data.region || region).toUpperCase() + ")";
     renderProfileAndSummary(data);
 
@@ -2755,9 +2764,24 @@ document.getElementById("hdr-search-form").addEventListener("submit", e => {
   if (!val) { document.getElementById("hdr-riot-input").focus(); return; }
   setRegion(reg);
   document.getElementById("riot-id-input").value = val;
-  location.hash = "#history";
+  location.hash = "#history?region=" + encodeURIComponent(reg) + "&riot_id=" + encodeURIComponent(val);
   runMatchLookup(reg, val);
 });
+
+// Restore summoner match history on page refresh or shared URL (#history?region=kr&riot_id=...)
+function restoreHistoryFromHash() {
+  const [base, qs] = (location.hash || "").split("?");
+  if (base !== "#history" || !qs) return;
+  const p = new URLSearchParams(qs);
+  const id = (p.get("riot_id") || "").trim();
+  const reg = (p.get("region") || "kr").toLowerCase();
+  if (!id.includes("#")) return;
+  setRegion(reg);
+  document.getElementById("riot-id-input").value = id;
+  document.getElementById("hdr-riot-input").value = id;
+  runMatchLookup(reg, id);
+}
+restoreHistoryFromHash();
 </script>
 </body>
 </html>
